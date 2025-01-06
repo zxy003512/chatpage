@@ -1,39 +1,76 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>赵倖億的AI聊天 Interface</title>
+    <title>赵倖億的AI聊天</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f9;
             margin: 0;
             padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         .chat-container {
-            max-width: 800px;
-            margin: 50px auto;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
             background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
         }
         .chat-header {
             background: #4a90e2;
             color: #fff;
             padding: 15px;
             text-align: center;
-            font-size: 1.5em;
+            font-size: 1.2em;
+            position: relative;
+        }
+        .log-button {
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            background: #fff;
+            color: #4a90e2;
+            border: 1px solid #4a90e2;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 0.9em;
+            border-radius: 5px;
+        }
+        .log-button:hover {
+            background: #4a90e2;
+            color: #fff;
         }
         .chat-messages {
-            padding: 20px;
-            height: 400px;
+            flex: 1;
+            padding: 10px;
             overflow-y: auto;
-            background: #f9f9f9;
+            background: linear-gradient(45deg, #4a90e2, #6a5acd, #ff69b4, #ffa500, #4a90e2);
+            background-size: 300% 300%;
+            animation: gradientAnimation 6s ease infinite;
+        }
+        @keyframes gradientAnimation {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
         }
         .chat-messages .message {
             margin-bottom: 15px;
+        }
+        .chat-messages .timestamp {
+            font-size: 0.8em;
+            color: #888;
+            margin-bottom: 5px;
         }
         .chat-messages .user {
             text-align: right;
@@ -44,6 +81,7 @@
             color: #fff;
             padding: 10px 15px;
             border-radius: 15px;
+            font-size: 0.9em;
         }
         .chat-messages .bot .text {
             display: inline-block;
@@ -51,6 +89,18 @@
             color: #333;
             padding: 10px 15px;
             border-radius: 15px;
+            font-size: 0.9em;
+        }
+        .chat-messages .bot .code-block {
+            display: block;
+            background: #333;
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            font-size: 0.9em;
         }
         .chat-input {
             display: flex;
@@ -83,18 +133,68 @@
             border-radius: 5px;
             font-size: 0.9em;
         }
+        .thinking {
+            text-align: center;
+            font-size: 1em;
+            color: #888;
+            margin: 10px 0;
+        }
+        .log-container {
+            display: none;
+            position: fixed;
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 600px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 70%;
+        }
+        .log-container h3 {
+            margin-top: 0;
+        }
+        .log-container .close-log {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #4a90e2;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 0.9em;
+            border-radius: 5px;
+        }
+        .log-container .close-log:hover {
+            background: #357ab8;
+        }
     </style>
 </head>
 <body>
     <div class="chat-container">
-        <div class="chat-header">赵倖億的AI聊天</div>
+        <div class="chat-header">
+            赵倖億的AI聊天
+            <button class="log-button" onclick="toggleLog()">查看日志</button>
+        </div>
         <div class="chat-messages" id="chat-messages"></div>
+        <div class="thinking" id="thinking" style="display: none;">AI正在思考，请稍等...</div>
         <div class="chat-input">
-            <textarea id="user-input" rows="2" placeholder="Type your message..."></textarea>
-            <button onclick="sendMessage()">Send</button>
+            <textarea id="user-input" rows="2" placeholder="请输入您的消息..."></textarea>
+            <button onclick="sendMessage()">发送</button>
         </div>
     </div>
     <div class="error-log" id="error-log" style="display: none;"></div>
+    <div class="log-container" id="log-container">
+        <h3>请求日志</h3>
+        <button class="close-log" onclick="toggleLog()">关闭</button>
+        <div id="log-content"></div>
+    </div>
 
     <script>
         const API_URL = "https://www.gptapi.us/v1/chat/completions";
@@ -104,14 +204,36 @@
 
         const chatMessages = document.getElementById("chat-messages");
         const errorLog = document.getElementById("error-log");
+        const thinkingIndicator = document.getElementById("thinking");
+        const logContainer = document.getElementById("log-container");
+        const logContent = document.getElementById("log-content");
+        const userInput = document.getElementById("user-input");
 
-        function appendMessage(text, sender) {
+        const history = [];
+        const logs = [];
+
+        function appendMessage(text, sender, isCode = false) {
             const messageDiv = document.createElement("div");
             messageDiv.classList.add("message", sender);
-            const textDiv = document.createElement("div");
-            textDiv.classList.add("text");
-            textDiv.textContent = text;
-            messageDiv.appendChild(textDiv);
+
+            const timestamp = document.createElement("div");
+            timestamp.classList.add("timestamp");
+            const now = new Date();
+            timestamp.textContent = now.toLocaleTimeString();
+            messageDiv.appendChild(timestamp);
+
+            if (isCode) {
+                const codeBlock = document.createElement("pre");
+                codeBlock.classList.add("code-block");
+                codeBlock.textContent = text;
+                messageDiv.appendChild(codeBlock);
+            } else {
+                const textDiv = document.createElement("div");
+                textDiv.classList.add("text");
+                textDiv.textContent = text;
+                messageDiv.appendChild(textDiv);
+            }
+
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
@@ -122,13 +244,25 @@
             errorLog.textContent = `[${now.toLocaleString()}] Error: ${error}`;
         }
 
+        function toggleLog() {
+            if (logContainer.style.display === "none" || logContainer.style.display === "") {
+                logContainer.style.display = "block";
+                logContent.innerHTML = logs.map(log => `<p>${log}</p>`).join("");
+            } else {
+                logContainer.style.display = "none";
+            }
+        }
+
         async function sendMessage() {
-            const userInput = document.getElementById("user-input");
             const message = userInput.value.trim();
             if (!message) return;
 
+            history.push({ role: "user", content: message });
+
             appendMessage(message, "user");
             userInput.value = "";
+
+            thinkingIndicator.style.display = "block";
 
             try {
                 const response = await fetch(API_URL, {
@@ -139,7 +273,7 @@
                     },
                     body: JSON.stringify({
                         model: "gpt-4o-2024-11-20",
-                        messages: [{ role: "user", content: message }],
+                        messages: history,
                         max_tokens: MAX_TOKENS,
                         temperature: TEMPERATURE
                     })
@@ -153,12 +287,25 @@
                 const reply = data.choices[0].message.content;
                 const tokenUsage = data.usage.total_tokens;
 
+                history.push({ role: "assistant", content: reply });
+
+                logs.push(`[${new Date().toLocaleString()}] 请求成功 - 状态码: ${response.status}, Token使用: ${tokenUsage}`);
+
                 appendMessage(reply, "bot");
-                console.log(`Token usage: ${tokenUsage}`);
             } catch (error) {
                 logError(error.message);
+                logs.push(`[${new Date().toLocaleString()}] 请求失败 - 错误: ${error.message}`);
+            } finally {
+                thinkingIndicator.style.display = "none";
             }
         }
+
+        userInput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
     </script>
 </body>
 </html>
