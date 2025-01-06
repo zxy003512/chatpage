@@ -66,6 +66,7 @@
         }
         .chat-messages .message {
             margin-bottom: 15px;
+            position: relative;
         }
         .chat-messages .timestamp {
             font-size: 0.8em;
@@ -82,6 +83,8 @@
             padding: 10px 15px;
             border-radius: 15px;
             font-size: 0.9em;
+            word-wrap: break-word;
+            white-space: pre-wrap;
         }
         .chat-messages .bot .text {
             display: inline-block;
@@ -90,6 +93,8 @@
             padding: 10px 15px;
             border-radius: 15px;
             font-size: 0.9em;
+            word-wrap: break-word;
+            white-space: pre-wrap;
         }
         .chat-messages .bot .code-block {
             display: block;
@@ -101,6 +106,28 @@
             white-space: pre-wrap;
             overflow-x: auto;
             font-size: 0.9em;
+        }
+        .chat-messages .bot .code-block[data-lang]::before {
+            content: attr(data-lang);
+            display: block;
+            font-size: 0.8em;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+        .view-html-button {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            background: #4a90e2;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 0.8em;
+            border-radius: 5px;
+        }
+        .view-html-button:hover {
+            background: #357ab8;
         }
         .chat-input {
             display: flex;
@@ -212,7 +239,7 @@
         const history = [];
         const logs = [];
 
-        function appendMessage(text, sender, isCode = false) {
+        function appendMessage(text, sender, isCode = false, lang = "") {
             const messageDiv = document.createElement("div");
             messageDiv.classList.add("message", sender);
 
@@ -225,17 +252,35 @@
             if (isCode) {
                 const codeBlock = document.createElement("pre");
                 codeBlock.classList.add("code-block");
+                if (lang) codeBlock.setAttribute("data-lang", lang);
                 codeBlock.textContent = text;
                 messageDiv.appendChild(codeBlock);
+
+                // Add "View HTML" button for HTML code
+                if (lang === "html") {
+                    const viewHtmlButton = document.createElement("button");
+                    viewHtmlButton.classList.add("view-html-button");
+                    viewHtmlButton.textContent = "查看HTML";
+                    viewHtmlButton.onclick = () => viewHtmlOutput(text);
+                    messageDiv.appendChild(viewHtmlButton);
+                }
             } else {
                 const textDiv = document.createElement("div");
                 textDiv.classList.add("text");
                 textDiv.textContent = text;
+                textDiv.style.whiteSpace = "pre-wrap";
                 messageDiv.appendChild(textDiv);
             }
 
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function viewHtmlOutput(htmlCode) {
+            const newWindow = window.open();
+            newWindow.document.open();
+            newWindow.document.write(htmlCode);
+            newWindow.document.close();
         }
 
         function logError(error) {
@@ -291,7 +336,29 @@
 
                 logs.push(`[${new Date().toLocaleString()}] 请求成功 - 状态码: ${response.status}, Token使用: ${tokenUsage}`);
 
-                appendMessage(reply, "bot");
+                // Detect code blocks in the reply
+                const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+                let match;
+                let lastIndex = 0;
+
+                while ((match = codeBlockRegex.exec(reply)) !== null) {
+                    const [fullMatch, lang, code] = match;
+
+                    // Append text before the code block
+                    if (match.index > lastIndex) {
+                        appendMessage(reply.slice(lastIndex, match.index), "bot");
+                    }
+
+                    // Append the code block
+                    appendMessage(code, "bot", true, lang || "plaintext");
+
+                    lastIndex = codeBlockRegex.lastIndex;
+                }
+
+                // Append remaining text after the last code block
+                if (lastIndex < reply.length) {
+                    appendMessage(reply.slice(lastIndex), "bot");
+                }
             } catch (error) {
                 logError(error.message);
                 logs.push(`[${new Date().toLocaleString()}] 请求失败 - 错误: ${error.message}`);
