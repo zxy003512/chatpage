@@ -239,6 +239,15 @@
         const history = [];
         const logs = [];
 
+        // 估计token数量的函数
+        function estimateTokenCount(text) {
+            // 简单估计，每个中文字符一个token，英文单词一个token
+            const chineseCharCount = text.match(/[\u4e00-\u9fff]/g)?.length || 0;
+            const words = text.split(/\s+/);
+            const wordCount = words.filter(word => word !== '').length;
+            return chineseCharCount + wordCount;
+        }
+
         function appendMessage(text, sender, isCode = false, lang = "") {
             const messageDiv = document.createElement("div");
             messageDiv.classList.add("message", sender);
@@ -269,6 +278,16 @@
                 textDiv.textContent = text;
                 textDiv.style.whiteSpace = "pre-wrap";
                 messageDiv.appendChild(textDiv);
+
+                // 显示token数量，仅在bot消息下方显示
+                if (sender === "bot") {
+                    const tokenCount = estimateTokenCount(text);
+                    const tokenInfo = document.createElement("div");
+                    tokenInfo.style.fontSize = "0.8em";
+                    tokenInfo.style.color = "#888";
+                    tokenInfo.textContent = `Token数量: ${tokenCount}`;
+                    messageDiv.appendChild(tokenInfo);
+                }
             }
 
             const copyButton = document.createElement("button");
