@@ -45,6 +45,22 @@
             background: #4a90e2;
             color: #fff;
         }
+        .switch-model-button {
+            position: absolute;
+            left: 15px;
+            top: 15px;
+            background: #fff;
+            color: #4a90e2;
+            border: 1px solid #4a90e2;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 0.9em;
+            border-radius: 5px;
+        }
+        .switch-model-button:hover {
+            background: #4a90e2;
+            color: #fff;
+        }
         .chat-messages {
             flex: 1;
             padding: 10px;
@@ -208,6 +224,7 @@
         <div class="chat-header">
             赵倖億的AI聊天
             <button class="log-button" onclick="toggleLog()">查看日志</button>
+            <button class="switch-model-button" onclick="switchModel()">切换到GPT-4o</button>
         </div>
         <div class="chat-messages" id="chat-messages"></div>
         <div class="thinking" id="thinking" style="display: none;">AI正在思考，请稍等...</div>
@@ -224,10 +241,19 @@
     </div>
 
     <script>
-        const API_URL = "https://api.deepseek.com/v1/chat/completions";
-        const API_KEY = "sk-aa6949d296d9437e9b9d30dee1392e6d";
-        const MAX_TOKENS = 8000;
-        const TEMPERATURE = 0.6;
+        const gpt4oConfig = {
+            API_URL: "https://api.gptapi.us/v1/chat/completions",
+            API_KEY: "sk-Se2ngHV6MdeLoy1L0cEe8dC0884b4789B327A0C8B87bA403",
+            model: "gpt-4o-2024-11-20"
+        };
+
+        const deepseekConfig = {
+            API_URL: "https://api.deepseek.com/v1/chat/completions",
+            API_KEY: "sk-aa6949d296d9437e9b9d30dee1392e6d",
+            model: "deepseek-chat"
+        };
+
+        let currentConfig = deepseekConfig;
 
         const chatMessages = document.getElementById("chat-messages");
         const errorLog = document.getElementById("error-log");
@@ -235,13 +261,12 @@
         const logContainer = document.getElementById("log-container");
         const logContent = document.getElementById("log-content");
         const userInput = document.getElementById("user-input");
+        const switchModelButton = document.querySelector(".switch-model-button");
 
         const history = [];
         const logs = [];
 
-        // 估计token数量的函数
         function estimateTokenCount(text) {
-            // 简单估计，每个中文字符一个token，英文单词一个token
             const chineseCharCount = text.match(/[\u4e00-\u9fff]/g)?.length || 0;
             const words = text.split(/\s+/);
             const wordCount = words.filter(word => word !== '').length;
@@ -279,7 +304,6 @@
                 textDiv.style.whiteSpace = "pre-wrap";
                 messageDiv.appendChild(textDiv);
 
-                // 显示token数量，仅在bot消息下方显示
                 if (sender === "bot") {
                     const tokenCount = estimateTokenCount(text);
                     const tokenInfo = document.createElement("div");
@@ -337,6 +361,18 @@
             }
         }
 
+        function switchModel() {
+            if (currentConfig === deepseekConfig) {
+                currentConfig = gpt4oConfig;
+                switchModelButton.textContent = "切换到deepseek v3";
+            } else {
+                currentConfig = deepseekConfig;
+                switchModelButton.textContent = "切换到GPT-4o";
+            }
+            history.length = 0;
+            chatMessages.innerHTML = "";
+        }
+
         async function sendMessage() {
             const message = userInput.value.trim();
             if (!message) return;
@@ -349,17 +385,17 @@
             thinkingIndicator.style.display = "block";
 
             try {
-                const response = await fetch(API_URL, {
+                const response = await fetch(currentConfig.API_URL, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "Authorization": `Bearer ${API_KEY}`
+                        "Authorization": `Bearer ${currentConfig.API_KEY}`
                     },
                     body: JSON.stringify({
-                        model: "deepseek-chat",
+                        model: currentConfig.model,
                         messages: history,
-                        max_tokens: MAX_TOKENS,
-                        temperature: TEMPERATURE
+                        max_tokens: 8000,
+                        temperature: 0.6
                     })
                 });
 
