@@ -256,7 +256,6 @@
                 codeBlock.textContent = text;
                 messageDiv.appendChild(codeBlock);
 
-                // Add "View HTML" button for HTML code
                 if (lang === "html") {
                     const viewHtmlButton = document.createElement("button");
                     viewHtmlButton.classList.add("view-html-button");
@@ -271,6 +270,27 @@
                 textDiv.style.whiteSpace = "pre-wrap";
                 messageDiv.appendChild(textDiv);
             }
+
+            const copyButton = document.createElement("button");
+            copyButton.textContent = "复制";
+            copyButton.style.position = "absolute";
+            copyButton.style.right = "10px";
+            copyButton.style.top = "10px";
+            copyButton.style.background = "#4a90e2";
+            copyButton.style.color = "#fff";
+            copyButton.style.border = "none";
+            copyButton.style.padding = "5px 10px";
+            copyButton.style.cursor = "pointer";
+            copyButton.style.fontSize = "0.8em";
+            copyButton.style.borderRadius = "5px";
+            copyButton.onclick = () => {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert("内容已复制到剪贴板！");
+                }).catch(err => {
+                    alert("复制失败：" + err);
+                });
+            };
+            messageDiv.appendChild(copyButton);
 
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -336,7 +356,6 @@
 
                 logs.push(`[${new Date().toLocaleString()}] 请求成功 - 状态码: ${response.status}, Token使用: ${tokenUsage}`);
 
-                // Detect code blocks in the reply
                 const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
                 let match;
                 let lastIndex = 0;
@@ -344,18 +363,15 @@
                 while ((match = codeBlockRegex.exec(reply)) !== null) {
                     const [fullMatch, lang, code] = match;
 
-                    // Append text before the code block
                     if (match.index > lastIndex) {
                         appendMessage(reply.slice(lastIndex, match.index), "bot");
                     }
 
-                    // Append the code block
                     appendMessage(code, "bot", true, lang || "plaintext");
 
                     lastIndex = codeBlockRegex.lastIndex;
                 }
 
-                // Append remaining text after the last code block
                 if (lastIndex < reply.length) {
                     appendMessage(reply.slice(lastIndex), "bot");
                 }
