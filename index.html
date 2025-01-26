@@ -439,6 +439,63 @@
             background-color: rgba(0, 0, 0, 0.7);
         }
 
+        /* 手机端优化 */
+        @media (max-width: 768px) {
+            #chat-container {
+                width: 95%; /* 手机屏幕上占据更宽的比例 */
+                height: auto; /* 高度自适应内容 */
+                max-height: 95vh; /* 限制最大高度，避免超出屏幕 */
+            }
+
+            #settings-bar, #input-area {
+                padding: 10px 15px; /* 减小 padding */
+            }
+
+            #settings-bar h2 {
+                font-size: 1.3em; /* 减小标题字体大小 */
+            }
+
+            #settings-button, #log-button, #clear-log-button, #clear-chat-button, #send-button {
+                padding: 6px 12px; /* 按钮 padding */
+                font-size: 12px; /* 按钮字体大小 */
+            }
+
+            #user-input {
+                font-size: 14px; /* 输入框字体大小 */
+            }
+
+            #chat-log {
+                padding: 15px; /* 减小 chat-log padding */
+                font-size: 14px; /* 增大 chat-log 默认字体大小，手机上更易读 */
+            }
+
+            .message {
+                padding: 10px 15px; /* 消息 padding */
+                border-radius: 20px; /* 消息边框圆角 */
+                margin-bottom: 10px; /* 消息间距 */
+                max-width: 85%; /* 消息最大宽度 */
+                font-size: inherit; /* 继承 #chat-log 的字体大小 */
+            }
+
+            #settings-panel, #log-panel {
+                padding: 15px; /* 设置面板和日志面板 padding */
+            }
+
+            .setting-label {
+                width: 120px; /* 设置标签宽度 */
+                font-size: 14px; /* 设置标签字体大小 */
+            }
+
+            input[type="text"], input[type="number"], input[type="range"] {
+                padding: 6px; /* 设置输入框 padding */
+                font-size: 14px; /* 设置输入框字体大小 */
+            }
+
+            .setting-value {
+                font-size: 14px; /* 设置值显示字体大小 */
+            }
+        }
+
 
     </style>
 </head>
@@ -461,8 +518,8 @@
             <div class="setting-row">
                 <label for="font-size-slider" class="setting-label">字体大小:</label> <!-- 字体大小设置 - 保持不变 -->
                 <div class="setting-input">
-                    <input type="range" id="font-size-slider" min="12" max="24" step="1" value="12"> <!-- 默认值改为 12 - 保持不变 -->
-                    <span id="font-size-value" class="setting-value">12px</span> <!-- 默认值改为 12px - 保持不变 -->
+                    <input type="range" id="font-size-slider" min="12" max="24" step="1" value="14"> <!-- 手机端默认 14px -->
+                    <span id="font-size-value" class="setting-value">14px</span> <!-- 手机端默认 14px -->
                 </div>
             </div>
             <hr/> <!-- 分割线 - 保持不变 -->
@@ -543,6 +600,8 @@
 
  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-NzbMDAejGGz7VmEeRCHg5QGekjUEU8G/lTtx9uPf3YkK7gsx2Wz33Kzsg4zhcoRjFw+jmwl5sg3CZndMwEqWQg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js" integrity="sha512-gdJO1XDPS7jX0n3GSlnxDoWvRryr5Zt7IEjU07wWtl7n0zv6DnfTS4OjR3b1y7TfE08E6e6i4e6jQyZ8u1n3Dw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- 引入 marked.js 用于 Markdown 渲染 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <script>
  const chatLog = document.getElementById('chat-log');
@@ -575,7 +634,7 @@
         let modelName = localStorage.getItem('modelName') || 'gemini-2.0-flash-thinking-exp-01-21';
         let apiKey = localStorage.getItem('apiKey') || 'sk-3Dnyv8DY85hx2nALQknCVxzbajC0OIRnUgpHQmxAwdrn2CdS';
         let logEnabled = localStorage.getItem('logEnabled') === 'true' || false; // 日志功能状态，默认关闭 - 保持不变
-        let fontSize = parseInt(localStorage.getItem('fontSize')) || 12; // 字体大小，默认 12px  修改默认字体大小 - 保持不变
+        let fontSize = parseInt(localStorage.getItem('fontSize')) || 14; // 手机端默认 14px
 
         // 初始化设置面板的值 - 保持不变
         temperatureSlider.value = temperature;
@@ -720,10 +779,17 @@
 
 
             // 处理文本中的换行和普通文本
-            let formattedMessage = messageContent.replace(/\n/g, '<br>'); // 将换行符替换为 <br> - 保持不变
+            let formattedMessage = messageContent; // 先赋值，后续可能被 Markdown 渲染覆盖
 
             // 异步处理代码块高亮和按钮添加 - 保持不变
             Promise.resolve().then(() => {
+                if (senderClass === 'ai-message') {
+                    // 使用 marked.js 渲染 Markdown
+                    formattedMessage = marked.parse(messageContent);
+                } else {
+                    formattedMessage = escapeHtml(messageContent).replace(/\n/g, '<br>'); // 用户消息仍然进行 HTML 转义
+                }
+
                 // 检查是否是代码块 -  更宽松的正则表达式，匹配 ``` 或 ```language 开头的代码块 - 保持不变
                 const codeBlockRegex = /```([a-zA-Z0-9]*)\n([\s\S]*?)```/g;
                 formattedMessage = formattedMessage.replace(codeBlockRegex, (match, language, code) => {
@@ -749,19 +815,6 @@
             chatLog.appendChild(messageDiv);
             chatLog.scrollTop = chatLog.scrollHeight;
         }
-
-
-        // 删除 previewHTMLCode 函数
-        // function previewHTMLCode(buttonElement) {  //  删除整个函数
-        //     const codeBlock = buttonElement.previousElementSibling.querySelector('code').textContent;
-        //     const previewWindow = window.open('', '_blank');
-        //     if (previewWindow) {
-        //         previewWindow.document.body.innerHTML = codeBlock;
-        //     } else {
-        //         alert('预览窗口被阻止，请检查浏览器设置。');
-        //     }
-        // }
-        // window.previewHTMLCode = previewHTMLCode; // 暴露到全局 - 删除此行
 
 
         // 修改 copyCode 函数，保持不变
@@ -851,7 +904,7 @@
                         if (done) {
                             // 流式输出完成，对完整回复进行代码块格式化和渲染 - 保持不变
                             partialResponse = formatCodeBlocks(partialResponse);
-                            aiMessageDiv.innerHTML = partialResponse;
+                            aiMessageDiv.innerHTML = marked.parse(partialResponse); // 对最终的流式回复进行 Markdown 渲染
                             messageHistory.push({ role: 'assistant', content: partialResponse.trim() }); // 添加到消息历史 (格式化后) - 保持不变
                             break;
                         }
@@ -995,17 +1048,35 @@
             // 添加复制按钮到用户消息 - 已经移动到 messageDiv 创建后立即添加的位置
 
             // 转义普通文本中的HTML字符 - 保持不变
-            let safeContent = escapeHtml(messageContent)
-                .replace(/\n/g, '<br>');
+            let safeContent = messageContent; // 初始化 safeContent 为原始消息内容
 
-            // 处理代码块并保持非代码内容转义 - 保持不变
-            safeContent = formatCodeBlocks(safeContent)
-                .replace(/(?<!<pre[^>]*>)(?<!<\/pre>)\n/g, '<br>');
+            if (senderClass === 'ai-message') {
+                safeContent = marked.parse(messageContent); // AI 消息使用 marked.js 进行 Markdown 渲染
+            } else {
+                safeContent = escapeHtml(messageContent).replace(/\n/g, '<br>'); // 用户消息仍然进行 HTML 转义
+            }
+
+
+            // 处理代码块并保持非代码内容转义 - 保持不变 (代码块处理逻辑保持不变，因为它在 Markdown 渲染之后仍然需要)
+            const codeBlockRegex = /```([a-zA-Z0-9]*)\n([\s\S]*?)```/g;
+            safeContent = safeContent.replace(codeBlockRegex, (match, language, code) => {
+                const langClass = language ? `language-${language}` : 'language-plaintext';
+                let highlightedCode;
+                try {
+                    highlightedCode = Prism.highlight(code, Prism.languages[language] || Prism.languages.plaintext, language);
+                } catch (e) {
+                    console.error("Prism highlight error:", e);
+                    highlightedCode = code;
+                }
+                return `<div class="code-block"><pre class="${langClass}"><code class="${langClass}">${highlightedCode}</code></pre><button class="copy-code-button" onclick="copyCode(this)">复制</button></div>`;
+            });
+
 
             messageDiv.innerHTML = safeContent;
             chatLog.appendChild(messageDiv);
             chatLog.scrollTop = chatLog.scrollHeight;
         }
+
   // 字体大小调整 - 保持不变
         fontSizeSlider.addEventListener('input', () => {
             fontSize = parseInt(fontSizeSlider.value);
