@@ -65,12 +65,10 @@
             border: 1px solid #e0e0e0;
         }
         .message.log {
-            max-width: 95%;
             background-color: #f0f0f0;
             border: 1px dashed #aaa;
             color: #555;
             font-size: 8px;
-            align-self: center;
         }
         /* 代码区块样式 */
         pre {
@@ -198,18 +196,32 @@
             <label>最大token: <input type="number" id="max-tokens" value="100000"></label>
             <label>上下文记忆条数: <input type="number" id="context-count" value="20"></label>
             <label>字体大小(px): <input type="number" id="font-size" value="10"></label>
-            <label>流式回复: <select id="streaming">
-                <option value="false">关闭</option>
-                <option value="true">开启</option>
-            </select>
+            <label>流式回复: 
+                <select id="streaming">
+                    <option value="false">关闭</option>
+                    <option value="true">开启</option>
+                </select>
             </label>
+            <!-- 后处理设置 -->
+            <h4 style="font-size:inherit; margin-top:10px;">后处理设置</h4>
+            <label>后处理 API地址: <input type="text" id="post-api-endpoint" value="https://yunwu.ai/v1/chat/completions"></label>
+            <label>后处理 API-Key: <input type="text" id="post-api-key" value="sk-8ZzXcWLVopEzfVj5gK90sbO3z2gZJl185VVFcSMSYmsZr8pS"></label>
+            <label>后处理模型: <input type="text" id="post-model" value="chatgpt-4o-latest"></label>
+            <label>后处理温度: <input type="number" id="post-temperature" value="0.4" step="0.1"></label>
+            <label>后处理最大token: <input type="number" id="post-max-tokens" value="15000"></label>
+            <label>后处理上下文记忆条数: <input type="number" id="post-context-count" value="20"></label>
             <button id="save-settings">保存设置</button>
             <button id="clear-chat">清空对话</button>
             <button id="close-settings">关闭设置</button>
         </div>
+        <!-- 日志折叠区域（默认折叠） -->
+        <details id="log-details" style="position: absolute; bottom: 60px; left: 10px; right: 10px; background-color: #f9f9f9; border: 1px solid #ccc; border-radius: 5px; max-height: 150px; overflow-y: auto;">
+            <summary style="font-size:inherit; cursor: pointer;">日志 (点击展开/折叠)</summary>
+            <div id="log-container"></div>
+        </details>
     </div>
     <script>
-        // 初始化设置
+        // 初始化主 AI 设置
         let settings = {
             apiEndpoint: document.getElementById('api-endpoint').value,
             apiKey: document.getElementById('api-key').value,
@@ -221,12 +233,23 @@
             streaming: document.getElementById('streaming').value === 'true'
         };
 
+        // 初始化后处理 AI 设置
+        let postSettings = {
+            apiEndpoint: document.getElementById('post-api-endpoint').value,
+            apiKey: document.getElementById('post-api-key').value,
+            model: document.getElementById('post-model').value,
+            temperature: parseFloat(document.getElementById('post-temperature').value),
+            maxTokens: parseInt(document.getElementById('post-max-tokens').value),
+            contextCount: parseInt(document.getElementById('post-context-count').value)
+        };
+
         // 应用字体大小
         document.body.style.fontSize = settings.fontSize + 'px';
 
         // 聊天记录存储（数组中每条消息保存发送者和内容）
         let messages = [];
         const chatContainer = document.getElementById('chat-container');
+        const logContainer = document.getElementById('log-container');
         const userInput = document.getElementById('user-input');
         const sendButton = document.getElementById('send-button');
         const settingsButton = document.getElementById('settings-button');
@@ -243,6 +266,7 @@
             settingsPanel.style.display = 'none';
         });
         saveSettingsButton.addEventListener('click', () => {
+            // 主 AI 设置
             settings.apiEndpoint = document.getElementById('api-endpoint').value;
             settings.apiKey = document.getElementById('api-key').value;
             settings.model = document.getElementById('model').value;
@@ -251,10 +275,17 @@
             settings.contextCount = parseInt(document.getElementById('context-count').value);
             settings.fontSize = parseInt(document.getElementById('font-size').value);
             settings.streaming = document.getElementById('streaming').value === 'true';
+            // 后处理 AI 设置
+            postSettings.apiEndpoint = document.getElementById('post-api-endpoint').value;
+            postSettings.apiKey = document.getElementById('post-api-key').value;
+            postSettings.model = document.getElementById('post-model').value;
+            postSettings.temperature = parseFloat(document.getElementById('post-temperature').value);
+            postSettings.maxTokens = parseInt(document.getElementById('post-max-tokens').value);
+            postSettings.contextCount = parseInt(document.getElementById('post-context-count').value);
             document.body.style.fontSize = settings.fontSize + 'px';
             alert('设置已保存');
             settingsPanel.style.display = 'none';
-            appendLog("设置已保存：" + JSON.stringify(settings));
+            appendLog("设置已保存：" + JSON.stringify({ main: settings, post: postSettings }));
         });
         clearChatButton.addEventListener('click', () => {
             messages = [];
@@ -262,13 +293,14 @@
             appendLog("聊天记录已清空");
         });
 
-        // 日志输出方法
+        // 日志输出方法（添加到日志折叠区域）
         function appendLog(logText) {
             const logDiv = document.createElement('div');
             logDiv.classList.add('message', 'log');
             logDiv.innerText = logText;
-            chatContainer.appendChild(logDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            if(logContainer) {
+                logContainer.appendChild(logDiv);
+            }
             console.log("日志：", logText);
         }
 
@@ -284,9 +316,8 @@
                                         </div>`;
                     let highlighted;
                     try {
-                        // 当指定语言时，传入 language 数组（highlight.js 支持多语言检测）
                         highlighted = language ? hljs.highlight(code, { language: language }).value
-                                               : hljs.highlightAuto(code).value;
+                                                 : hljs.highlightAuto(code).value;
                     } catch (e) {
                         console.error(e);
                         highlighted = code;
@@ -317,7 +348,6 @@
             messageDiv.classList.add('message', sender);
             const contentSpan = document.createElement('span');
             contentSpan.className = "message-content";
-            // 直接使用 parseMarkdown 渲染，marked 会解析其中的代码块
             contentSpan.innerHTML = parseMarkdown(message);
             messageDiv.appendChild(contentSpan);
             // 为普通文本消息添加复制按钮（右上角）
@@ -336,6 +366,50 @@
             messageDiv.appendChild(copyBtn);
             chatContainer.appendChild(messageDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // 后处理 AI 调用函数，处理主 AI 的回复
+        async function processPostResponse(mainAnswer, aiContentSpan) {
+            // 构建对话历史，加入系统提示说明后处理要求
+            let postMessages = [
+                { role: 'system', content: "你是一个后处理助手。当主AI回复中包含代码时，请在回复末尾将原始回答用中括号包裹，并将其中的代码部分用<pre>标签包裹后返回最终结果；如果没有代码，请直接返回原始回答。" },
+                { role: 'user', content: mainAnswer }
+            ];
+            const requestBody = {
+                model: postSettings.model,
+                messages: postMessages,
+                temperature: postSettings.temperature,
+                max_tokens: postSettings.maxTokens,
+                stream: false
+            };
+            appendLog("正在发送后处理请求，Request Body：" + JSON.stringify(requestBody));
+            try {
+                const response = await fetch(postSettings.apiEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + postSettings.apiKey
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                if (!response.ok) {
+                    const errorMsg = '后处理请求失败，HTTP状态：' + response.status + ' - ' + response.statusText;
+                    appendLog(errorMsg);
+                    aiContentSpan.innerHTML += '<br>' + errorMsg;
+                    return;
+                }
+                const data = await response.json();
+                let processedText = '后处理无回复';
+                if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
+                    processedText = data.choices[0].message.content;
+                }
+                aiContentSpan.innerHTML = parseMarkdown(processedText);
+                appendLog("后处理请求成功，HTTP状态：" + response.status);
+            } catch (error) {
+                const errMsg = '后处理请求异常：' + error.message;
+                appendLog(errMsg);
+                aiContentSpan.innerHTML += '<br>' + errMsg;
+            }
         }
 
         // 发送消息处理
@@ -357,7 +431,7 @@
             aiContentSpan.className = "message-content";
             aiContentSpan.innerHTML = '...';
             aiMessageDiv.appendChild(aiContentSpan);
-            // 同时添加复制按钮
+            // 添加复制按钮
             const copyBtn = document.createElement('button');
             copyBtn.classList.add('message-copy-btn');
             copyBtn.innerText = "复制";
@@ -396,6 +470,7 @@
                     appendLog(errorMsg);
                     return;
                 }
+                let mainAIResponse = '';
                 if (settings.streaming) {
                     // 流式回复：逐步读取数据
                     const reader = response.body.getReader();
@@ -406,11 +481,15 @@
                         const { value, done: doneReading } = await reader.read();
                         done = doneReading;
                         const chunkValue = decoder.decode(value);
-                        aiContentSpan.innerHTML += parseMarkdown(chunkValue);
+                        mainAIResponse += chunkValue;
+                        // 每次覆盖为最新累计结果
+                        aiContentSpan.innerHTML = parseMarkdown(mainAIResponse);
                         chatContainer.scrollTop = chatContainer.scrollHeight;
                     }
-                    messages.push({ role: 'assistant', content: aiContentSpan.innerText });
+                    messages.push({ role: 'assistant', content: mainAIResponse });
                     appendLog("流式请求成功，全部数据接收完毕。");
+                    // 调用后处理 AI
+                    await processPostResponse(mainAIResponse, aiContentSpan);
                 } else {
                     // 非流式回复：解析完整结果
                     const data = await response.json();
@@ -421,6 +500,8 @@
                     aiContentSpan.innerHTML = parseMarkdown(aiText);
                     messages.push({ role: 'assistant', content: aiText });
                     appendLog("请求成功，HTTP状态：" + response.status);
+                    // 调用后处理 AI
+                    await processPostResponse(aiText, aiContentSpan);
                 }
             } catch (error) {
                 const errMsg = '请求异常：' + error.message;
