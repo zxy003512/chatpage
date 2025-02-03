@@ -372,7 +372,7 @@
         async function processPostResponse(mainAnswer, aiContentSpan) {
             // 构建对话历史，加入系统提示说明后处理要求
             let postMessages = [
-                { role: 'system', content: "你是一个后处理助手。当主AI回复中包含代码时，请在回复末尾将原始回答用中括号包裹，并将其中的代码部分用<pre>标签包裹后返回最终结果；如果没有代码，请直接返回原始回答。" },
+                { role: 'system', content: "你是一个后处理助手。当主AI回复中包含代码时，请在回复末尾将原始回答用中括号包裹，并将其中的代码部分用<pre>标签包裹后返回最终结果；如果是HTML代码，还要防止被浏览器直接解析运行，需要你添加防护。如果没有代码，请直接返回原始回答。" },
                 { role: 'user', content: mainAnswer }
             ];
             const requestBody = {
