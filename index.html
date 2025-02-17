@@ -255,6 +255,25 @@
         /* 请求日志 */
         #log-panel {
            display:none;
+            position: fixed;
+            top: 10%;
+            left: 10%;
+            width: 80%;
+            height: 80%;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1001;
+            overflow: auto;
+            padding: 15px;
+            white-space: pre-line; /* 保留换行符 */
+            font-family: 'Courier New', monospace; /* 更适合日志的字体 */
+            font-size: 12px; /* 默认日志字体大小 */
+            color: #333;
+
+        }
+         #log-panel.show {
+            display: block !important;
         }
 
         /* API 配置卡片 */
@@ -281,6 +300,12 @@
             #settings-panel {
                 width: 95%;
             }
+             #log-panel {
+                top: 5%;
+                left: 5%;
+                width: 90%;
+                height: 90%;
+            }
         }
     </style>
 </head>
@@ -297,6 +322,8 @@
             <!-- 图标按钮 -->
             <button id="settings-btn" class="icon-btn" title="设置"><i class="fas fa-cog"></i></button>
             <button id="clear-context-btn" class="icon-btn" title="清除上下文"><i class="fas fa-broom"></i></button>
+            <button id="toggle-log-btn" class="icon-btn" title="显示/隐藏日志"><i class="fas fa-file-alt"></i></button>
+            <button id="clear-log-btn" class="icon-btn" title="清除日志"><i class="fas fa-trash"></i></button>
              <select id="api-config-select" title="选择配置">
                 <!-- API 配置选项 -->
             </select>
@@ -310,7 +337,7 @@
               <!-- 字体设置 -->
             <div id="font-settings">
                 <h3>字体设置</h3>
-                <label for="font-family">字体：</label>
+                <label for="font-family">聊天字体：</label>
                 <select id="font-family">
                     <option value="'Open Sans', sans-serif">Open Sans</option>
                     <option value="'Lato', sans-serif">Lato</option>
@@ -323,8 +350,10 @@
 
                 </select>
 
-                <label for="font-size">字号：</label>
+                <label for="font-size">聊天字号：</label>
                 <input type="number" id="font-size" min="10" max="30" value="16">
+                 <label for="log-font-size">日志字号：</label>
+                <input type="number" id="log-font-size" min="10" max="30" value="12">
             </div>
 
             <h2>API 配置</h2>
@@ -356,6 +385,10 @@
         const saveSettingsButton = document.getElementById('save-settings-btn');
         const logPanel = document.getElementById('log-panel');
         const logContent = document.getElementById('log-content');
+        const toggleLogButton = document.getElementById('toggle-log-btn');
+        const clearLogButton = document.getElementById('clear-log-btn');
+        const logFontSizeInput = document.getElementById('log-font-size');
+
 
         const apiConfigsContainer = document.getElementById('api-configs-container');
         const addApiConfigButton = document.getElementById('add-api-config-btn');
@@ -403,6 +436,11 @@
                 document.body.style.fontSize = savedFontSize + 'px';
                 fontSizeInput.value = savedFontSize;
             }
+             const savedLogFontSize = localStorage.getItem('aiChatLogFontSize');
+            if (savedLogFontSize) {
+                logContent.style.fontSize = savedLogFontSize + 'px';
+                logFontSizeInput.value = savedLogFontSize;
+            }
 
             renderApiConfigCards(); // 渲染配置卡片
             updateApiConfigSelect(); // 更新配置选择下拉框
@@ -415,6 +453,7 @@
              // 保存字体设置
             localStorage.setItem('aiChatFontFamily', fontFamilySelect.value);
             localStorage.setItem('aiChatFontSize', fontSizeInput.value);
+            localStorage.setItem('aiChatLogFontSize', logFontSizeInput.value);
             alert('设置已保存！');
         }
         // 切换设置面板
@@ -657,7 +696,12 @@
 
         // 切换日志面板
         function toggleLogPanel() {
-            logPanel.style.display = logPanel.style.display === 'block' ? 'none' : 'block';
+            logPanel.classList.toggle('show');
+        }
+
+        // 清除日志内容
+        function clearLogContent() {
+            logContent.innerHTML = '';
         }
 
         // 渲染 API 配置卡片
@@ -759,6 +803,8 @@
         settingsButton.addEventListener('click', toggleSettingsPanel);
         clearContextButton.addEventListener('click', clearContext);
         saveSettingsButton.addEventListener('click', saveSettings);
+        toggleLogButton.addEventListener('click', toggleLogPanel); // 切换日志面板
+        clearLogButton.addEventListener('click', clearLogContent); // 清除日志内容
 
         addApiConfigButton.addEventListener('click', addNewApiConfig);
         apiConfigSelect.addEventListener('change', (event) => {
@@ -772,6 +818,9 @@
 
         fontSizeInput.addEventListener('change', () => {
             document.body.style.fontSize = fontSizeInput.value + 'px';
+        });
+        logFontSizeInput.addEventListener('change', () => {
+            logContent.style.fontSize = logFontSizeInput.value + 'px';
         });
 
         // 初始化
