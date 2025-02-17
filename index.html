@@ -258,8 +258,8 @@
             position: fixed;
             top: 10%;
             left: 10%;
-            width: 80%;
-            height: 80%;
+            width: 80%; /* 默认宽度 */
+            height: 70%; /* 默认高度，调整为更小 */
             background-color: #f9f9f9;
             border: 1px solid #ccc;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -270,7 +270,6 @@
             font-family: 'Courier New', monospace; /* 更适合日志的字体 */
             font-size: 12px; /* 默认日志字体大小 */
             color: #333;
-
         }
          #log-panel.show {
             display: block !important;
@@ -301,10 +300,10 @@
                 width: 95%;
             }
              #log-panel {
-                top: 5%;
-                left: 5%;
-                width: 90%;
-                height: 90%;
+                top: 10px; /* 顶部距离更小 */
+                left: 10px; /* 左边距离更小 */
+                width: calc(95% - 20px); /* 宽度更小，考虑左右 margin */
+                height: calc(90% - 20px); /* 高度更高，但整体窗口更小 */
             }
         }
     </style>
@@ -368,6 +367,7 @@
 
         <!-- 请求日志面板 -->
         <div id="log-panel">
+            <button class="close-btn log-close-btn" onclick="closeLogPanel()">&times;</button>  <!-- 添加关闭按钮 -->
             <pre id="log-content"></pre>
         </div>
 
@@ -460,6 +460,10 @@
         function toggleSettingsPanel() {
             settingsPanel.style.display = settingsPanel.style.display === 'block' ? 'none' : 'block';
             overlay.style.display = overlay.style.display === 'block' ? 'none' : 'block';
+        }
+        // 关闭日志面板
+        function closeLogPanel() {
+            logPanel.style.display = 'none';
         }
         // 清除上下文
         function clearContext() {
