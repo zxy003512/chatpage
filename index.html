@@ -122,11 +122,25 @@
     <label for="maxTokens">Max Tokens:</label>
     <input type="number" id="maxTokens" value="60000">
   </div>
-  <!-- 新增思考模式开关 -->
+  <!-- 开启思考模式 -->
   <div class="form-group">
     <label for="thinkingMode">
       <input type="checkbox" id="thinkingMode">
       开启思考模式
+    </label>
+  </div>
+  <!-- 新增候选思考过程开关，默认关闭 -->
+  <div class="form-group">
+    <label for="candidateThought">
+      <input type="checkbox" id="candidateThought">
+      显示候选的思考过程（默认关闭）
+    </label>
+  </div>
+  <!-- 新增检验思考过程开关，默认关闭 -->
+  <div class="form-group">
+    <label for="validationThought">
+      <input type="checkbox" id="validationThought">
+      显示检验的思考过程（默认关闭）
     </label>
   </div>
   <button id="sendRequestBtn">发送请求</button>
@@ -183,7 +197,7 @@
     });
   }
 
-  // 修改后的日志追加函数（不带折叠功能，用于用户任务、系统提示、用户消息、最终回答等）
+  // 修改后的日志追加函数（不带折叠功能，用于直接追加用户任务、系统提示、用户消息、最终回答等）
   function appendLog(title, markdownContent) {
     const logContainer = document.getElementById('logContainer');
     const messageDiv = document.createElement('div');
@@ -210,12 +224,11 @@
     updateMathJax();
   }
 
-  // 新的日志创建函数，增加一个 collapsible 参数（默认 false）
+  // 新的日志创建函数，支持折叠显示
   function createLogEntry(title, initContent, collapsible = false) {
     const logContainer = document.getElementById('logContainer');
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message');
-
     const header = document.createElement('h3');
 
     if (collapsible) {
@@ -226,7 +239,7 @@
       titleSpan.textContent = title;
       header.appendChild(toggleBtn);
       header.appendChild(titleSpan);
-    
+      
       const copyBtn = document.createElement('button');
       copyBtn.textContent = '复制';
       copyBtn.classList.add('copy-btn');
@@ -308,7 +321,7 @@
       max_tokens: parseInt(maxTokens)
     };
     const maxRetries = 3;
-    const timeout = 30000; // 30秒超时
+    const timeout = 30000; // 超时30秒
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         const controller = new AbortController();
@@ -345,7 +358,7 @@
     }
   }
 
-  // 新增流式调用函数，用于思考模式下的候选/校验请求，支持流式解析并通过回调实时更新UI
+  // 流式调用函数，支持通过回调实时更新 UI
   async function callApiStream(messages, settings, callbacks) {
     const { apiUrl, apiKey, model, temperature, maxTokens } = settings;
     const headers = {
@@ -379,7 +392,7 @@
       const { done, value } = await reader.read();
       if (done) break;
       const chunkText = decoder.decode(value);
-      // 按换行分割数据，每行前缀为 "data:"（类似 OpenAI 的流式返回）
+      // 按换行分割，每行前缀为 "data:"（类似 OpenAI 的流式返回）
       const lines = chunkText.split("\n").filter(line => line.trim() !== "");
       for (let line of lines) {
         if (line.startsWith("data:")) {
@@ -413,28 +426,25 @@
     return finalAnswer;
   }
 
-  // 对候选回答请求（5 个并发请求）：封装自动重试+手动重试逻辑
-  async function requestCandidate(index, systemPrompt, userMessage, settings, thinkingModeEnabled) {
-    const entry = createLogEntry(`请求 ${index+1}`, "正在发送请求...", true);
+  // 对候选回答请求（5 个并发请求）
+  // 参数 candidateProcessEnabled 为 true 时显示实时流式更新；否则仅显示固定文本“AI 正在思考中”
+  async function requestCandidate(index, systemPrompt, userMessage, settings, thinkingModeEnabled, candidateProcessEnabled) {
+    const initialText = candidateProcessEnabled ? "正在发送请求..." : "AI 正在思考中";
+    const entry = createLogEntry(`请求 ${index + 1}`, initialText, true);
+    
     async function attempt() {
-      let candidateLog = "正在发送请求...";
+      let candidateLog = candidateProcessEnabled ? "正在发送请求..." : "AI 正在思考中";
       entry.update(candidateLog);
       if (thinkingModeEnabled) {
         try {
           const finalAnswer = await callApiStream([systemPrompt, userMessage], settings, {
-            onReasoning: (chunk) => {
-              candidateLog += chunk;
-              entry.update(candidateLog);
-            },
-            onFinalStart: () => {
-              candidateLog += "\n\n === Final Answer ===\n";
-              entry.update(candidateLog);
-            },
-            onFinal: (chunk) => {
-              candidateLog += chunk;
-              entry.update(candidateLog);
-            }
+            onReasoning: candidateProcessEnabled ? (chunk) => { candidateLog += chunk; entry.update(candidateLog); } : () => {},
+            onFinalStart: candidateProcessEnabled ? () => { candidateLog += "\n\n === Final Answer ===\n"; entry.update(candidateLog); } : () => {},
+            onFinal: candidateProcessEnabled ? (chunk) => { candidateLog += chunk; entry.update(candidateLog); } : () => {}
           });
+          if (!candidateProcessEnabled) {
+            entry.update(finalAnswer);
+          }
           return finalAnswer;
         } catch(e) {
           return null;
@@ -442,16 +452,17 @@
       } else {
         const responseJson = await callApi([systemPrompt, userMessage], settings);
         if (!responseJson) return null;
-        return extractContent(responseJson);
+        const finalAns = extractContent(responseJson);
+        entry.update(finalAns);
+        return finalAns;
       }
     }
     while (true) {
       const result = await attempt();
       if (result !== null) {
-        entry.update(result);
         return result;
       } else {
-        entry.update("[请求失败，未获得有效回复]");
+        entry.update((candidateProcessEnabled ? "候选回答未获得有效回复" : "AI 正在思考中") + " [请求失败，未获得有效回复]");
         const retryButton = document.createElement("button");
         retryButton.textContent = "手动重试";
         entry.messageDiv.appendChild(retryButton);
@@ -461,30 +472,33 @@
     }
   }
 
-  // 对校验请求（最佳答案）的调用：封装自动/手动重试逻辑，使用流式处理，
-  // 此处已修改为在 UI 上实时展示流式回复的整个过程（包括思考片段）
-  async function requestValidation(validatorMessages, settings) {
-    const entry = createLogEntry("发送检验请求", "正在发送检验请求，请求 AI 根据 5 个回答选出最佳答案...", true);
+  // 对检验请求（选择最佳答案）的调用
+  // 参数 validationProcessEnabled 为 true 时显示实时流式更新；否则仅显示静态文本“AI 正在思考中”
+  async function requestValidation(validatorMessages, settings, validationProcessEnabled) {
+    const initialText = validationProcessEnabled ? 
+      "正在发送检验请求，请求 AI 根据 5 个回答选出最佳答案..." : "AI 正在思考中";
+    const entry = createLogEntry("发送检验请求", initialText, true);
+    
     async function attempt() {
-      // 强制使用流式回复，确保能看到中间流式数据
       if (settings.stream) {
-        let finalLog = "正在发送检验请求，请求 AI 根据 5 个回答选出最佳答案...";
-        entry.update(finalLog);
-        await callApiStream(validatorMessages, settings, {
-          onReasoning: (chunk) => {
-            finalLog += chunk;
-            entry.update(finalLog);
-          },
-          onFinalStart: () => {
-            finalLog += "\n\n === Final Answer ===\n";
-            entry.update(finalLog);
-          },
-          onFinal: (chunk) => {
-            finalLog += chunk;
-            entry.update(finalLog);
-          }
-        });
-        return finalLog;
+        if (validationProcessEnabled) {
+          let finalLog = "正在发送检验请求，请求 AI 根据 5 个回答选出最佳答案...";
+          entry.update(finalLog);
+          const result = await callApiStream(validatorMessages, settings, {
+            onReasoning: (chunk) => { finalLog += chunk; entry.update(finalLog); },
+            onFinalStart: () => { finalLog += "\n\n === Final Answer ===\n"; entry.update(finalLog); },
+            onFinal: (chunk) => { finalLog += chunk; entry.update(finalLog); }
+          });
+          return result;
+        } else {
+          const result = await callApiStream(validatorMessages, settings, {
+            onReasoning: () => {},
+            onFinalStart: () => {},
+            onFinal: () => {}
+          });
+          entry.update(result);
+          return result;
+        }
       } else {
         const responseJson = await callApi(validatorMessages, settings);
         if (!responseJson) return null;
@@ -516,7 +530,7 @@
 
   // “发送请求”按钮事件处理
   document.getElementById('sendRequestBtn').addEventListener('click', async () => {
-    // 获取用户输入和配置参数
+    // 获取用户输入及配置信息
     const userTask = document.getElementById('taskInput').value;
     const userApiUrl = document.getElementById('apiUrl').value;
     const userApiKey = document.getElementById('apiKey').value;
@@ -524,8 +538,11 @@
     const temperature = document.getElementById('temperature').value;
     const maxTokens = document.getElementById('maxTokens').value;
     const thinkingModeEnabled = document.getElementById('thinkingMode').checked;
+    // 读取候选与检验过程显示设置（默认均为关闭）
+    const candidateProcessEnabled = document.getElementById('candidateThought').checked;
+    const validationProcessEnabled = document.getElementById('validationThought').checked;
     
-    // 记录用户任务
+    // 记录并显示用户任务
     conversationLog.user_task = userTask;
     appendLog("用户任务", userTask);
     
@@ -542,7 +559,8 @@
     appendLog("系统提示", systemPrompt.content);
     appendLog("用户消息", userMessage.content);
     
-    // 如果开启思考模式，则使用示例中的 API 地址、Key 及模型
+    // 设置调用参数：
+    // 如果开启思考模式，使用指定的示例 API 地址、Key 及模型，且启用流式回复；否则用用户输入参数
     const settings = thinkingModeEnabled ? {
       apiUrl: "https://api-inference.modelscope.cn/v1/chat/completions",
       apiKey: "a121eb23-a813-48a3-8453-3dc11d0e1386",
@@ -561,15 +579,16 @@
     appendLog("并发请求", "正在并发发送请求，5 次请求将同时发出...");
     const candidatePromises = [];
     for (let i = 0; i < 5; i++) {
-      candidatePromises.push(requestCandidate(i, systemPrompt, userMessage, settings, thinkingModeEnabled));
+      candidatePromises.push(
+        requestCandidate(i, systemPrompt, userMessage, settings, thinkingModeEnabled, candidateProcessEnabled)
+      );
     }
     const candidateResponses = await Promise.all(candidatePromises);
     conversationLog.candidate_responses = candidateResponses;
   
-    // 构造检验请求（仅包含各候选回答最终答案，不包含详细思考过程）
+    // 构造检验请求（仅包含各候选回答最终答案，不包含详细过程）
     let validationPrompt = `任务描述：\n${userTask}\n\n` +
-      "下面列出了基于任务描述产生的5个回答。根据任务描述，然后通过分析每一个回答，最后得出你的正确答案，不只是分析，是要你通过分析其他的回答然后去更精准的完成任务的。" +
-      "\n";
+      "下面列出了基于任务描述产生的5个回答。请根据任务描述，对每个回答进行分析，并最终给出你的正确答案。\n";
     candidateResponses.forEach((candidate, idx) => {
       validationPrompt += `\n【回答 ${idx + 1}】:\n${candidate}\n`;
     });
@@ -578,7 +597,7 @@
     const validatorMessages = [
       {
         role: "system",
-        content: `你现在是一位推理专家，必须根据以下任务描述，然后通过分析每一个回答，最后得出你的正确答案，不只是分析，是要你通过分析其他的回答然后去更精准的完成任务的。任务描述如下：\n${userTask}`
+        content: `你现在是一位推理专家，请根据以下任务描述及候选答案，进行综合分析后得出正确答案。任务描述如下：\n${userTask}`
       },
       {
         role: "user",
@@ -586,7 +605,7 @@
       }
     ];
   
-    // 无论是否开启思考模式，此处均强制使用流式回复，确保展示流式回复过程
+    // 检验请求统一采用流式回复（根据 settings.stream），但显示过程由 validationProcessEnabled 控制
     const finalSettings = thinkingModeEnabled ? {
       apiUrl: "https://api-inference.modelscope.cn/v1/chat/completions",
       apiKey: "a121eb23-a813-48a3-8453-3dc11d0e1386",
@@ -603,7 +622,7 @@
       stream: true
     };
   
-    const finalAnswer = await requestValidation(validatorMessages, finalSettings);
+    const finalAnswer = await requestValidation(validatorMessages, finalSettings, validationProcessEnabled);
     conversationLog.final_best_answer = finalAnswer;
     appendLog("最终最佳答案", finalAnswer);
   });
