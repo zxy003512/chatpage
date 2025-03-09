@@ -122,13 +122,20 @@
     <label for="maxTokens">Max Tokens:</label>
     <input type="number" id="maxTokens" value="60000">
   </div>
+  <!-- 新增思考模式开关 -->
+  <div class="form-group">
+    <label for="thinkingMode">
+      <input type="checkbox" id="thinkingMode">
+      开启思考模式
+    </label>
+  </div>
   <button id="sendRequestBtn">发送请求</button>
   <button id="clearSessionBtn">清除会话</button>
   <button id="downloadLogBtn">下载日志</button>
-  
+
   <div class="log" id="logContainer">
     <h2>会话日志</h2>
-    <!-- 在此处追加 Markdown 渲染后的消息 -->
+    <!-- 日志内容会追加在此 -->
   </div>
 </div>
 
@@ -167,7 +174,6 @@
             copyBtn.innerText = '复制失败';
           });
         });
-        // 设置 copyBtn 的定位
         pre.style.position = 'relative';
         copyBtn.style.position = 'absolute';
         copyBtn.style.top = '5px';
@@ -177,16 +183,14 @@
     });
   }
 
-  // 辅助函数：将 Markdown 内容追加到会话日志区域，并增加复制和折叠功能
+  // 修改后的日志追加函数（不带折叠功能，用于用户任务、系统提示、用户消息、最终回答等）
   function appendLog(title, markdownContent) {
     const logContainer = document.getElementById('logContainer');
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message');
 
-    // 创建标题，并在标题后添加复制整条消息的按钮
     const header = document.createElement('h3');
     header.textContent = title;
-    
     const copyBtn = document.createElement('button');
     copyBtn.textContent = '复制';
     copyBtn.classList.add('copy-btn');
@@ -198,42 +202,99 @@
     header.appendChild(copyBtn);
     messageDiv.appendChild(header);
 
-    // 创建内容区域，并将 Markdown 渲染后的内容插入
     const contentDiv = document.createElement('div');
     contentDiv.innerHTML = marked.parse(markdownContent);
-    addCopyButtonsToCodeBlocks(contentDiv);
-
-    // 对候选回答（标题为“请求 1 成功”到“请求 5 ...”）默认折叠，并添加“展开/折叠”按钮；其他保持展开
-    if (/^请求 [1-5]( 成功| 失败)?$/.test(title)) {
-      contentDiv.style.display = 'none';
-      const toggleButton = document.createElement('button');
-      toggleButton.textContent = '展开';
-      toggleButton.classList.add('toggle-btn');
-      toggleButton.addEventListener('click', () => {
-        if (contentDiv.style.display === 'none') {
-          contentDiv.style.display = 'block';
-          toggleButton.textContent = '折叠';
-        } else {
-          contentDiv.style.display = 'none';
-          toggleButton.textContent = '展开';
-        }
-      });
-      messageDiv.appendChild(toggleButton);
-    }
-    
     messageDiv.appendChild(contentDiv);
+
     logContainer.appendChild(messageDiv);
     updateMathJax();
   }
-  
-  // 调用 MathJax 重新渲染以支持数学公式
-  function updateMathJax() {
-    if (window.MathJax) {
-      MathJax.typesetPromise();
+
+  // 新的日志创建函数，增加一个 collapsible 参数（默认 false）
+  function createLogEntry(title, initContent, collapsible = false) {
+    const logContainer = document.getElementById('logContainer');
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message');
+
+    const header = document.createElement('h3');
+
+    if (collapsible) {
+      const toggleBtn = document.createElement('button');
+      toggleBtn.textContent = '展开';
+      toggleBtn.classList.add('toggle-btn');
+      const titleSpan = document.createElement('span');
+      titleSpan.textContent = title;
+      header.appendChild(toggleBtn);
+      header.appendChild(titleSpan);
+    
+      const copyBtn = document.createElement('button');
+      copyBtn.textContent = '复制';
+      copyBtn.classList.add('copy-btn');
+      copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(initContent)
+          .then(() => alert('文本已复制'))
+          .catch(err => alert('复制失败: ' + err));
+      });
+      header.appendChild(copyBtn);
+      messageDiv.appendChild(header);
+
+      const contentDiv = document.createElement('div');
+      contentDiv.innerHTML = marked.parse(initContent);
+      messageDiv.appendChild(contentDiv);
+      contentDiv.style.display = 'none';
+
+      toggleBtn.addEventListener('click', () => {
+        if (contentDiv.style.display === 'none') {
+          contentDiv.style.display = '';
+          toggleBtn.textContent = '折叠';
+        } else {
+          contentDiv.style.display = 'none';
+          toggleBtn.textContent = '展开';
+        }
+      });
+
+      logContainer.appendChild(messageDiv);
+      updateMathJax();
+      return {
+        messageDiv: messageDiv,
+        contentDiv: contentDiv,
+        update: function(newContent) {
+          contentDiv.innerHTML = marked.parse(newContent);
+          addCopyButtonsToCodeBlocks(contentDiv);
+          updateMathJax();
+        }
+      };
+    } else {
+      header.textContent = title;
+      const copyBtn = document.createElement('button');
+      copyBtn.textContent = '复制';
+      copyBtn.classList.add('copy-btn');
+      copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(initContent)
+          .then(() => alert('文本已复制'))
+          .catch(err => alert('复制失败: ' + err));
+      });
+      header.appendChild(copyBtn);
+      messageDiv.appendChild(header);
+
+      const contentDiv = document.createElement('div');
+      contentDiv.innerHTML = marked.parse(initContent);
+      messageDiv.appendChild(contentDiv);
+      logContainer.appendChild(messageDiv);
+      updateMathJax();
+      return {
+        messageDiv: messageDiv,
+        contentDiv: contentDiv,
+        update: function(newContent) {
+          contentDiv.innerHTML = marked.parse(newContent);
+          addCopyButtonsToCodeBlocks(contentDiv);
+          updateMathJax();
+        }
+      };
     }
   }
-  
-  // 调用 API 的函数，包含重试机制
+
+  // 调用 API 的函数（自动重试3次，超时30秒，非流式调用版）
   async function callApi(messages, settings) {
     const { apiUrl, apiKey, model, temperature, maxTokens } = settings;
     const headers = {
@@ -247,7 +308,7 @@
       max_tokens: parseInt(maxTokens)
     };
     const maxRetries = 3;
-    const timeout = 30000; // 超时时间：30秒
+    const timeout = 30000; // 30秒超时
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         const controller = new AbortController();
@@ -273,8 +334,8 @@
     }
     return null;
   }
-  
-  // 从 API 返回值中提取回答内容（假设结构与 OpenAI 类似）
+
+  // 提取返回的回答内容（仅用于非流式返回）
   function extractContent(apiResponse) {
     try {
       return apiResponse.choices[0].message.content;
@@ -283,32 +344,186 @@
       return "";
     }
   }
-  
-  // 发送一次请求
-  async function sendRequest(index, systemPrompt, userMessage, settings) {
-    appendLog(`发送请求 ${index + 1}`, "正在发送请求...");
-    const messages = [systemPrompt, userMessage];
-    const responseJson = await callApi(messages, settings);
-    if (responseJson === null) {
-      const msg = `[第${index+1}次请求失败，未获得有效回复]`;
-      appendLog(`请求 ${index + 1} 失败`, msg);
-      return msg;
-    } else {
-      const content = extractContent(responseJson);
-      appendLog(`请求 ${index + 1} 成功`, content);
-      return content;
+
+  // 新增流式调用函数，用于思考模式下的候选/校验请求，支持流式解析并通过回调实时更新UI
+  async function callApiStream(messages, settings, callbacks) {
+    const { apiUrl, apiKey, model, temperature, maxTokens } = settings;
+    const headers = {
+      "Authorization": "Bearer " + apiKey,
+      "Content-Type": "application/json"
+    };
+    const payload = {
+      model: model,
+      messages: messages,
+      temperature: parseFloat(temperature),
+      max_tokens: parseInt(maxTokens),
+      stream: true
+    };
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      throw new Error("API 返回错误状态 " + response.status);
+    }
+    
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let finalAnswer = "";
+    let finalStarted = false;
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunkText = decoder.decode(value);
+      // 按换行分割数据，每行前缀为 "data:"（类似 OpenAI 的流式返回）
+      const lines = chunkText.split("\n").filter(line => line.trim() !== "");
+      for (let line of lines) {
+        if (line.startsWith("data:")) {
+          let dataStr = line.slice(5).trim();
+          if (dataStr === "[DONE]") break;
+          try {
+            const jsonObj = JSON.parse(dataStr);
+            if (jsonObj.choices && jsonObj.choices[0] && jsonObj.choices[0].delta) {
+              const delta = jsonObj.choices[0].delta;
+              if (delta.reasoning_content && delta.reasoning_content !== "") {
+                if (callbacks && callbacks.onReasoning) {
+                  callbacks.onReasoning(delta.reasoning_content);
+                }
+              } else if (delta.content && delta.content !== "") {
+                if (!finalStarted && callbacks && callbacks.onFinalStart) {
+                  callbacks.onFinalStart();
+                  finalStarted = true;
+                }
+                if (callbacks && callbacks.onFinal) {
+                  callbacks.onFinal(delta.content);
+                }
+                finalAnswer += delta.content;
+              }
+            }
+          } catch (e) {
+            console.error("JSON 解析错误:", e);
+          }
+        }
+      }
+    }
+    return finalAnswer;
+  }
+
+  // 对候选回答请求（5 个并发请求）：封装自动重试+手动重试逻辑
+  async function requestCandidate(index, systemPrompt, userMessage, settings, thinkingModeEnabled) {
+    const entry = createLogEntry(`请求 ${index+1}`, "正在发送请求...", true);
+    async function attempt() {
+      let candidateLog = "正在发送请求...";
+      entry.update(candidateLog);
+      if (thinkingModeEnabled) {
+        try {
+          const finalAnswer = await callApiStream([systemPrompt, userMessage], settings, {
+            onReasoning: (chunk) => {
+              candidateLog += chunk;
+              entry.update(candidateLog);
+            },
+            onFinalStart: () => {
+              candidateLog += "\n\n === Final Answer ===\n";
+              entry.update(candidateLog);
+            },
+            onFinal: (chunk) => {
+              candidateLog += chunk;
+              entry.update(candidateLog);
+            }
+          });
+          return finalAnswer;
+        } catch(e) {
+          return null;
+        }
+      } else {
+        const responseJson = await callApi([systemPrompt, userMessage], settings);
+        if (!responseJson) return null;
+        return extractContent(responseJson);
+      }
+    }
+    while (true) {
+      const result = await attempt();
+      if (result !== null) {
+        entry.update(result);
+        return result;
+      } else {
+        entry.update("[请求失败，未获得有效回复]");
+        const retryButton = document.createElement("button");
+        retryButton.textContent = "手动重试";
+        entry.messageDiv.appendChild(retryButton);
+        await new Promise(resolve => retryButton.addEventListener("click", resolve, { once: true }));
+        retryButton.remove();
+      }
     }
   }
-  
-  // “发送请求”按钮点击事件处理
+
+  // 对校验请求（最佳答案）的调用：封装自动/手动重试逻辑，使用流式处理，
+  // 此处已修改为在 UI 上实时展示流式回复的整个过程（包括思考片段）
+  async function requestValidation(validatorMessages, settings) {
+    const entry = createLogEntry("发送检验请求", "正在发送检验请求，请求 AI 根据 5 个回答选出最佳答案...", true);
+    async function attempt() {
+      // 强制使用流式回复，确保能看到中间流式数据
+      if (settings.stream) {
+        let finalLog = "正在发送检验请求，请求 AI 根据 5 个回答选出最佳答案...";
+        entry.update(finalLog);
+        await callApiStream(validatorMessages, settings, {
+          onReasoning: (chunk) => {
+            finalLog += chunk;
+            entry.update(finalLog);
+          },
+          onFinalStart: () => {
+            finalLog += "\n\n === Final Answer ===\n";
+            entry.update(finalLog);
+          },
+          onFinal: (chunk) => {
+            finalLog += chunk;
+            entry.update(finalLog);
+          }
+        });
+        return finalLog;
+      } else {
+        const responseJson = await callApi(validatorMessages, settings);
+        if (!responseJson) return null;
+        return extractContent(responseJson);
+      }
+    }
+    while (true) {
+      const result = await attempt();
+      if (result !== null) {
+        entry.update(result);
+        return result;
+      } else {
+        entry.update("[检验请求失败，未获得有效回复]");
+        const retryButton = document.createElement("button");
+        retryButton.textContent = "手动重试";
+        entry.messageDiv.appendChild(retryButton);
+        await new Promise(resolve => retryButton.addEventListener("click", resolve, { once: true }));
+        retryButton.remove();
+      }
+    }
+  }
+
+  // 调用 MathJax 重新渲染数学公式
+  function updateMathJax() {
+    if (window.MathJax) {
+      MathJax.typesetPromise();
+    }
+  }
+
+  // “发送请求”按钮事件处理
   document.getElementById('sendRequestBtn').addEventListener('click', async () => {
-    // 获取用户输入和配置的参数
+    // 获取用户输入和配置参数
     const userTask = document.getElementById('taskInput').value;
-    const apiUrl = document.getElementById('apiUrl').value;
-    const apiKey = document.getElementById('apiKey').value;
-    const model = document.getElementById('model').value;
+    const userApiUrl = document.getElementById('apiUrl').value;
+    const userApiKey = document.getElementById('apiKey').value;
+    const userModel = document.getElementById('model').value;
     const temperature = document.getElementById('temperature').value;
     const maxTokens = document.getElementById('maxTokens').value;
+    const thinkingModeEnabled = document.getElementById('thinkingMode').checked;
     
     // 记录用户任务
     conversationLog.user_task = userTask;
@@ -324,59 +539,76 @@
       content: "请基于以上任务描述直接给出你的回答。"
     };
     
-    const settings = { apiUrl, apiKey, model, temperature, maxTokens };
-    
     appendLog("系统提示", systemPrompt.content);
     appendLog("用户消息", userMessage.content);
     
-    // 并发发送 5 次请求
+    // 如果开启思考模式，则使用示例中的 API 地址、Key 及模型
+    const settings = thinkingModeEnabled ? {
+      apiUrl: "https://api-inference.modelscope.cn/v1/chat/completions",
+      apiKey: "a121eb23-a813-48a3-8453-3dc11d0e1386",
+      model: "Qwen/QwQ-32B",
+      temperature: temperature,
+      maxTokens: maxTokens,
+      stream: true
+    } : {
+      apiUrl: userApiUrl,
+      apiKey: userApiKey,
+      model: userModel,
+      temperature: temperature,
+      maxTokens: maxTokens
+    };
+  
     appendLog("并发请求", "正在并发发送请求，5 次请求将同时发出...");
-    const candidateResponses = [];
-    const promises = [];
+    const candidatePromises = [];
     for (let i = 0; i < 5; i++) {
-      promises.push(sendRequest(i, systemPrompt, userMessage, settings));
+      candidatePromises.push(requestCandidate(i, systemPrompt, userMessage, settings, thinkingModeEnabled));
     }
-    const results = await Promise.all(promises);
-    
-    results.forEach(response => {
-      candidateResponses.push(response);
-    });
+    const candidateResponses = await Promise.all(candidatePromises);
     conversationLog.candidate_responses = candidateResponses;
-    
-    // 构造检验提示，整合 5 个候选回答
+  
+    // 构造检验请求（仅包含各候选回答最终答案，不包含详细思考过程）
     let validationPrompt = `任务描述：\n${userTask}\n\n` +
-      "下面列出了基于任务描述产生的5个回答。请你仔细分析后，判断是否有最准确，最好的回答" +
-      "如果你觉得回答的都不够好或者不正确，那你就再思考一次，得出正确答案或者最好的回答，并仅返回该最佳回答的完整内容，不需要其他解释或建议。\n";
+      "下面列出了基于任务描述产生的5个回答。根据任务描述，然后通过分析每一个回答，最后得出你的正确答案，不只是分析，是要你通过分析其他的回答然后去更精准的完成任务的。" +
+      "\n";
     candidateResponses.forEach((candidate, idx) => {
       validationPrompt += `\n【回答 ${idx + 1}】:\n${candidate}\n`;
     });
-    
+  
+    appendLog("检验请求", validationPrompt);
     const validatorMessages = [
       {
         role: "system",
-        content: `你现在是一位检验专家，须根据以下任务描述和候选回答判断是否有最准确，最好的回答。如果你觉得回答的都不够好或者不正确，那你就再思考一次，得出正确答案或者最好的回答。任务描述如下：\n${userTask}`
+        content: `你现在是一位推理专家，必须根据以下任务描述，然后通过分析每一个回答，最后得出你的正确答案，不只是分析，是要你通过分析其他的回答然后去更精准的完成任务的。任务描述如下：\n${userTask}`
       },
       {
         role: "user",
         content: validationPrompt
       }
     ];
-    
-    appendLog("检验请求", validationPrompt);
-    appendLog("发送检验请求", "正在发送检验请求，请求 AI 根据 5 个回答选出最佳答案...");
-    const validatorResponseJson = await callApi(validatorMessages, settings);
-    let finalAnswer = "";
-    if (validatorResponseJson === null) {
-      finalAnswer = "校验请求失败，未获得有效回复。";
-    } else {
-      finalAnswer = extractContent(validatorResponseJson);
-    }
-    
+  
+    // 无论是否开启思考模式，此处均强制使用流式回复，确保展示流式回复过程
+    const finalSettings = thinkingModeEnabled ? {
+      apiUrl: "https://api-inference.modelscope.cn/v1/chat/completions",
+      apiKey: "a121eb23-a813-48a3-8453-3dc11d0e1386",
+      model: "Qwen/QwQ-32B",
+      temperature: temperature,
+      maxTokens: maxTokens,
+      stream: true
+    } : {
+      apiUrl: userApiUrl,
+      apiKey: userApiKey,
+      model: userModel,
+      temperature: temperature,
+      maxTokens: maxTokens,
+      stream: true
+    };
+  
+    const finalAnswer = await requestValidation(validatorMessages, finalSettings);
     conversationLog.final_best_answer = finalAnswer;
     appendLog("最终最佳答案", finalAnswer);
   });
   
-  // “清除会话”按钮事件处理，将所有日志和会话记录清空
+  // “清除会话”按钮事件处理
   document.getElementById('clearSessionBtn').addEventListener('click', () => {
     conversationLog = {
       user_task: "",
@@ -387,7 +619,7 @@
     document.getElementById('logContainer').innerHTML = "<h2>会话日志</h2>";
   });
   
-  // “下载日志”按钮事件处理，将整个会话记录下载为 JSON 文件，文件名包含时间戳
+  // “下载日志”按钮事件处理
   document.getElementById('downloadLogBtn').addEventListener('click', () => {
     const timestamp = new Date().toISOString().replace(/[^\d]/g, "");
     const filename = `ai_result_${timestamp}.json`;
