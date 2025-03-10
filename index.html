@@ -598,7 +598,7 @@
       appendLog("提取关键词", "调用 Gemini 提取搜索关键词...");
       const keywordSystemMsg = {
         role: "system",
-        content: "你现在是一位搜索专家。请根据以下任务，总结出需要搜索的问题："
+        content: "你现在是一位搜索关键词专家。请根据以下任务，总结出需要搜索的问题，只需要你总结出来完成任务所需要搜索的一条问题，别的任何话都不要说，不然会导致搜索失败或者完不成任务："
       };
       const keywordUserMsg = {
         role: "user",
