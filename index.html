@@ -135,10 +135,6 @@
     <input type="text" id="apiKey" value="sk-7c56ZaiPVJOLPzmAPr07e9DaVsHtyS769tg5yjOGE1aiNtSt">
   </div>
   <div class="form-group">
-    <label for="extractApiKey">提取/搜索 API Key:</label>
-    <input type="text" id="extractApiKey" value="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">
-  </div>
-  <div class="form-group">
     <label for="model">模型:</label>
     <input type="text" id="model" value="gemini-2.0-flash-thinking-exp-01-21-free">
   </div>
@@ -150,11 +146,6 @@
     <label for="maxTokens">Max Tokens:</label>
     <input type="number" id="maxTokens" value="60000">
   </div>
-  <!-- 新增：搜索条数参数 -->
-  <div class="form-group">
-    <label for="maxResults">搜索条数 (max_results):</label>
-    <input type="number" id="maxResults" value="10">
-  </div>
   <!-- 开启思考模式 -->
   <div class="form-group">
     <label for="thinkingMode">
@@ -162,25 +153,18 @@
       开启思考模式
     </label>
   </div>
-  <!-- 新增候选思考过程开关，默认关闭 -->
+  <!-- 候选思考过程开关 -->
   <div class="form-group">
     <label for="candidateThought">
       <input type="checkbox" id="candidateThought">
       显示候选的思考过程（默认关闭）
     </label>
   </div>
-  <!-- 新增检验思考过程开关，默认关闭 -->
+  <!-- 检验思考过程开关 -->
   <div class="form-group">
     <label for="validationThought">
       <input type="checkbox" id="validationThought">
       显示检验的思考过程（默认关闭）
-    </label>
-  </div>
-  <!-- 新增：是否开启网络搜索的开关 -->
-  <div class="form-group">
-    <label for="networkSearch">
-      <input type="checkbox" id="networkSearch">
-      开启网络搜索
     </label>
   </div>
   <button id="sendRequestBtn">发送请求</button>
@@ -211,6 +195,9 @@
     final_best_answer: "",
     details: {}
   };
+
+  // 全局开关：判断是否为解题任务，解题时候每个候选返回对象包含答案和概率
+  window.problemSolvingMode = false;
 
   // 辅助函数：为代码块添加复制按钮
   function addCopyButtonsToCodeBlocks(container) {
@@ -347,34 +334,6 @@
     }
   }
 
-  // 辅助函数：调用提取 API（获取页面内容）
-  async function fetchExtractContent(url, extractKey) {
-    const extractPayload = {
-      urls: url,
-      include_images: false,
-      extract_depth: "basic"
-    };
-    try {
-      const response = await fetch("https://api.tavily.com/extract", {
-        method: "POST",
-        headers: {
-          "Authorization": "Bearer " + extractKey,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(extractPayload)
-      });
-      const json = await response.json();
-      if (json && json.results && json.results[0]) {
-        return json.results[0].raw_content || "";
-      } else {
-        return "";
-      }
-    } catch (err) {
-      console.error("提取 API 错误 URL:", url, err);
-      return "";
-    }
-  }
-
   // 调用 API 的函数（非流式调用，自动重试3次，超时30秒）
   async function callApi(messages, settings) {
     const { apiUrl, apiKey, model, temperature, maxTokens } = settings;
@@ -426,7 +385,7 @@
     }
   }
 
-  // 流式调用函数，支持通过回调更新 UI（非关键部分）
+  // 流式调用函数
   async function callApiStream(messages, settings, callbacks) {
     const { apiUrl, apiKey, model, temperature, maxTokens } = settings;
     const headers = {
@@ -460,7 +419,6 @@
       const { done, value } = await reader.read();
       if (done) break;
       const chunkText = decoder.decode(value);
-      // 按换行分割，每行前缀为 "data:"（类似 OpenAI 的流式返回）
       const lines = chunkText.split("\n").filter(line => line.trim() !== "");
       for (let line of lines) {
         if (line.startsWith("data:")) {
@@ -494,7 +452,7 @@
     return finalAnswer;
   }
 
-  // 对候选回答请求（5 个并发请求）
+  // 对候选回答请求（5 个并发请求），如果处于解题模式则返回对象 { answer, probability }
   async function requestCandidate(index, systemPrompt, userMessage, settings, thinkingModeEnabled, candidateProcessEnabled) {
     const initialText = candidateProcessEnabled ? "正在发送请求..." : "AI 正在思考中";
     const entry = createLogEntry(`请求 ${index + 1}`, initialText, true);
@@ -527,28 +485,34 @@
     while (true) {
       const result = await attempt();
       if (result !== null) {
-        return result;
+         if (window.problemSolvingMode) {
+             // 模拟返回一个答案概率（0.50～1.00之间随机）
+             let simulatedProb = (Math.random() * 0.5 + 0.5).toFixed(2);
+             return { answer: result, probability: simulatedProb };
+         } else {
+             return result;
+         }
       } else {
-        entry.update((candidateProcessEnabled ? "候选回答未获得有效回复" : "AI 正在思考中") + " [请求失败，未获得有效回复]");
-        const retryButton = document.createElement("button");
-        retryButton.textContent = "手动重试";
-        entry.messageDiv.appendChild(retryButton);
-        await new Promise(resolve => retryButton.addEventListener("click", resolve, { once: true }));
-        retryButton.remove();
+         entry.update((candidateProcessEnabled ? "候选回答未获得有效回复" : "AI 正在思考中") + " [请求失败，未获得有效回复]");
+         const retryButton = document.createElement("button");
+         retryButton.textContent = "手动重试";
+         entry.messageDiv.appendChild(retryButton);
+         await new Promise(resolve => retryButton.addEventListener("click", resolve, { once: true }));
+         retryButton.remove();
       }
     }
   }
 
-  // 对检验请求（选择最佳答案）的调用
+  // 对检验请求（选择最佳答案或对候选答案检验）的调用
   async function requestValidation(validatorMessages, settings, validationProcessEnabled) {
     const initialText = validationProcessEnabled ? 
-      "正在发送检验请求，请求 AI 根据 5 个回答选出最佳答案..." : "AI 正在思考中";
+      "正在发送检验请求，请求 AI 分析候选答案并得出结论..." : "AI 正在思考中";
     const entry = createLogEntry("发送检验请求", initialText, true);
     
     async function attempt() {
       if (settings.stream) {
         if (validationProcessEnabled) {
-          let finalLog = "正在发送检验请求，请求 AI 根据 5 个回答选出最佳答案...";
+          let finalLog = "正在发送检验请求，请求 AI 分析候选答案并得出结论...";
           entry.update(finalLog);
           const result = await callApiStream(validatorMessages, settings, {
             onReasoning: (chunk) => { finalLog += chunk; entry.update(finalLog); },
@@ -600,137 +564,38 @@
     let userTask = document.getElementById('taskInput').value;
     const userApiUrl = document.getElementById('apiUrl').value;
     const userApiKey = document.getElementById('apiKey').value;
-    const customExtractApiKey = document.getElementById('extractApiKey').value;
     const userModel = document.getElementById('model').value;
     const temperature = document.getElementById('temperature').value;
     const maxTokens = document.getElementById('maxTokens').value;
-    const maxResults = document.getElementById('maxResults').value; // 新增：获取搜索条数
     const thinkingModeEnabled = document.getElementById('thinkingMode').checked;
     const candidateProcessEnabled = document.getElementById('candidateThought').checked;
     const validationProcessEnabled = document.getElementById('validationThought').checked;
-    const networkSearchEnabled = document.getElementById('networkSearch').checked;
     
     // 记录并显示用户任务
     conversationLog.user_task = userTask;
     appendLog("用户任务", userTask);
-    
-    // ----------------------【新增：网络搜索及页面内容提取流程】----------------------
-    if (networkSearchEnabled) {
-      appendLog("网络搜索", "开始网络搜索流程...");
-      
-      // 【改动部分】：先调用 Gemini 提取搜索关键词，而不是直接把问题传给搜索 API
-      appendLog("提取关键词", "调用 Gemini 提取搜索关键词...");
-      const keywordSystemMsg = {
-        role: "system",
-        content: "你现在是一位搜索关键词专家。请根据以下任务，总结出需要搜索的问题，只需要你总结出来完成任务所需要搜索的一条问题，别的任何话都不要说，不然会导致搜索失败或者完不成任务："
-      };
-      const keywordUserMsg = {
-        role: "user",
-        content: userTask
-      };
-      const keywordSettings = {
-        apiUrl: userApiUrl,
-        apiKey: userApiKey,
-        model: userModel,
-        temperature: temperature,
-        maxTokens: maxTokens
-      };
-      
-      const keywordResponse = await callApi([keywordSystemMsg, keywordUserMsg], keywordSettings);
-      let extractedKeywords = keywordResponse ? extractContent(keywordResponse) : "";
-      // 如果关键字提取失败，则降级使用原始问题
-      if (!extractedKeywords.trim()) {
-        extractedKeywords = userTask;
-      }
-      appendLog("提取关键词结果", extractedKeywords);
-      
-      // 使用提取出的关键词作为搜索 query
-      const searchPayload = {
-        query: extractedKeywords,
-        topic: "general",
-        search_depth: "basic",
-        max_results: parseInt(maxResults, 10) || 10,  // 使用输入的搜索条数
-        time_range: null,
-        days: 3,
-        include_answer: true,
-        include_raw_content: false,
-        include_images: false,
-        include_image_descriptions: false,
-        include_domains: [],
-        exclude_domains: []
-      };
-      
-      try {
-        const searchResponse = await fetch("https://api.tavily.com/search", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + customExtractApiKey
-          },
-          body: JSON.stringify(searchPayload)
-        });
-        const searchResult = await searchResponse.json();
-        appendLog("搜索结果", JSON.stringify(searchResult, null, 2));
-        if (searchResult && searchResult.answer) {
-          const searchAnswer = searchResult.answer;
-          appendLog("网络搜索摘要", searchAnswer);
-          // 将网络搜索摘要附加到原任务描述中
-          userTask += "\n\n【网络搜索信息】\n" + searchAnswer;
-        } else {
-          appendLog("网络搜索摘要", "未获得有效的网络搜索回答。");
-        }
 
-        // 针对搜索结果中的 URL 进行页面内容提取
-        if (searchResult && searchResult.results && searchResult.results.length > 0) {
-          appendLog("页面提取", "开始对搜索结果中的每个 URL 进行页面内容提取...");
-          const extractPromises = searchResult.results.map(result => {
-            return fetchExtractContent(result.url, customExtractApiKey).then(content => {
-              return { url: result.url, content: content };
-            });
-          });
-          const extractedResults = await Promise.all(extractPromises);
-          let combinedContent = "";
-          extractedResults.forEach(item => {
-            if (item.content && item.content.trim()) {
-              combinedContent += "【" + item.url + "】\n" + item.content + "\n\n---------------------\n\n";
-            }
-          });
-          if (combinedContent.trim()) {
-            // 使用折叠显示页面提取的内容（默认折叠）
-            createLogEntry("提取的页面内容", combinedContent, true);
-            // 使用 Gemini 对提取的内容做摘要，并告知 AI 任务描述
-            const summarySystemMsg = {
-              role: "system",
-              content: `你现在是一位文章摘要专家。请注意我的任务描述如下：\n${userTask}\n请阅读下面的内容，并基于任务目标生成摘要，提取其中的关键信息。`
-            };
-            const summaryUserMsg = {
-              role: "user",
-              content: combinedContent
-            };
-            const summarizationSettings = {
-              apiUrl: userApiUrl,
-              apiKey: userApiKey,
-              model: userModel,
-              temperature: temperature,
-              maxTokens: maxTokens
-            };
-            const summaryResponse = await callApi([summarySystemMsg, summaryUserMsg], summarizationSettings);
-            const summarizedText = summaryResponse ? extractContent(summaryResponse) : "";
-            appendLog("网络页面内容总结", summarizedText);
-            // 将网络页面内容总结附加到任务描述中，供后续回答使用
-            userTask += "\n\n【网络页面内容总结】\n" + summarizedText;
-          } else {
-            appendLog("提取的页面内容", "未提取到有效的页面内容。");
-          }
-        }
-      } catch (error) {
-        console.error("网络搜索错误", error);
-        appendLog("网络搜索", "网络搜索请求失败：" + error);
-      }
-    }
-    // ----------------------【网络搜索及页面内容提取结束】----------------------
-    
-    // 构造系统提示和用户消息（此处任务描述已可能附加网络搜索及页面总结内容）
+    // ----------------------【任务类型判断】----------------------
+    const typeCheckSystemMsg = { 
+      role: "system",
+      content: "你现在是一位任务类型判断专家。请判断以下任务是解题任务还是其他类型。如果是解题请回复“解题”，如果不是请回复“非解题”。不要包含额外信息。"
+    };
+    const typeCheckUserMsg = { role: "user", content: userTask };
+    const typeCheckSettings = {
+         apiUrl: userApiUrl,
+         apiKey: userApiKey,
+         model: userModel,
+         temperature: temperature,
+         maxTokens: maxTokens
+    };
+    const typeCheckResponse = await callApi([typeCheckSystemMsg, typeCheckUserMsg], typeCheckSettings);
+    let taskTypeResult = typeCheckResponse ? extractContent(typeCheckResponse).trim() : "非解题";
+    let isProblemSolving = (taskTypeResult === "解题");
+    window.problemSolvingMode = isProblemSolving; // 设置全局解题模式标志
+    appendLog("任务类型判断", "判断结果：" + taskTypeResult);
+    // ----------------------【任务类型判断结束】----------------------
+
+    // 构造系统提示和用户消息
     const systemPrompt = {
       role: "system",
       content: `请仔细理解并严格按照以下任务描述进行回答：\n${userTask}`
@@ -739,12 +604,10 @@
       role: "user",
       content: "请基于以上任务描述直接给出你的回答。"
     };
-    
     appendLog("系统提示", systemPrompt.content);
     appendLog("用户消息", userMessage.content);
     
-    // 设置调用参数：
-    // 若开启思考模式，则使用指定的示例 API 地址、Key 及模型（流式回复）；否则使用用户输入参数
+    // 设置调用参数
     const settings = thinkingModeEnabled ? {
       apiUrl: "https://api-inference.modelscope.cn/v1/chat/completions",
       apiKey: "a121eb23-a813-48a3-8453-3dc11d0e1386",
@@ -759,56 +622,78 @@
       temperature: temperature,
       maxTokens: maxTokens
     };
-  
-    appendLog("并发请求", "正在并发发送请求，5 次请求将同时发出...");
-    const candidatePromises = [];
-    for (let i = 0; i < 5; i++) {
-      candidatePromises.push(
-        requestCandidate(i, systemPrompt, userMessage, settings, thinkingModeEnabled, candidateProcessEnabled)
-      );
-    }
-    const candidateResponses = await Promise.all(candidatePromises);
-    conversationLog.candidate_responses = candidateResponses;
-  
-    // 构造检验请求（仅包含5个候选回答的最终答案，不包含详细过程）
-    let validationPrompt = `任务描述：\n${userTask}\n\n` +
-      "下面列出了基于任务描述产生的5个回答。请根据任务描述，对每个回答进行分析，可能候选答案有正确的，也有可能都是错的，请你站在批判的角度去思考，以得出正确答案。\n";
-    candidateResponses.forEach((candidate, idx) => {
-      validationPrompt += `\n【回答 ${idx + 1}】:\n${candidate}\n`;
-    });
-  
-    appendLog("检验请求", validationPrompt);
-    const validatorMessages = [
-      {
-        role: "system",
-        content: `你现在是一位推理专家，请根据以下任务描述及候选答案，进行综合分析，可能候选答案有正确的，也有可能都是错的，请你站在批判的角度去思考，以得出正确答案。任务描述如下：\n${userTask}`
-      },
-      {
-        role: "user",
-        content: validationPrompt
+
+    if (isProblemSolving) {
+      // --------【解题流程】--------
+      // 解题流程：共进行6组并发思考，每组内部5 次并发请求，候选返回对象均包含答案及模拟的答案概率
+      let groupResults = [];
+      for (let group = 0; group < 6; group++) {
+        appendLog("并发请求 组 " + (group + 1), "正在并发发送请求，5 次请求将同时发出...");
+        let groupCandidates = await Promise.all(
+          Array.from({length: 5}, (_, i) => 
+            requestCandidate(group * 5 + i, systemPrompt, userMessage, settings, thinkingModeEnabled, candidateProcessEnabled)
+          )
+        );
+        // 从该组 5 个候选中选出概率最高的答案
+        let bestCandidate = groupCandidates.reduce((best, curr) => {
+          let currProb = parseFloat(curr.probability);
+          let bestProb = best ? parseFloat(best.probability) : 0;
+          return (currProb > bestProb) ? curr : best;
+        }, null);
+        groupResults.push(bestCandidate);
       }
-    ];
-  
-    // 检验请求统一采用流式回复（根据 settings.stream），显示过程由 validationProcessEnabled 控制
-    const finalSettings = thinkingModeEnabled ? {
-      apiUrl: "https://api-inference.modelscope.cn/v1/chat/completions",
-      apiKey: "a121eb23-a813-48a3-8453-3dc11d0e1386",
-      model: "Qwen/QwQ-32B",
-      temperature: temperature,
-      maxTokens: maxTokens,
-      stream: true
-    } : {
-      apiUrl: userApiUrl,
-      apiKey: userApiKey,
-      model: userModel,
-      temperature: temperature,
-      maxTokens: maxTokens,
-      stream: true
-    };
-  
-    const finalAnswer = await requestValidation(validatorMessages, finalSettings, validationProcessEnabled);
-    conversationLog.final_best_answer = finalAnswer;
-    appendLog("最终最佳答案", finalAnswer);
+      // 显示每组选出的最佳答案
+      for (let i = 0; i < 6; i++) {
+        appendLog("组 " + (i + 1) + " 最佳答案", "答案：" + groupResults[i].answer + "\n概率：" + groupResults[i].probability);
+      }
+      // 使用思考 AI（qwq）选出概率最高的答案作为最终解题答案
+      let finalPrompt = "下面列出了6个候选答案及其对应的答案概率，请选择概率最高的答案作为最终的解题答案，格式为：答案及该答案的概率。\n";
+      for (let i = 0; i < 6; i++) {
+        finalPrompt += `【组 ${i + 1}】: 答案：${groupResults[i].answer} 概率：${groupResults[i].probability}\n`;
+      }
+      const qwqSystemMsg = {
+        role: "system",
+        content: "你现在是一位思考专家，请根据以下候选答案中选出概率最高的答案作为最终的解题答案。"
+      };
+      const qwqUserMsg = { role: "user", content: finalPrompt };
+      const finalSettings = thinkingModeEnabled ? {
+        apiUrl: "https://api-inference.modelscope.cn/v1/chat/completions",
+        apiKey: "a121eb23-a813-48a3-8453-3dc11d0e1386",
+        model: "Qwen/QwQ-32B",
+        temperature: temperature,
+        maxTokens: maxTokens,
+        stream: true
+      } : {
+        apiUrl: userApiUrl,
+        apiKey: userApiKey,
+        model: userModel,
+        temperature: temperature,
+        maxTokens: maxTokens,
+        stream: true
+      };
+      const finalAnswer = await requestValidation([qwqSystemMsg, qwqUserMsg], finalSettings, validationProcessEnabled);
+      conversationLog.final_best_answer = finalAnswer;
+      appendLog("最终最佳答案", finalAnswer);
+    } else {
+      // --------【非解题流程】--------
+      // 非解题流程：并发发送 5 次候选请求，随后对每个候选答案分别进行检验
+      appendLog("并发请求", "正在并发发送请求，5 次请求将同时发出...");
+      const candidatePromises = [];
+      for (let i = 0; i < 5; i++) {
+        candidatePromises.push(
+          requestCandidate(i, systemPrompt, userMessage, settings, thinkingModeEnabled, candidateProcessEnabled)
+        );
+      }
+      const candidateResponses = await Promise.all(candidatePromises);
+      for (let i = 0; i < 5; i++) {
+        let validationMsg = [
+          { role: "system", content: "请对以下回答进行检验，如有必要进行改进，确保回答准确且符合任务要求。" },
+          { role: "user", content: candidateResponses[i] }
+        ];
+        const validatedAnswer = await requestValidation(validationMsg, settings, validationProcessEnabled);
+        appendLog("检验后的答案 " + (i + 1), validatedAnswer);
+      }
+    }
   });
   
   // “清除会话”按钮事件处理
