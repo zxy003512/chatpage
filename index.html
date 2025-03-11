@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>AI Markdown Chat Interface</title>
+  <!-- 添加视口标签，确保移动端适配 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- 引入 highlight.js 样式 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/default.min.css">
   <!-- 配置 MathJax（自动渲染数学公式） -->
@@ -23,11 +25,12 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 40px;
+      margin: 20px;
       background-color: #f7f7f7;
     }
     .container {
       max-width: 800px;
+      width: 95%;
       margin: 0 auto;
       background: #fff;
       padding: 20px;
@@ -70,6 +73,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      flex-wrap: wrap;
     }
     pre code {
       background-color: #eee;
@@ -92,6 +96,26 @@
       cursor: pointer;
       border-radius: 3px;
       font-size: 12px;
+    }
+    /* 针对小屏设备的响应式样式 */
+    @media (max-width: 600px) {
+      body {
+        margin: 10px;
+      }
+      .container {
+        padding: 10px;
+      }
+      textarea, input[type="text"], input[type="number"] {
+        font-size: 16px;
+      }
+      button {
+        padding: 8px 16px;
+        font-size: 14px;
+      }
+      .copy-btn, .toggle-btn, .copy-code-btn {
+        font-size: 14px;
+        padding: 5px 8px;
+      }
     }
   </style>
 </head>
