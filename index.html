@@ -373,63 +373,88 @@
     }
 
     /**
-     * 通用 API 请求函数（支持流式回复）
+     * 通用 API 请求函数（支持流式回复、错误重试最多3次）
      * api_url, api_key, payload 均为参数；
      * streamHandler(data, done)：流式回复处理函数，
      *   data 为每个数据chunk，done 为 true 表示结束
      */
     async function callAPI(api_url, api_key, payload, streamHandler) {
       logMessage("请求参数：" + JSON.stringify(payload));
-      try {
-        const response = await fetch(api_url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + api_key
-          },
-          body: JSON.stringify(payload)
-        });
-        if (!response.ok) {
-          const errText = await response.text();
-          logMessage("错误响应：" + errText);
-          return;
-        }
-        if (settings.stream) {
-          const reader = response.body.getReader();
-          const decoder = new TextDecoder("utf-8");
-          let doneReading = false;
-          let buffer = "";
-          while (!doneReading) {
-            const { value, done } = await reader.read();
-            doneReading = done;
-            if (value) {
-              buffer += decoder.decode(value, { stream: true });
-              let lines = buffer.split("\n");
-              buffer = lines.pop();
-              for (let line of lines) {
-                if (line.startsWith("data: ")) {
-                  const dataStr = line.slice(6);
-                  if (dataStr.trim() === "[DONE]") {
-                    streamHandler(null, true);
-                    continue;
-                  }
-                  try {
-                    const data = JSON.parse(dataStr);
-                    streamHandler(data, false);
-                    logMessage("响应chunk：" + JSON.stringify(data));
-                  } catch (e) {
-                    console.error("解析chunk错误", e);
+      const maxRetries = 3;
+      let attempt = 0;
+      while (attempt < maxRetries) {
+        try {
+          const response = await fetch(api_url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer " + api_key
+            },
+            body: JSON.stringify(payload)
+          });
+          if (!response.ok) {
+            const errText = await response.text();
+            logMessage(`错误响应 (attempt ${attempt + 1}/${maxRetries})：` + errText);
+            attempt++;
+            if (attempt < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              continue;
+            } else {
+              streamHandler({ error: errText }, true);
+              return;
+            }
+          }
+          if (settings.stream) {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let doneReading = false;
+            let buffer = "";
+            while (!doneReading) {
+              const { value, done } = await reader.read();
+              doneReading = done;
+              if (value) {
+                buffer += decoder.decode(value, { stream: true });
+                let lines = buffer.split("\n");
+                buffer = lines.pop();
+                for (let line of lines) {
+                  if (line.startsWith("data: ")) {
+                    const dataStr = line.slice(6);
+                    if (dataStr.trim() === "[DONE]") {
+                      streamHandler(null, true);
+                      // 流式回复结束后，再次调用渲染过程（延时50ms确保DOM更新）
+                      setTimeout(() => renderMessages(), 50);
+                      return;
+                    }
+                    try {
+                      const data = JSON.parse(dataStr);
+                      streamHandler(data, false);
+                      logMessage("响应chunk：" + JSON.stringify(data));
+                    } catch (e) {
+                      console.error("解析chunk错误", e);
+                    }
                   }
                 }
               }
             }
+          } else {
+            const data = await response.json();
+            streamHandler(data, false);
+            // 非流式模式下，调用一次结束标识，并触发渲染
+            streamHandler(null, true);
+            setTimeout(() => renderMessages(), 50);
           }
-        } else {
-          const data = await response.json();
-          streamHandler(data, false);
+          return;  // 成功则退出while循环
+        } catch (e) {
+          logMessage(`请求异常 (attempt ${attempt + 1}/${maxRetries})：` + e);
+          attempt++;
+          if (attempt < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            continue;
+          } else {
+            streamHandler({ error: e.toString() }, true);
+            return;
+          }
         }
-      } catch (e) {
-        logMessage("请求异常：" + e);
       }
     }
 
@@ -496,6 +521,8 @@
           callAPI(settings.gemini.api_url, settings.gemini.api_key, payload_gemini, (data, done) => {
             const lastIndex = conversation.length - 1;
             if (done) {
+              // 流式回复结束后再执行一次渲染确保代码高亮正确
+              setTimeout(() => renderMessages(), 50);
               resolve();
             } else if (data) {
               const delta = data.choices[0].delta;
@@ -529,6 +556,7 @@
           callAPI(settings.o3mini.api_url, settings.o3mini.api_key, payload_o3, (data, done) => {
             const lastIndex = conversation.length - 1;
             if (done) {
+              setTimeout(() => renderMessages(), 50);
               resolve();
             } else if (data) {
               const delta = data.choices[0].delta;
@@ -580,7 +608,7 @@
         document.getElementById("settingsPanel").style.display = "none";
         logMessage("设置已保存");
       });
-      
+    
       // 日志折叠/展开按钮
       const toggleLogBtn = document.getElementById("toggleLogBtn");
       toggleLogBtn.addEventListener("click", function() {
