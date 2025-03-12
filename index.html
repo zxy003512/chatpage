@@ -1,736 +1,602 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>AI Markdown Chat Interface</title>
-  <!-- 添加视口标签，确保移动端适配 -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- 引入 highlight.js 样式 -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/default.min.css">
-  <!-- 配置 MathJax（自动渲染数学公式） -->
+  <title>AI 聊天界面</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- 引入 marked 用于 Markdown 渲染 -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- 配置 marked（不自动换行，保证流式回复在一行内追加） -->
   <script>
-    window.MathJax = {
-      tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['$$', '$$'], ['\\[', '\\]']]
-      }
-    };
+    marked.setOptions({
+      breaks: false
+    });
   </script>
-  <!-- 引入 highlight.js -->
+  <!-- 引入 highlight.js 用于代码高亮 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/default.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-  <!-- 引入 marked.js 用于 Markdown 渲染 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
-  <!-- 引入 MathJax -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js" async></script>
+  <!-- 引入 MathJax 用于渲染数学公式 -->
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async
+          src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+  </script>
   <style>
+    /* 通用样式 */
     body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      background-color: #f7f7f7;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f6f6f6;
     }
-    .container {
-      max-width: 800px;
-      width: 95%;
-      margin: 0 auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 5px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    .form-group {
-      margin-bottom: 15px;
-    }
-    label {
-      display: block;
-      font-weight: bold;
-      margin-bottom: 5px;
-    }
-    textarea, input[type="text"], input[type="number"] {
-      width: 100%;
-      padding: 8px;
-      box-sizing: border-box;
-    }
-    button {
+    header {
+      background: linear-gradient(135deg, #2d89ef, #1b6dc1);
+      color: #fff;
       padding: 10px 20px;
-      margin-right: 10px;
-      margin-top: 10px;
-      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
-    .log {
-      margin-top: 20px;
-      border-top: 1px solid #ccc;
-      padding-top: 20px;
-    }
-    .message {
-      margin-bottom: 20px;
-      border: 1px solid #ddd;
-      padding: 10px;
-      border-radius: 5px;
-      background: #fefefe;
-    }
-    .message h3 {
-      margin-top: 0;
+    header .btn-group {
       display: flex;
       align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
     }
-    pre code {
-      background-color: #eee;
-      padding: 10px;
-      border-radius: 5px;
-      display: block;
-    }
-    /* 按钮样式 */
-    .copy-btn, .toggle-btn {
+    header button {
       margin-left: 10px;
-      font-size: 12px;
+      padding: 6px 12px;
+      border: none;
+      background: #fff;
+      color: #2d89ef;
       cursor: pointer;
-      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 14px;
     }
-    .copy-code-btn {
-      background-color: rgba(0, 0, 0, 0.5);
+    .container {
+      margin: 20px auto;
+      max-width: 800px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 100px);
+    }
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+    }
+    .chat-message {
+      margin-bottom: 15px;
+      border-radius: 6px;
+      padding: 12px 15px;
+      position: relative;
+      word-break: break-word;
+      line-height: 1.5;
+    }
+    .chat-message.user {
+      background: #dcf8c6;
+      align-self: flex-end;
+    }
+    .chat-message.assistant {
+      background: #ececec;
+      align-self: flex-start;
+    }
+    .message-content {
+      white-space: pre-wrap;
+      font-size: 15px;
+    }
+    .copy-btn, .copy-code-btn {
+      font-size: 12px;
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      padding: 2px 6px;
+      background: rgba(0,0,0,0.3);
       color: #fff;
       border: none;
-      padding: 2px 6px;
-      cursor: pointer;
       border-radius: 3px;
-      font-size: 12px;
+      cursor: pointer;
     }
-    /* 针对小屏设备的响应式样式 */
+    .copy-code-btn {
+      top: auto;
+      bottom: 2px;
+    }
+    #input-area {
+      display: flex;
+      padding: 10px;
+      border-top: 1px solid #ddd;
+      background: #fafafa;
+    }
+    #input {
+      flex: 1;
+      padding: 8px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      resize: none;
+      height: 50px;
+    }
+    #sendBtn {
+      margin-left: 10px;
+      padding: 0 20px;
+      font-size: 16px;
+      border: none;
+      background: #2d89ef;
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    /* 设置面板 */
+    #settingsPanel {
+      display: none;
+      position: fixed;
+      top: 60px;
+      right: 20px;
+      background: #fff;
+      border: 1px solid #ccc;
+      z-index: 1000;
+      padding: 15px;
+      border-radius: 6px;
+      max-width: 300px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    #settingsPanel h3 {
+      margin-top: 0;
+    }
+    #settingsPanel label {
+      display: block;
+      margin-top: 8px;
+      font-size: 14px;
+    }
+    #settingsPanel input, #settingsPanel select {
+      width: 100%;
+      padding: 4px 6px;
+      margin-top: 4px;
+    }
+    #settingsPanel button {
+      margin-top: 10px;
+      padding: 6px 10px;
+      border: none;
+      background: #2d89ef;
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 48%;
+    }
+    #settingsPanel .close-btn {
+      background: #c74444;
+      float: right;
+    }
+    /* 日志窗口（默认折叠） */
+    #log {
+      display: none;
+      height: 100px;
+      overflow-y: auto;
+      background: #333;
+      color: #fff;
+      font-size: 12px;
+      padding: 5px;
+    }
+    /* 切换日志按钮样式 */
+    #toggleLogBtn {
+      background: #fff;
+      color: #2d89ef;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-left: 10px;
+    }
+    /* 移动端适配 */
     @media (max-width: 600px) {
-      body {
-        margin: 10px;
-      }
-      .container {
-        padding: 10px;
-      }
-      textarea, input[type="text"], input[type="number"] {
-        font-size: 16px;
-      }
-      button {
-        padding: 8px 16px;
-        font-size: 14px;
-      }
-      .copy-btn, .toggle-btn, .copy-code-btn {
-        font-size: 14px;
-        padding: 5px 8px;
-      }
+      body { font-size: 14px; }
+      header { padding: 10px; }
+      header button, #toggleLogBtn { padding: 6px 8px; font-size: 13px; }
+      .container { margin: 10px; height: calc(100vh - 80px); }
+      #input { height: 40px; font-size: 14px; }
+      #sendBtn { padding: 0 12px; font-size: 14px; }
+      #settingsPanel { right: 10px; width: 90%; }
     }
   </style>
 </head>
 <body>
-<div class="container">
-  <h1>AI Markdown Chat Interface</h1>
-  <div class="form-group">
-    <label for="taskInput">任务描述或问题：</label>
-    <textarea id="taskInput" rows="4" placeholder="请输入任务描述或问题"></textarea>
+  <header>
+    <div>AI 聊天界面</div>
+    <div class="btn-group">
+      <button id="clearBtn">清空对话</button>
+      <button id="settingsBtn">设置</button>
+      <button id="toggleLogBtn">日志</button>
+    </div>
+  </header>
+  <div class="container">
+    <div id="chat"></div>
+    <div id="input-area">
+      <textarea id="input" placeholder="请输入消息..."></textarea>
+      <button id="sendBtn">发送</button>
+    </div>
+    <div id="log"></div>
   </div>
-  <div class="form-group">
-    <label for="apiUrl">API URL:</label>
-    <input type="text" id="apiUrl" value="https://api.zetatechs.com/v1/chat/completions">
-  </div>
-  <div class="form-group">
-    <label for="apiKey">聊天 API Key:</label>
-    <input type="text" id="apiKey" value="sk-7c56ZaiPVJOLPzmAPr07e9DaVsHtyS769tg5yjOGE1aiNtSt">
-  </div>
-  <div class="form-group">
-    <label for="model">模型:</label>
-    <input type="text" id="model" value="gemini-2.0-flash-thinking-exp-01-21-free">
-  </div>
-  <div class="form-group">
-    <label for="temperature">Temperature:</label>
-    <input type="number" id="temperature" step="0.1" value="0.4">
-  </div>
-  <div class="form-group">
-    <label for="maxTokens">Max Tokens:</label>
+
+  <!-- 设置面板 -->
+  <div id="settingsPanel">
+    <h3>设置</h3>
+    <label for="modeSelect">选择模式：</label>
+    <select id="modeSelect">
+      <option value="qwq_gemini" selected>QwQ + Gemini（默认）</option>
+      <option value="o3mini">o3mini（深度思考）</option>
+    </select>
+
+    <label for="maxTokens">回复最大 Token（默认60000）：</label>
     <input type="number" id="maxTokens" value="60000">
-  </div>
-  <!-- 默认开启思考模式 -->
-  <div class="form-group">
-    <label for="thinkingMode">
-      <input type="checkbox" id="thinkingMode" checked>
-      开启思考模式
-    </label>
-  </div>
-  <!-- 候选思考过程开关 -->
-  <div class="form-group">
-    <label for="candidateThought">
-      <input type="checkbox" id="candidateThought">
-      显示候选的思考过程（默认关闭）
-    </label>
-  </div>
-  <!-- 检验思考过程开关 -->
-  <div class="form-group">
-    <label for="validationThought">
-      <input type="checkbox" id="validationThought">
-      显示检验的思考过程（默认关闭）
-    </label>
-  </div>
-  <button id="sendRequestBtn">发送请求</button>
-  <button id="clearSessionBtn">清除会话</button>
-  <button id="downloadLogBtn">下载日志</button>
 
-  <div class="log" id="logContainer">
-    <h2>会话日志</h2>
-    <!-- 日志内容会追加在此 -->
-  </div>
-</div>
+    <label for="contextMemory">上下文记忆条数（默认30）：</label>
+    <input type="number" id="contextMemory" value="30">
 
-<script>
-  // 配置 marked.js 使用 highlight.js 进行代码高亮
-  marked.setOptions({
-    highlight: function(code, lang) {
-      if (lang && hljs.getLanguage(lang)) {
-        return hljs.highlight(code, { language: lang }).value;
+    <label for="temperature">温度（默认0.7）：</label>
+    <input type="number" step="0.1" id="temperature" value="0.7">
+
+    <label for="streamCheckbox">
+      <input type="checkbox" id="streamCheckbox" checked> 开启流式回复
+    </label>
+
+    <!-- QwQ 模型设置 -->
+    <h4>QwQ 模型设置</h4>
+    <label for="qwqAPIUrl">API 地址：</label>
+    <input type="text" id="qwqAPIUrl" value="https://api-inference.modelscope.cn/v1/chat/completions">
+    <label for="qwqApiKey">API Key：</label>
+    <input type="text" id="qwqApiKey" value="a121eb23-a813-48a3-8453-3dc11d0e1386">
+    <label for="qwqModel">模型：</label>
+    <input type="text" id="qwqModel" value="Qwen/QwQ-32B">
+
+    <!-- Gemini 模型设置 -->
+    <h4>Gemini 模型设置</h4>
+    <label for="geminiAPIUrl">API 地址：</label>
+    <input type="text" id="geminiAPIUrl" value="https://api.zetatechs.com/v1/chat/completions">
+    <label for="geminiApiKey">API Key：</label>
+    <input type="text" id="geminiApiKey" value="sk-7c56ZaiPVJOLPzmAPr07e9DaVsHtyS769tg5yjOGE1aiNtSt">
+    <label for="geminiModel">模型：</label>
+    <input type="text" id="geminiModel" value="gemini-2.0-flash-thinking-exp-01-21-free">
+
+    <!-- o3mini 模型设置 -->
+    <h4>o3mini 模型设置</h4>
+    <label for="o3APIUrl">API 地址：</label>
+    <input type="text" id="o3APIUrl" value="https://api.zetatechs.com/v1/chat/completions">
+    <label for="o3ApiKey">API Key：</label>
+    <input type="text" id="o3ApiKey" value="sk-e2a7YHPCZF3yPxpdu9zguWbNlawBJwAQ3a0jav4U6B5LlECK">
+    <label for="o3Model">模型：</label>
+    <input type="text" id="o3Model" value="o3-mini-2025-01-31-high">
+    <label for="deepThinkingCheckbox">
+      <input type="checkbox" id="deepThinkingCheckbox" checked> 开启 o3mini 深度思考
+    </label>
+
+    <div style="margin-top:10px;">
+      <button id="saveSettings">保存</button>
+      <button id="closeSettings" class="close-btn">关闭</button>
+    </div>
+  </div>
+
+  <script>
+    // 保存当前对话（每条消息格式：{role: "user"/"assistant", content: "消息内容"}）
+    let conversation = [];
+
+    // 默认设置（所有参数都可在设置面板中修改）
+    let settings = {
+      mode: "qwq_gemini",  // "qwq_gemini" 或 "o3mini"
+      max_tokens: 60000,
+      context_memory: 30,
+      temperature: 0.7,
+      stream: true,
+      qwq: {
+        api_url: document.getElementById("qwqAPIUrl").value,
+        api_key: document.getElementById("qwqApiKey").value,
+        model: document.getElementById("qwqModel").value
+      },
+      gemini: {
+        api_url: document.getElementById("geminiAPIUrl").value,
+        api_key: document.getElementById("geminiApiKey").value,
+        model: document.getElementById("geminiModel").value
+      },
+      o3mini: {
+        api_url: document.getElementById("o3APIUrl").value,
+        api_key: document.getElementById("o3ApiKey").value,
+        model: document.getElementById("o3Model").value,
+        deep_thinking: document.getElementById("deepThinkingCheckbox").checked
       }
-      return hljs.highlightAuto(code).value;
-    }
-  });
+    };
 
-  // 全局变量，存储整个会话记录
-  let conversationLog = {
-    user_task: "",
-    candidate_responses: [],
-    final_best_answer: "",
-    details: {}
-  };
-
-  // 全局开关：判断是否为解题任务，解题时将收集候选答案的原话（仅最终答案部分）传递给 QwQ 模型
-  window.problemSolvingMode = false;
-
-  // 辅助函数：为代码块添加复制按钮
-  function addCopyButtonsToCodeBlocks(container) {
-    container.querySelectorAll('pre').forEach(pre => {
-      const code = pre.querySelector('code');
-      if (code) {
-        const copyBtn = document.createElement('button');
-        copyBtn.innerText = '复制代码';
-        copyBtn.className = 'copy-code-btn';
-        copyBtn.addEventListener('click', () => {
-          navigator.clipboard.writeText(code.innerText).then(() => {
-            copyBtn.innerText = '复制成功';
-            setTimeout(() => { copyBtn.innerText = '复制代码'; }, 2000);
-          }).catch(() => {
-            copyBtn.innerText = '复制失败';
-          });
-        });
-        pre.style.position = 'relative';
-        copyBtn.style.position = 'absolute';
-        copyBtn.style.top = '5px';
-        copyBtn.style.right = '5px';
-        pre.appendChild(copyBtn);
+    // 添加一条消息到对话中，并限制在 context_memory 数以内
+    function addMessage(role, content) {
+      conversation.push({ role, content });
+      if (conversation.length > settings.context_memory) {
+        conversation = conversation.slice(-settings.context_memory);
       }
-    });
-  }
-
-  // 日志追加函数（不带折叠功能）
-  function appendLog(title, markdownContent) {
-    const logContainer = document.getElementById('logContainer');
-    const messageDiv = document.createElement('div');
-    messageDiv.classList.add('message');
-
-    const header = document.createElement('h3');
-    header.textContent = title;
-    const copyBtn = document.createElement('button');
-    copyBtn.textContent = '复制';
-    copyBtn.classList.add('copy-btn');
-    copyBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText(markdownContent)
-        .then(() => alert('文本已复制'))
-        .catch(err => alert('复制失败: ' + err));
-    });
-    header.appendChild(copyBtn);
-    messageDiv.appendChild(header);
-
-    const contentDiv = document.createElement('div');
-    contentDiv.innerHTML = marked.parse(markdownContent);
-    messageDiv.appendChild(contentDiv);
-
-    logContainer.appendChild(messageDiv);
-    updateMathJax();
-  }
-
-  // 新的日志创建函数，支持折叠显示
-  function createLogEntry(title, initContent, collapsible = false) {
-    const logContainer = document.getElementById('logContainer');
-    const messageDiv = document.createElement('div');
-    messageDiv.classList.add('message');
-    const header = document.createElement('h3');
-
-    if (collapsible) {
-      const toggleBtn = document.createElement('button');
-      toggleBtn.textContent = '展开';
-      toggleBtn.classList.add('toggle-btn');
-      const titleSpan = document.createElement('span');
-      titleSpan.textContent = title;
-      header.appendChild(toggleBtn);
-      header.appendChild(titleSpan);
-      
-      const copyBtn = document.createElement('button');
-      copyBtn.textContent = '复制';
-      copyBtn.classList.add('copy-btn');
-      copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(initContent)
-          .then(() => alert('文本已复制'))
-          .catch(err => alert('复制失败: ' + err));
-      });
-      header.appendChild(copyBtn);
-      messageDiv.appendChild(header);
-
-      const contentDiv = document.createElement('div');
-      contentDiv.innerHTML = marked.parse(initContent);
-      messageDiv.appendChild(contentDiv);
-      contentDiv.style.display = 'none';
-
-      toggleBtn.addEventListener('click', () => {
-        if (contentDiv.style.display === 'none') {
-          contentDiv.style.display = '';
-          toggleBtn.textContent = '折叠';
-        } else {
-          contentDiv.style.display = 'none';
-          toggleBtn.textContent = '展开';
-        }
-      });
-
-      logContainer.appendChild(messageDiv);
-      updateMathJax();
-      return {
-        messageDiv: messageDiv,
-        contentDiv: contentDiv,
-        update: function(newContent) {
-          contentDiv.innerHTML = marked.parse(newContent);
-          addCopyButtonsToCodeBlocks(contentDiv);
-          updateMathJax();
-        }
-      };
-    } else {
-      header.textContent = title;
-      const copyBtn = document.createElement('button');
-      copyBtn.textContent = '复制';
-      copyBtn.classList.add('copy-btn');
-      copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(initContent)
-          .then(() => alert('文本已复制'))
-          .catch(err => alert('复制失败: ' + err));
-      });
-      header.appendChild(copyBtn);
-      messageDiv.appendChild(header);
-
-      const contentDiv = document.createElement('div');
-      contentDiv.innerHTML = marked.parse(initContent);
-      messageDiv.appendChild(contentDiv);
-      logContainer.appendChild(messageDiv);
-      updateMathJax();
-      return {
-        messageDiv: messageDiv,
-        contentDiv: contentDiv,
-        update: function(newContent) {
-          contentDiv.innerHTML = marked.parse(newContent);
-          addCopyButtonsToCodeBlocks(contentDiv);
-          updateMathJax();
-        }
-      };
+      renderMessages();
     }
-  }
 
-  // 调用 API 的函数（非流式调用，自动重试 3 次，超时 30 秒）
-  async function callApi(messages, settings) {
-    const { apiUrl, apiKey, model, temperature, maxTokens } = settings;
-    const headers = {
-      "Authorization": "Bearer " + apiKey,
-      "Content-Type": "application/json"
-    };
-    const payload = {
-      model: model,
-      messages: messages,
-      temperature: parseFloat(temperature),
-      max_tokens: parseInt(maxTokens)
-    };
-    const maxRetries = 3;
-    const timeout = 30000; // 超时 30 秒
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    // 渲染对话区：全部对话重新生成
+    function renderMessages() {
+      const chatContainer = document.getElementById("chat");
+      chatContainer.innerHTML = "";
+      conversation.forEach(msg => {
+        const msgDiv = document.createElement("div");
+        msgDiv.className = "chat-message " + msg.role;
+        // 消息内容（Markdown 渲染）
+        const contentDiv = document.createElement("div");
+        contentDiv.className = "message-content";
+        contentDiv.innerHTML = marked.parse(msg.content);
+        msgDiv.appendChild(contentDiv);
+        // 整体复制按钮（复制消息纯文本）
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "copy-btn";
+        copyBtn.textContent = "复制";
+        copyBtn.onclick = () => copyText(msg.content);
+        msgDiv.appendChild(copyBtn);
+        chatContainer.appendChild(msgDiv);
+      });
+      // 代码块高亮及添加复制按钮
+      document.querySelectorAll("pre code").forEach(block => {
+        hljs.highlightElement(block);
+        if (!block.parentElement.querySelector(".copy-code-btn")) {
+          const copyCodeBtn = document.createElement("button");
+          copyCodeBtn.className = "copy-code-btn";
+          copyCodeBtn.textContent = "复制代码";
+          copyCodeBtn.onclick = (e) => { copyText(block.innerText); e.stopPropagation(); };
+          block.parentElement.style.position = "relative";
+          block.parentElement.appendChild(copyCodeBtn);
+        }
+      });
+      // 渲染数学公式
+      if (window.MathJax) {
+        MathJax.typeset();
+      }
+      // 保持滚动到底部
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    // 复制文本到剪切板
+    function copyText(text) {
+      navigator.clipboard.writeText(text);
+    }
+
+    // 日志记录（追加日志到日志区域）
+    function logMessage(msg) {
+      const logContainer = document.getElementById("log");
+      const entry = document.createElement("div");
+      entry.textContent = msg;
+      logContainer.appendChild(entry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    /**
+     * 通用 API 请求函数（支持流式回复）
+     * api_url, api_key, payload 均为参数；
+     * streamHandler(data, done)：流式回复处理函数，
+     *   data 为每个数据chunk，done 为 true 表示结束
+     */
+    async function callAPI(api_url, api_key, payload, streamHandler) {
+      logMessage("请求参数：" + JSON.stringify(payload));
       try {
-        const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), timeout);
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: headers,
-          body: JSON.stringify(payload),
-          signal: controller.signal
+        const response = await fetch(api_url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + api_key
+          },
+          body: JSON.stringify(payload)
         });
-        clearTimeout(id);
-        if (response.status === 200) {
-          const resJson = await response.json();
-          return resJson;
-        } else {
-          console.log(`尝试 ${attempt}: API 返回错误状态 ${response.status}`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        if (!response.ok) {
+          const errText = await response.text();
+          logMessage("错误响应：" + errText);
+          return;
         }
-      } catch (error) {
-        console.log(`尝试 ${attempt}: 请求异常: ${error}`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-    }
-    return null;
-  }
-
-  // 提取返回的回答内容（仅用于非流式返回）
-  function extractContent(apiResponse) {
-    try {
-      return apiResponse.choices[0].message.content;
-    } catch (error) {
-      console.log("提取返回内容时出错:", error);
-      return "";
-    }
-  }
-
-  // 流式调用函数
-  async function callApiStream(messages, settings, callbacks) {
-    const { apiUrl, apiKey, model, temperature, maxTokens } = settings;
-    const headers = {
-      "Authorization": "Bearer " + apiKey,
-      "Content-Type": "application/json"
-    };
-    const payload = {
-      model: model,
-      messages: messages,
-      temperature: parseFloat(temperature),
-      max_tokens: parseInt(maxTokens),
-      stream: true
-    };
-    
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(payload)
-    });
-    
-    if (!response.ok) {
-      throw new Error("API 返回错误状态 " + response.status);
-    }
-    
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder("utf-8");
-    let finalAnswer = "";
-    let finalStarted = false;
-    
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const chunkText = decoder.decode(value);
-      const lines = chunkText.split("\n").filter(line => line.trim() !== "");
-      for (let line of lines) {
-        if (line.startsWith("data:")) {
-          let dataStr = line.slice(5).trim();
-          if (dataStr === "[DONE]") break;
-          try {
-            const jsonObj = JSON.parse(dataStr);
-            if (jsonObj.choices && jsonObj.choices[0] && jsonObj.choices[0].delta) {
-              const delta = jsonObj.choices[0].delta;
-              if (delta.reasoning_content && delta.reasoning_content !== "") {
-                if (callbacks && callbacks.onReasoning) {
-                  callbacks.onReasoning(delta.reasoning_content);
+        if (settings.stream) {
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder("utf-8");
+          let doneReading = false;
+          let buffer = "";
+          while (!doneReading) {
+            const { value, done } = await reader.read();
+            doneReading = done;
+            if (value) {
+              buffer += decoder.decode(value, { stream: true });
+              let lines = buffer.split("\n");
+              buffer = lines.pop();
+              for (let line of lines) {
+                if (line.startsWith("data: ")) {
+                  const dataStr = line.slice(6);
+                  if (dataStr.trim() === "[DONE]") {
+                    streamHandler(null, true);
+                    continue;
+                  }
+                  try {
+                    const data = JSON.parse(dataStr);
+                    streamHandler(data, false);
+                    logMessage("响应chunk：" + JSON.stringify(data));
+                  } catch (e) {
+                    console.error("解析chunk错误", e);
+                  }
                 }
-              } else if (delta.content && delta.content !== "") {
-                if (!finalStarted && callbacks && callbacks.onFinalStart) {
-                  callbacks.onFinalStart();
-                  finalStarted = true;
-                }
-                if (callbacks && callbacks.onFinal) {
-                  callbacks.onFinal(delta.content);
-                }
-                finalAnswer += delta.content;
               }
             }
-          } catch (e) {
-            console.error("JSON 解析错误:", e);
           }
-        }
-      }
-    }
-    return finalAnswer;
-  }
-
-  // 对候选回答请求（调用 requestCandidate）
-  async function requestCandidate(index, systemPrompt, userMessage, settings, thinkingModeEnabled, candidateProcessEnabled) {
-    const initialText = candidateProcessEnabled ? "正在发送请求..." : "AI 正在思考中";
-    const entry = createLogEntry(`请求 ${index + 1}`, initialText, true);
-    
-    async function attempt() {
-      let candidateLog = candidateProcessEnabled ? "正在发送请求..." : "AI 正在思考中";
-      entry.update(candidateLog);
-      if (thinkingModeEnabled) {
-        try {
-          const finalAnswer = await callApiStream([systemPrompt, userMessage], settings, {
-            onReasoning: candidateProcessEnabled ? (chunk) => { candidateLog += chunk; entry.update(candidateLog); } : () => {},
-            onFinalStart: candidateProcessEnabled ? () => { candidateLog += "\n\n === Final Answer ===\n"; entry.update(candidateLog); } : () => {},
-            onFinal: candidateProcessEnabled ? (chunk) => { candidateLog += chunk; entry.update(candidateLog); } : () => {}
-          });
-          if (!candidateProcessEnabled) {
-            entry.update(finalAnswer);
-          }
-          return finalAnswer;
-        } catch(e) {
-          return null;
-        }
-      } else {
-        const responseJson = await callApi([systemPrompt, userMessage], settings);
-        if (!responseJson) return null;
-        const finalAns = extractContent(responseJson);
-        entry.update(finalAns);
-        return finalAns;
-      }
-    }
-    while (true) {
-      const result = await attempt();
-      if (result !== null) {
-         return result;
-      } else {
-         entry.update((candidateProcessEnabled ? "候选回答未获得有效回复" : "AI 正在思考中") + " [请求失败，未获得有效回复]");
-         const retryButton = document.createElement("button");
-         retryButton.textContent = "手动重试";
-         entry.messageDiv.appendChild(retryButton);
-         await new Promise(resolve => retryButton.addEventListener("click", resolve, { once: true }));
-         retryButton.remove();
-      }
-    }
-  }
-
-  // 对检验请求（选择最佳答案或对候选答案检验）的调用
-  async function requestValidation(validatorMessages, settings, validationProcessEnabled) {
-    const initialText = validationProcessEnabled ? 
-      "正在发送检验请求，请求 AI 分析候选答案并得出结论..." : "AI 正在思考中";
-    const entry = createLogEntry("发送检验请求", initialText, true);
-    
-    async function attempt() {
-      if (settings.stream) {
-        if (validationProcessEnabled) {
-          let finalLog = "正在发送检验请求，请求 AI 分析候选答案并得出结论...";
-          entry.update(finalLog);
-          const result = await callApiStream(validatorMessages, settings, {
-            onReasoning: (chunk) => { finalLog += chunk; entry.update(finalLog); },
-            onFinalStart: () => { finalLog += "\n\n === Final Answer ===\n"; entry.update(finalLog); },
-            onFinal: (chunk) => { finalLog += chunk; entry.update(finalLog); }
-          });
-          return result;
         } else {
-          const result = await callApiStream(validatorMessages, settings, {
-            onReasoning: () => {},
-            onFinalStart: () => {},
-            onFinal: () => {}
+          const data = await response.json();
+          streamHandler(data, false);
+        }
+      } catch (e) {
+        logMessage("请求异常：" + e);
+      }
+    }
+
+    // 处理用户发送的消息
+    async function processUserMessage() {
+      const inputField = document.getElementById("input");
+      const userText = inputField.value.trim();
+      if (!userText) return;
+      addMessage("user", userText);
+      inputField.value = "";
+
+      if (settings.mode === "qwq_gemini") {
+        // QwQ 模型先生成思考链
+        let chainThought = "";
+        // 临时添加一条“思考中……”的消息
+        conversation.push({ role: "assistant", content: "【思考中……】" });
+        renderMessages();
+
+        const payload_qwq = {
+          model: settings.qwq.model,
+          messages: [
+            { role: "system", content: "You are a helpful assistant. 请先仔细思考，然后输出完整的思考链。" },
+            { role: "user", content: userText }
+          ],
+          max_tokens: settings.max_tokens,
+          temperature: settings.temperature,
+          stream: settings.stream
+        };
+
+        await new Promise((resolve) => {
+          callAPI(settings.qwq.api_url, settings.qwq.api_key, payload_qwq, (data, done) => {
+            if (done) {
+              conversation[conversation.length - 1].content = chainThought;
+              renderMessages();
+              resolve();
+            } else if (data) {
+              const delta = data.choices[0].delta;
+              if (delta.reasoning_content) {
+                // 去掉换行符，保证连续追加
+                let chunk = delta.reasoning_content.replace(/\n/g, " ");
+                chainThought += chunk;
+              }
+              if (delta.content) {
+                let chunk = delta.content.replace(/\n/g, " ");
+                chainThought += chunk;
+              }
+              conversation[conversation.length - 1].content = chainThought;
+              renderMessages();
+            }
           });
-          entry.update(result);
-          return result;
+        });
+
+        // 调用 Gemini 模型，将 QwQ 的思考链传递给它
+        const geminiSystemMsg = "以下是之前模型的思考链： " + chainThought;
+        const payload_gemini = {
+          model: settings.gemini.model,
+          messages: [
+            { role: "system", content: geminiSystemMsg },
+            { role: "user", content: userText }
+          ],
+          max_tokens: settings.max_tokens,
+          temperature: settings.temperature,
+          stream: settings.stream
+        };
+        conversation.push({ role: "assistant", content: "【Gemini 模型正在生成答案……】" });
+        renderMessages();
+        await new Promise((resolve) => {
+          callAPI(settings.gemini.api_url, settings.gemini.api_key, payload_gemini, (data, done) => {
+            const lastIndex = conversation.length - 1;
+            if (done) {
+              resolve();
+            } else if (data) {
+              const delta = data.choices[0].delta;
+              // 去掉换行符后追加文本
+              let textChunk = (delta.content || "").replace(/\n/g, " ");
+              if (conversation[lastIndex].content === "【Gemini 模型正在生成答案……】") {
+                conversation[lastIndex].content = "";
+              }
+              conversation[lastIndex].content += textChunk;
+              renderMessages();
+            }
+          });
+        });
+      } else if (settings.mode === "o3mini") {
+        // 直接调用 o3mini 模型
+        const payload_o3 = {
+          model: settings.o3mini.model,
+          messages: [
+            { role: "system", content: "You are a helpful assistant." },
+            { role: "user", content: userText }
+          ],
+          max_tokens: settings.max_tokens,
+          temperature: settings.temperature,
+          stream: settings.stream
+        };
+        if (settings.o3mini.deep_thinking) {
+          payload_o3.deep_thinking = true;
         }
-      } else {
-        const responseJson = await callApi(validatorMessages, settings);
-        if (!responseJson)
-          return null;
-        return extractContent(responseJson);
-      }
-    }
-    while (true) {
-      const result = await attempt();
-      if (result !== null) {
-        entry.update(result);
-        return result;
-      } else {
-        entry.update("[检验请求失败，未获得有效回复]");
-        const retryButton = document.createElement("button");
-        retryButton.textContent = "手动重试";
-        entry.messageDiv.appendChild(retryButton);
-        await new Promise(resolve => retryButton.addEventListener("click", resolve, { once: true }));
-        retryButton.remove();
-      }
-    }
-  }
-
-  // 调用 MathJax 重新渲染数学公式
-  function updateMathJax() {
-    if (window.MathJax) {
-      MathJax.typesetPromise();
-    }
-  }
-
-  // “发送请求”按钮的事件处理
-  document.getElementById('sendRequestBtn').addEventListener('click', async () => {
-    // 获取用户输入及配置信息
-    let userTask = document.getElementById('taskInput').value;
-    const userApiUrl = document.getElementById('apiUrl').value;
-    const userApiKey = document.getElementById('apiKey').value;
-    const userModel = document.getElementById('model').value;
-    const temperature = document.getElementById('temperature').value;
-    const maxTokens = document.getElementById('maxTokens').value;
-    const thinkingModeEnabled = document.getElementById('thinkingMode').checked;
-    const candidateProcessEnabled = document.getElementById('candidateThought').checked;
-    const validationProcessEnabled = document.getElementById('validationThought').checked;
-    
-    // 记录并显示用户任务
-    conversationLog.user_task = userTask;
-    appendLog("用户任务", userTask);
-
-    // ----------------------【任务类型判断】----------------------
-    const typeCheckSystemMsg = { 
-      role: "system",
-      content: "你现在是一位任务类型判断专家。请判断以下任务是解题任务还是其他类型。如果是解题请回复“解题”，如果不是请回复“非解题”。不要包含额外信息。"
-    };
-    const typeCheckUserMsg = { role: "user", content: userTask };
-    const typeCheckSettings = {
-         apiUrl: userApiUrl,
-         apiKey: userApiKey,
-         model: userModel,
-         temperature: temperature,
-         maxTokens: maxTokens
-    };
-    const typeCheckResponse = await callApi([typeCheckSystemMsg, typeCheckUserMsg], typeCheckSettings);
-    let taskTypeResult = typeCheckResponse ? extractContent(typeCheckResponse).trim() : "非解题";
-    let isProblemSolving = (taskTypeResult === "解题");
-    window.problemSolvingMode = isProblemSolving; // 设置全局解题模式标志
-    appendLog("任务类型判断", "判断结果：" + taskTypeResult);
-    // ----------------------【任务类型判断结束】----------------------
-
-    // 构造系统提示和用户消息
-    const systemPrompt = {
-      role: "system",
-      content: `请仔细理解并严格按照以下任务描述进行回答：\n${userTask}`
-    };
-    const userMessage = {
-      role: "user",
-      content: "请基于以上任务描述直接给出你的回答。"
-    };
-    appendLog("系统提示", systemPrompt.content);
-    appendLog("用户消息", userMessage.content);
-    
-    // 设置调用参数
-    const settings = thinkingModeEnabled ? {
-      apiUrl: "https://api-inference.modelscope.cn/v1/chat/completions",
-      apiKey: "a121eb23-a813-48a3-8453-3dc11d0e1386",
-      model: "Qwen/QwQ-32B",
-      temperature: temperature,
-      maxTokens: maxTokens,
-      stream: true
-    } : {
-      apiUrl: userApiUrl,
-      apiKey: userApiKey,
-      model: userModel,
-      temperature: temperature,
-      maxTokens: maxTokens
-    };
-
-    if (isProblemSolving) {
-      // --------【解题流程】--------
-      // 将 30 个候选请求划分为 6 个小组（每组 5 个请求），每次并发发送 2 组请求，等待这两组全部结束后再开始下一批
-      let candidateResponses = [];
-      const totalGroups = 6;  // 6 组，每组 5 个
-      const groupSize = 5;
-      for (let groupPair = 0; groupPair < totalGroups; groupPair += 2) {
-        let batchPromises = [];
-        for (let g = groupPair; g < Math.min(groupPair + 2, totalGroups); g++) {
-          let groupIndex = g;
-          let groupPromise = Promise.all(
-            Array.from({ length: groupSize }, (_, i) => {
-              return requestCandidate(groupIndex * groupSize + i, systemPrompt, userMessage, settings, thinkingModeEnabled, candidateProcessEnabled);
-            })
-          );
-          batchPromises.push(groupPromise);
-        }
-        // 等待当前两组请求全部返回
-        let batchResults = await Promise.all(batchPromises);
-        batchResults.forEach(resultGroup => {
-          candidateResponses = candidateResponses.concat(resultGroup);
+        conversation.push({ role: "assistant", content: "【o3mini 正在生成答案……】" });
+        renderMessages();
+        await new Promise((resolve) => {
+          callAPI(settings.o3mini.api_url, settings.o3mini.api_key, payload_o3, (data, done) => {
+            const lastIndex = conversation.length - 1;
+            if (done) {
+              resolve();
+            } else if (data) {
+              const delta = data.choices[0].delta;
+              let textChunk = (delta.content || "").replace(/\n/g, " ");
+              if (conversation[lastIndex].content === "【o3mini 正在生成答案……】") {
+                conversation[lastIndex].content = "";
+              }
+              conversation[lastIndex].content += textChunk;
+              renderMessages();
+            }
+          });
         });
       }
-      
-      // 显示所有候选答案（候选答案中只提取最终回答部分，不包含思考过程）
-      let candidateText = "以下是30个候选答案的最终回答（若候选答案中包含思考过程，仅提取 '=== Final Answer ===' 标记后的内容）：\n";
-      candidateResponses.forEach((res, idx) => {
-        // 如果返回内容中含有思考过程标记，则提取标记后面的最终答案
-        let pureAnswer = res;
-        const marker = "=== Final Answer ===";
-        if (res.includes(marker)) {
-          pureAnswer = res.split(marker).pop().trim();
-        }
-        candidateText += `[${idx + 1}] ${pureAnswer}\n`;
-      });
-      appendLog("候选答案", candidateText);
-      
-      // 构造传递给 QwQ 模型的最终提示，仅包含各候选答案（最终回答部分）
-      let finalPrompt = "以下是30个候选答案（仅为最终回答部分，请统计每个独特答案出现的次数，并计算其出现概率，即出现次数/30）。\n格式：答案：<答案内容>，出现概率：<概率>\n候选答案如下：\n";
-      candidateResponses.forEach((res, idx) => {
-        let pureAnswer = res;
-        const marker = "=== Final Answer ===";
-        if (res.includes(marker)) {
-          pureAnswer = res.split(marker).pop().trim();
-        }
-        finalPrompt += `[${idx + 1}] ${pureAnswer}\n`;
-      });
-      const qwqSystemMsg = {
-        role: "system",
-        content: "你现在是一位思考专家，请根据以下候选答案统计每个独特答案的出现次数，并计算其出现概率（出现次数除以30）。仅回复统计结果，格式为：答案：<答案内容>，出现概率：<概率>。"
-      };
-      const qwqUserMsg = { role: "user", content: finalPrompt };
-      const finalSettings = thinkingModeEnabled ? {
-        apiUrl: "https://api-inference.modelscope.cn/v1/chat/completions",
-        apiKey: "a121eb23-a813-48a3-8453-3dc11d0e1386",
-        model: "Qwen/QwQ-32B",
-        temperature: temperature,
-        maxTokens: maxTokens,
-        stream: true
-      } : {
-        apiUrl: userApiUrl,
-        apiKey: userApiKey,
-        model: userModel,
-        temperature: temperature,
-        maxTokens: maxTokens,
-        stream: true
-      };
-      const finalAnswer = await requestValidation([qwqSystemMsg, qwqUserMsg], finalSettings, validationProcessEnabled);
-      conversationLog.final_best_answer = finalAnswer;
-      appendLog("最终最佳答案", finalAnswer);
-    } else {
-      // --------【非解题流程】--------
-      // 非解题流程：并发发送 5 个候选请求，随后对每个候选答案分别进行检验
-      appendLog("并发请求", "正在并发发送请求，5 个请求将同时发出...");
-      const candidatePromises = [];
-      for (let i = 0; i < 5; i++) {
-        candidatePromises.push(
-          requestCandidate(i, systemPrompt, userMessage, settings, thinkingModeEnabled, candidateProcessEnabled)
-        );
-      }
-      const candidateResponses = await Promise.all(candidatePromises);
-      for (let i = 0; i < 5; i++) {
-        let validationMsg = [
-          { role: "system", content: "请对以下回答进行检验，如有必要进行改进，确保回答准确且符合任务要求。" },
-          { role: "user", content: candidateResponses[i] }
-        ];
-        const validatedAnswer = await requestValidation(validationMsg, settings, validationProcessEnabled);
-        appendLog("检验后的答案 " + (i + 1), validatedAnswer);
-      }
     }
-  });
-  
-  // “清除会话”按钮事件处理
-  document.getElementById('clearSessionBtn').addEventListener('click', () => {
-    conversationLog = {
-      user_task: "",
-      candidate_responses: [],
-      final_best_answer: "",
-      details: {}
-    };
-    document.getElementById('logContainer').innerHTML = "<h2>会话日志</h2>";
-  });
-  
-  // “下载日志”按钮事件处理
-  document.getElementById('downloadLogBtn').addEventListener('click', () => {
-    const timestamp = new Date().toISOString().replace(/[^\d]/g, "");
-    const filename = `ai_result_${timestamp}.json`;
-    const blob = new Blob([JSON.stringify(conversationLog, null, 4)], { type: "application/json;charset=utf-8" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-  });
-</script>
+
+    // 页面元素事件绑定
+    document.addEventListener("DOMContentLoaded", function () {
+      document.getElementById("sendBtn").addEventListener("click", processUserMessage);
+      document.getElementById("clearBtn").addEventListener("click", function () {
+        conversation = [];
+        renderMessages();
+      });
+      document.getElementById("settingsBtn").addEventListener("click", function () {
+        document.getElementById("settingsPanel").style.display = "block";
+      });
+      document.getElementById("closeSettings").addEventListener("click", function () {
+        document.getElementById("settingsPanel").style.display = "none";
+      });
+      document.getElementById("saveSettings").addEventListener("click", function () {
+        settings.mode = document.getElementById("modeSelect").value;
+        settings.max_tokens = parseInt(document.getElementById("maxTokens").value);
+        settings.context_memory = parseInt(document.getElementById("contextMemory").value);
+        settings.temperature = parseFloat(document.getElementById("temperature").value);
+        settings.stream = document.getElementById("streamCheckbox").checked;
+        settings.o3mini.deep_thinking = document.getElementById("deepThinkingCheckbox").checked;
+
+        settings.qwq.api_url = document.getElementById("qwqAPIUrl").value;
+        settings.qwq.api_key = document.getElementById("qwqApiKey").value;
+        settings.qwq.model = document.getElementById("qwqModel").value;
+
+        settings.gemini.api_url = document.getElementById("geminiAPIUrl").value;
+        settings.gemini.api_key = document.getElementById("geminiApiKey").value;
+        settings.gemini.model = document.getElementById("geminiModel").value;
+
+        settings.o3mini.api_url = document.getElementById("o3APIUrl").value;
+        settings.o3mini.api_key = document.getElementById("o3ApiKey").value;
+        settings.o3mini.model = document.getElementById("o3Model").value;
+
+        document.getElementById("settingsPanel").style.display = "none";
+        logMessage("设置已保存");
+      });
+      
+      // 日志折叠/展开按钮
+      const toggleLogBtn = document.getElementById("toggleLogBtn");
+      toggleLogBtn.addEventListener("click", function() {
+        const logElement = document.getElementById("log");
+        if (logElement.style.display === "none" || logElement.style.display === "") {
+          logElement.style.display = "block";
+          toggleLogBtn.textContent = "隐藏日志";
+        } else {
+          logElement.style.display = "none";
+          toggleLogBtn.textContent = "日志";
+        }
+      });
+    });
+  </script>
 </body>
 </html>
