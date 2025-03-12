@@ -140,6 +140,8 @@
       padding: 15px;
       border-radius: 6px;
       max-width: 300px;
+      max-height: 80vh; /* 允许面板滚动 */
+      overflow-y: auto; /* 允许滚动 */
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
     }
     #settingsPanel h3 {
@@ -440,7 +442,7 @@
       inputField.value = "";
 
       if (settings.mode === "qwq_gemini") {
-        // QwQ 模型先生成思考链
+        // QwQ 模型先生成思维链（仅输出思维链，不输出最终答案）
         let chainThought = "";
         // 临时添加一条“思考中……”的消息
         conversation.push({ role: "assistant", content: "【思考中……】" });
@@ -449,7 +451,7 @@
         const payload_qwq = {
           model: settings.qwq.model,
           messages: [
-            { role: "system", content: "You are a helpful assistant. 请先仔细思考，然后输出完整的思考链。" },
+            { role: "system", content: "You are a helpful assistant. 请先仔细思考，只输出完整的思维链，不要包含最终答案。" },
             { role: "user", content: userText }
           ],
           max_tokens: settings.max_tokens,
@@ -466,12 +468,8 @@
             } else if (data) {
               const delta = data.choices[0].delta;
               if (delta.reasoning_content) {
-                // 去掉换行符，保证连续追加
+                // 仅采集思维链部分（去掉换行符，保证连续追加）
                 let chunk = delta.reasoning_content.replace(/\n/g, " ");
-                chainThought += chunk;
-              }
-              if (delta.content) {
-                let chunk = delta.content.replace(/\n/g, " ");
                 chainThought += chunk;
               }
               conversation[conversation.length - 1].content = chainThought;
@@ -480,8 +478,8 @@
           });
         });
 
-        // 调用 Gemini 模型，将 QwQ 的思考链传递给它
-        const geminiSystemMsg = "以下是之前模型的思考链： " + chainThought;
+        // 调用 Gemini 模型，将仅有思维链的文本传递给它
+        const geminiSystemMsg = "以下是之前模型的思维链： " + chainThought;
         const payload_gemini = {
           model: settings.gemini.model,
           messages: [
@@ -501,7 +499,6 @@
               resolve();
             } else if (data) {
               const delta = data.choices[0].delta;
-              // 去掉换行符后追加文本
               let textChunk = (delta.content || "").replace(/\n/g, " ");
               if (conversation[lastIndex].content === "【Gemini 模型正在生成答案……】") {
                 conversation[lastIndex].content = "";
