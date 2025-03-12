@@ -491,7 +491,7 @@
         const payload_qwq = {
           model: settings.qwq.model,
           messages: [
-            { role: "system", content: "You are a helpful assistant. 请先仔细思考，只输出完整的思维链，不要包含最终答案。" },
+            { role: "system", content: "你是一个推理分析专家. 请仔细思考，只需要告诉我多种可能的不同的思路，以避免任何问题，不需要得出答案，只需要给出思路。" },
             { role: "user", content: userText }
           ],
           max_tokens: settings.max_tokens,
