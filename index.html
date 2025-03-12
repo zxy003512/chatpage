@@ -146,10 +146,10 @@
     <label for="maxTokens">Max Tokens:</label>
     <input type="number" id="maxTokens" value="60000">
   </div>
-  <!-- 开启思考模式 -->
+  <!-- 默认开启思考模式 -->
   <div class="form-group">
     <label for="thinkingMode">
-      <input type="checkbox" id="thinkingMode">
+      <input type="checkbox" id="thinkingMode" checked>
       开启思考模式
     </label>
   </div>
@@ -196,7 +196,7 @@
     details: {}
   };
 
-  // 全局开关：判断是否为解题任务，解题时候每个候选返回对象包含答案和概率
+  // 全局开关：判断是否为解题任务，解题时将收集候选答案的原话（仅最终答案部分）传递给 QwQ 模型
   window.problemSolvingMode = false;
 
   // 辅助函数：为代码块添加复制按钮
@@ -334,7 +334,7 @@
     }
   }
 
-  // 调用 API 的函数（非流式调用，自动重试3次，超时30秒）
+  // 调用 API 的函数（非流式调用，自动重试 3 次，超时 30 秒）
   async function callApi(messages, settings) {
     const { apiUrl, apiKey, model, temperature, maxTokens } = settings;
     const headers = {
@@ -348,7 +348,7 @@
       max_tokens: parseInt(maxTokens)
     };
     const maxRetries = 3;
-    const timeout = 30000; // 超时30秒
+    const timeout = 30000; // 超时 30 秒
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         const controller = new AbortController();
@@ -452,7 +452,7 @@
     return finalAnswer;
   }
 
-  // 对候选回答请求（5 个并发请求），如果处于解题模式则返回对象 { answer, probability }
+  // 对候选回答请求（调用 requestCandidate）
   async function requestCandidate(index, systemPrompt, userMessage, settings, thinkingModeEnabled, candidateProcessEnabled) {
     const initialText = candidateProcessEnabled ? "正在发送请求..." : "AI 正在思考中";
     const entry = createLogEntry(`请求 ${index + 1}`, initialText, true);
@@ -485,13 +485,7 @@
     while (true) {
       const result = await attempt();
       if (result !== null) {
-         if (window.problemSolvingMode) {
-             // 模拟返回一个答案概率（0.50～1.00之间随机）
-             let simulatedProb = (Math.random() * 0.5 + 0.5).toFixed(2);
-             return { answer: result, probability: simulatedProb };
-         } else {
-             return result;
-         }
+         return result;
       } else {
          entry.update((candidateProcessEnabled ? "候选回答未获得有效回复" : "AI 正在思考中") + " [请求失败，未获得有效回复]");
          const retryButton = document.createElement("button");
@@ -531,7 +525,8 @@
         }
       } else {
         const responseJson = await callApi(validatorMessages, settings);
-        if (!responseJson) return null;
+        if (!responseJson)
+          return null;
         return extractContent(responseJson);
       }
     }
@@ -625,35 +620,54 @@
 
     if (isProblemSolving) {
       // --------【解题流程】--------
-      // 解题流程：共进行6组并发思考，每组内部5 次并发请求，候选返回对象均包含答案及模拟的答案概率
-      let groupResults = [];
-      for (let group = 0; group < 6; group++) {
-        appendLog("并发请求 组 " + (group + 1), "正在并发发送请求，5 次请求将同时发出...");
-        let groupCandidates = await Promise.all(
-          Array.from({length: 5}, (_, i) => 
-            requestCandidate(group * 5 + i, systemPrompt, userMessage, settings, thinkingModeEnabled, candidateProcessEnabled)
-          )
-        );
-        // 从该组 5 个候选中选出概率最高的答案
-        let bestCandidate = groupCandidates.reduce((best, curr) => {
-          let currProb = parseFloat(curr.probability);
-          let bestProb = best ? parseFloat(best.probability) : 0;
-          return (currProb > bestProb) ? curr : best;
-        }, null);
-        groupResults.push(bestCandidate);
+      // 将 30 个候选请求划分为 6 个小组（每组 5 个请求），每次并发发送 2 组请求，等待这两组全部结束后再开始下一批
+      let candidateResponses = [];
+      const totalGroups = 6;  // 6 组，每组 5 个
+      const groupSize = 5;
+      for (let groupPair = 0; groupPair < totalGroups; groupPair += 2) {
+        let batchPromises = [];
+        for (let g = groupPair; g < Math.min(groupPair + 2, totalGroups); g++) {
+          let groupIndex = g;
+          let groupPromise = Promise.all(
+            Array.from({ length: groupSize }, (_, i) => {
+              return requestCandidate(groupIndex * groupSize + i, systemPrompt, userMessage, settings, thinkingModeEnabled, candidateProcessEnabled);
+            })
+          );
+          batchPromises.push(groupPromise);
+        }
+        // 等待当前两组请求全部返回
+        let batchResults = await Promise.all(batchPromises);
+        batchResults.forEach(resultGroup => {
+          candidateResponses = candidateResponses.concat(resultGroup);
+        });
       }
-      // 显示每组选出的最佳答案
-      for (let i = 0; i < 6; i++) {
-        appendLog("组 " + (i + 1) + " 最佳答案", "答案：" + groupResults[i].answer + "\n概率：" + groupResults[i].probability);
-      }
-      // 使用思考 AI（qwq）选出概率最高的答案作为最终解题答案
-      let finalPrompt = "下面列出了6个候选答案及其对应的答案概率，请选择概率最高的答案作为最终的解题答案，格式为：答案及该答案的概率。\n";
-      for (let i = 0; i < 6; i++) {
-        finalPrompt += `【组 ${i + 1}】: 答案：${groupResults[i].answer} 概率：${groupResults[i].probability}\n`;
-      }
+      
+      // 显示所有候选答案（候选答案中只提取最终回答部分，不包含思考过程）
+      let candidateText = "以下是30个候选答案的最终回答（若候选答案中包含思考过程，仅提取 '=== Final Answer ===' 标记后的内容）：\n";
+      candidateResponses.forEach((res, idx) => {
+        // 如果返回内容中含有思考过程标记，则提取标记后面的最终答案
+        let pureAnswer = res;
+        const marker = "=== Final Answer ===";
+        if (res.includes(marker)) {
+          pureAnswer = res.split(marker).pop().trim();
+        }
+        candidateText += `[${idx + 1}] ${pureAnswer}\n`;
+      });
+      appendLog("候选答案", candidateText);
+      
+      // 构造传递给 QwQ 模型的最终提示，仅包含各候选答案（最终回答部分）
+      let finalPrompt = "以下是30个候选答案（仅为最终回答部分，请统计每个独特答案出现的次数，并计算其出现概率，即出现次数/30）。\n格式：答案：<答案内容>，出现概率：<概率>\n候选答案如下：\n";
+      candidateResponses.forEach((res, idx) => {
+        let pureAnswer = res;
+        const marker = "=== Final Answer ===";
+        if (res.includes(marker)) {
+          pureAnswer = res.split(marker).pop().trim();
+        }
+        finalPrompt += `[${idx + 1}] ${pureAnswer}\n`;
+      });
       const qwqSystemMsg = {
         role: "system",
-        content: "你现在是一位思考专家，请根据以下候选答案中选出概率最高的答案作为最终的解题答案。"
+        content: "你现在是一位思考专家，请根据以下候选答案统计每个独特答案的出现次数，并计算其出现概率（出现次数除以30）。仅回复统计结果，格式为：答案：<答案内容>，出现概率：<概率>。"
       };
       const qwqUserMsg = { role: "user", content: finalPrompt };
       const finalSettings = thinkingModeEnabled ? {
@@ -676,8 +690,8 @@
       appendLog("最终最佳答案", finalAnswer);
     } else {
       // --------【非解题流程】--------
-      // 非解题流程：并发发送 5 次候选请求，随后对每个候选答案分别进行检验
-      appendLog("并发请求", "正在并发发送请求，5 次请求将同时发出...");
+      // 非解题流程：并发发送 5 个候选请求，随后对每个候选答案分别进行检验
+      appendLog("并发请求", "正在并发发送请求，5 个请求将同时发出...");
       const candidatePromises = [];
       for (let i = 0; i < 5; i++) {
         candidatePromises.push(
