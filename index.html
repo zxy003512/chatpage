@@ -491,7 +491,7 @@
         const payload_qwq = {
           model: settings.qwq.model,
           messages: [
-            { role: "system", content: "你是一个推理分析专家. 请仔细思考，只需要告诉我多种可能的不同的思路，思路要非常详细，以避免任何问题，不需要得出答案，只需要给出详细的思路，不要放过任何细节。" },
+            { role: "system", content: "你是一个推理分析专家. 请从多个角度仔细思考，以及反复尝试推翻自己的思考，以得出最正确最好的答案" },
             { role: "user", content: userText }
           ],
           max_tokens: settings.max_tokens,
