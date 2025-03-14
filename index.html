@@ -28,7 +28,7 @@
       font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       background: #f2f2f2;
     }
-    header { 
+    header {
       padding: 10px 20px;
       display: flex;
       justify-content: space-between;
@@ -359,7 +359,7 @@
       }
     };
 
-    // 当前设置（初始化时从页面默认值中读取）
+    // 当前设置（初始化时从页面默认值中读取，后续会从 localStorage 加载已保存设置）
     let settings = {
       mode: document.getElementById("modeSelect").value,
       max_tokens: parseInt(document.getElementById("maxTokens").value),
@@ -382,8 +382,75 @@
         api_key: document.getElementById("o3ApiKey").value,
         model: document.getElementById("o3Model").value,
         deep_thinking: document.getElementById("deepThinkingCheckbox").checked
+      },
+      ui: {
+        chatFontSize: parseInt(document.getElementById("chatFontSize").value),
+        chatBubbleWidth: parseInt(document.getElementById("chatBubbleWidth").value)
       }
     };
+
+    // 封装从 localStorage 加载已保存设置的函数
+    function loadStoredSettings() {
+      const stored = localStorage.getItem("chatSettings");
+      if (stored) {
+        try {
+          const saved = JSON.parse(stored);
+          document.getElementById("modeSelect").value = saved.mode;
+          document.getElementById("maxTokens").value = saved.max_tokens;
+          document.getElementById("contextMemory").value = saved.context_memory;
+          document.getElementById("temperature").value = saved.temperature;
+          document.getElementById("streamCheckbox").checked = saved.stream;
+          document.getElementById("showThinkingCheckbox").checked = saved.showThinking;
+          document.getElementById("qwqAPIUrl").value = saved.qwq.api_url;
+          document.getElementById("qwqApiKey").value = saved.qwq.api_key;
+          document.getElementById("qwqModel").value = saved.qwq.model;
+          document.getElementById("geminiAPIUrl").value = saved.gemini.api_url;
+          document.getElementById("geminiApiKey").value = saved.gemini.api_key;
+          document.getElementById("geminiModel").value = saved.gemini.model;
+          document.getElementById("o3APIUrl").value = saved.o3mini.api_url;
+          document.getElementById("o3ApiKey").value = saved.o3mini.api_key;
+          document.getElementById("o3Model").value = saved.o3mini.model;
+          document.getElementById("deepThinkingCheckbox").checked = saved.o3mini.deep_thinking;
+          document.getElementById("chatFontSize").value = saved.ui.chatFontSize;
+          document.getElementById("chatBubbleWidth").value = saved.ui.chatBubbleWidth;
+          // 更新全局 settings 变量
+          settings = {
+            mode: saved.mode,
+            max_tokens: parseInt(saved.max_tokens),
+            context_memory: parseInt(saved.context_memory),
+            temperature: parseFloat(saved.temperature),
+            stream: saved.stream,
+            showThinking: saved.showThinking,
+            qwq: {
+              api_url: saved.qwq.api_url,
+              api_key: saved.qwq.api_key,
+              model: saved.qwq.model
+            },
+            gemini: {
+              api_url: saved.gemini.api_url,
+              api_key: saved.gemini.api_key,
+              model: saved.gemini.model
+            },
+            o3mini: {
+              api_url: saved.o3mini.api_url,
+              api_key: saved.o3mini.api_key,
+              model: saved.o3mini.model,
+              deep_thinking: saved.o3mini.deep_thinking
+            },
+            ui: {
+              chatFontSize: parseInt(saved.ui.chatFontSize),
+              chatBubbleWidth: parseInt(saved.ui.chatBubbleWidth)
+            }
+          };
+          // 更新 CSS 变量（调整界面字体和消息宽度）
+          document.documentElement.style.setProperty('--chat-font-size', saved.ui.chatFontSize + 'px');
+          document.documentElement.style.setProperty('--chat-bubble-max-width', saved.ui.chatBubbleWidth + '%');
+          logMessage("已加载保存的设置");
+        } catch(e) {
+          console.error("加载设置错误", e);
+        }
+      }
+    }
 
     // 通用 Markdown 预处理函数（保留代码块与数学公式内部换行）
     function processMarkdown(content) {
@@ -512,7 +579,6 @@
                 }
               }
             }
-            // 若还有残留内容（极少见），处理一下
             if (buffer.trim()) {
               try {
                 const data = JSON.parse(buffer.trim());
@@ -571,14 +637,15 @@
           callAPI(settings.qwq.api_url, settings.qwq.api_key, payload_qwq, (data, done) => {
             if (done) {
               if (settings.showThinking) {
+                // 最后将内容更新为纯思考链
                 conversation[conversation.length - 1].content = chainThought;
                 renderMessages();
               }
               resolve();
             } else if (data) {
               const delta = data.choices[0].delta;
-              // 若 QwQ 返回时字段可能用 content 或 reasoning_content，两者都尝试获取
-              const newChunk = delta.reasoning_content || delta.content || "";
+              // 这里只获取思考链（只取 reasoning_content，忽略 content 字段）
+              const newChunk = delta.reasoning_content || "";
               chainThought += newChunk;
               if (settings.showThinking) {
                 conversation[conversation.length - 1].content = chainThought;
@@ -655,7 +722,7 @@
       }
     }
 
-    // 重置设置面板为默认值
+    // 重置设置面板为默认值，并同步到 localStorage
     function resetSettingsToDefault() {
       document.getElementById("modeSelect").value = defaultSettings.mode;
       document.getElementById("maxTokens").value = defaultSettings.max_tokens;
@@ -679,8 +746,8 @@
 
       document.getElementById("chatFontSize").value = defaultSettings.ui.chatFontSize;
       document.getElementById("chatBubbleWidth").value = defaultSettings.ui.chatBubbleWidth;
-      
-      // 更新当前设置变量（注意：下一次发送消息时会重新从DOM中读取设置）
+
+      // 更新当前设置变量（下一次发送消息时会重新从DOM中读取设置）
       settings = {
         mode: document.getElementById("modeSelect").value,
         max_tokens: parseInt(document.getElementById("maxTokens").value),
@@ -703,15 +770,23 @@
           api_key: document.getElementById("o3ApiKey").value,
           model: document.getElementById("o3Model").value,
           deep_thinking: document.getElementById("deepThinkingCheckbox").checked
+        },
+        ui: {
+          chatFontSize: parseInt(document.getElementById("chatFontSize").value),
+          chatBubbleWidth: parseInt(document.getElementById("chatBubbleWidth").value)
         }
       };
-      // 同时更新 CSS 变量
       document.documentElement.style.setProperty('--chat-font-size', defaultSettings.ui.chatFontSize + 'px');
       document.documentElement.style.setProperty('--chat-bubble-max-width', defaultSettings.ui.chatBubbleWidth + '%');
+      // 同步到 localStorage
+      localStorage.setItem("chatSettings", JSON.stringify(defaultSettings));
       logMessage("已重置设置为默认值");
     }
 
     document.addEventListener("DOMContentLoaded", function () {
+      // 优先加载保存的设置
+      loadStoredSettings();
+
       document.getElementById("sendBtn").addEventListener("click", processUserMessage);
       document.getElementById("clearBtn").addEventListener("click", function() {
         conversation = [];
@@ -746,13 +821,14 @@
         settings.o3mini.api_key = document.getElementById("o3ApiKey").value;
         settings.o3mini.model = document.getElementById("o3Model").value;
 
-        // 更新界面设置（通过 CSS 变量控制字体大小和消息框宽度）
-        const chatFontSize = document.getElementById("chatFontSize").value;
-        const chatBubbleWidth = document.getElementById("chatBubbleWidth").value;
-        document.documentElement.style.setProperty('--chat-font-size', chatFontSize + 'px');
-        document.documentElement.style.setProperty('--chat-bubble-max-width', chatBubbleWidth + '%');
+        settings.ui.chatFontSize = parseInt(document.getElementById("chatFontSize").value);
+        settings.ui.chatBubbleWidth = parseInt(document.getElementById("chatBubbleWidth").value);
+        document.documentElement.style.setProperty('--chat-font-size', settings.ui.chatFontSize + 'px');
+        document.documentElement.style.setProperty('--chat-bubble-max-width', settings.ui.chatBubbleWidth + '%');
 
         document.getElementById("settingsPanel").style.display = "none";
+        // 保存当前设置到 localStorage
+        localStorage.setItem("chatSettings", JSON.stringify(settings));
         logMessage("设置已保存");
       });
 
