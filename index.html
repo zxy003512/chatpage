@@ -14,9 +14,10 @@
   <!-- 引入 highlight.js 用于代码高亮 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-  <!-- 引入 MathJax 用于渲染数学公式 -->
-  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <!-- 使用 KaTeX 渲染数学公式 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/contrib/auto-render.min.js"></script>
   <style>
     :root {
       --chat-font-size: 15px;
@@ -69,13 +70,13 @@
       flex-direction: column;
     }
     .chat-message {
-      margin: 8px 0;
-      padding: 10px 15px;
+      margin: 4px 0;
+      padding: 8px 12px;
       position: relative;
       word-break: break-word;
       max-width: var(--chat-bubble-max-width, 70%);
       font-size: var(--chat-font-size, 15px);
-      line-height: 1.5;
+      line-height: 1.3;
       border-radius: 18px;
       white-space: pre-wrap;
     }
@@ -105,22 +106,27 @@
     .message-content {
       font-size: inherit;
     }
+    /* 修改复制按钮样式：增大尺寸、增加内边距、半透明深色背景与悬停放大效果 */
     .copy-btn, .copy-code-btn {
-      font-size: 12px;
       position: absolute;
       top: 4px;
-      right: 8px;
-      padding: 2px 6px;
-      background: rgba(0,0,0,0.3);
-      color: #fff;
+      right: 4px;
+      width: 24px;
+      height: 24px;
+      padding: 2px;
       border: none;
-      border-radius: 3px;
+      background: rgba(0, 0, 0, 0.1);
       cursor: pointer;
+      color: #fff;
+      border-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      transition: transform 0.2s, background 0.2s;
     }
-    .copy-code-btn {
-      top: auto;
-      bottom: 4px;
+    .copy-btn:hover, .copy-code-btn:hover {
+      transform: scale(1.2);
+      background: rgba(0, 0, 0, 0.2);
     }
+    .copy-code-btn { top: auto; bottom: 4px; }
     #input-area {
       display: flex;
       padding: 10px;
@@ -187,11 +193,17 @@
       color: #fff;
       border-radius: 4px;
       cursor: pointer;
-      width: 48%;
+      width: 31%;
     }
     #settingsPanel .close-btn {
       background: #c74444;
       float: right;
+      width: 31%;
+    }
+    #settingsPanel .reset-btn {
+      background: #888;
+      float: left;
+      width: 31%;
     }
     /* 日志窗口 */
     #log {
@@ -302,27 +314,58 @@
     <!-- 界面设置 -->
     <h4>界面设置</h4>
     <label for="chatFontSize">消息字体大小 (px，默认15)：</label>
-    <input type="number" id="chatFontSize" value="15">
+    <input type="number" id="chatFontSize" value="12">
     <label for="chatBubbleWidth">消息框宽度 (%，默认70)：</label>
     <input type="number" id="chatBubbleWidth" value="70">
 
-    <div style="margin-top:10px;">
+    <div style="margin-top:10px; overflow: auto;">
+      <button id="resetSettings" class="reset-btn">重置设置</button>
       <button id="saveSettings">保存</button>
       <button id="closeSettings" class="close-btn">关闭</button>
     </div>
   </div>
 
   <script>
-    // 当前对话记录（每条消息格式：{role: "user"/"assistant", content: "消息内容"}）
+    // 当前对话记录，每条消息格式：{role: "user"/"assistant", content: "消息内容"}
     let conversation = [];
 
-    // 默认设置（可在设置面板中修改）
-    let settings = {
-      mode: "qwq_gemini",  // "qwq_gemini" 或 "o3mini"
+    // 默认设置（初始默认值，与界面初始值保持一致）
+    const defaultSettings = {
+      mode: "qwq_gemini",
       max_tokens: 60000,
       context_memory: 30,
       temperature: 0.7,
       stream: true,
+      showThinking: true,
+      qwq: {
+        api_url: "https://api-inference.modelscope.cn/v1/chat/completions",
+        api_key: "a121eb23-a813-48a3-8453-3dc11d0e1386",
+        model: "Qwen/QwQ-32B"
+      },
+      gemini: {
+        api_url: "https://api.zetatechs.com/v1/chat/completions",
+        api_key: "sk-7c56ZaiPVJOLPzmAPr07e9DaVsHtyS769tg5yjOGE1aiNtSt",
+        model: "gemini-2.0-flash-thinking-exp-01-21-free"
+      },
+      o3mini: {
+        api_url: "https://api.zetatechs.com/v1/chat/completions",
+        api_key: "sk-e2a7YHPCZF3yPxpdu9zguWbNlawBJwAQ3a0jav4U6B5LlECK",
+        model: "o3-mini-2025-01-31-high",
+        deep_thinking: true
+      },
+      ui: {
+        chatFontSize: 15,
+        chatBubbleWidth: 70
+      }
+    };
+
+    // 当前设置（初始化时从页面默认值中读取）
+    let settings = {
+      mode: document.getElementById("modeSelect").value,
+      max_tokens: parseInt(document.getElementById("maxTokens").value),
+      context_memory: parseInt(document.getElementById("contextMemory").value),
+      temperature: parseFloat(document.getElementById("temperature").value),
+      stream: document.getElementById("streamCheckbox").checked,
       showThinking: document.getElementById("showThinkingCheckbox").checked,
       qwq: {
         api_url: document.getElementById("qwqAPIUrl").value,
@@ -344,7 +387,7 @@
 
     // 通用 Markdown 预处理函数（保留代码块与数学公式内部换行）
     function processMarkdown(content) {
-      return content.replace(/(```[\s\S]*?```|\\$[\s\S]*?\\$|\\\[[\s\S]*?\\\])/g, match => match.replace(/\n/g, '\n'));
+      return content.replace(/(```[\s\S]*?```|\$[\s\S]*?\$|\\\[[\s\S]*?\\\])/g, match => match.replace(/\n/g, '\n'));
     }
 
     // 渲染所有对话消息
@@ -358,35 +401,44 @@
         contentDiv.className = "message-content";
         contentDiv.innerHTML = marked.parse(processMarkdown(msg.content));
         msgDiv.appendChild(contentDiv);
+
+        // 添加复制按钮（使用 SVG 图标）
         const copyBtn = document.createElement("button");
         copyBtn.className = "copy-btn";
-        copyBtn.textContent = "复制";
+        copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13 1H5a2 2 0 0 0-2 2v1H1.5A1.5 1.5 0 0 0 0 5.5v9A1.5 1.5 0 0 0 1.5 16h8A1.5 1.5 0 0 0 11 14.5V13h2a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2zM3 3a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1H3V3zm9 10.5a.5.5 0 0 1-.5.5H1.5a.5.5 0 0 1-.5-.5v-9A.5.5 0 0 1 1.5 4H12.5a.5.5 0 0 1 .5.5v9z"/></svg>';
         copyBtn.onclick = () => copyText(msg.content);
         msgDiv.appendChild(copyBtn);
         chatContainer.appendChild(msgDiv);
       });
 
-      // 代码高亮与代码块复制按钮
+      // 为代码块添加高亮和复制按钮
       document.querySelectorAll("pre code").forEach(block => {
         hljs.highlightElement(block);
         if (!block.parentElement.querySelector(".copy-code-btn")) {
           const copyCodeBtn = document.createElement("button");
           copyCodeBtn.className = "copy-code-btn";
-          copyCodeBtn.textContent = "复制代码";
+          copyCodeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13 1H5a2 2 0 0 0-2 2v1H1.5A1.5 1.5 0 0 0 0 5.5v9A1.5 1.5 0 0 0 1.5 16h8A1.5 1.5 0 0 0 11 14.5V13h2a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2zM3 3a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1H3V3zm9 10.5a.5.5 0 0 1-.5.5H1.5a.5.5 0 0 1-.5-.5v-9A.5.5 0 0 1 1.5 4H12.5a.5.5 0 0 1 .5.5v9z"/></svg>';
           copyCodeBtn.onclick = (e) => { copyText(block.innerText); e.stopPropagation(); };
           block.parentElement.style.position = "relative";
           block.parentElement.appendChild(copyCodeBtn);
         }
       });
 
-      // 数学公式渲染（使用Promise保证异步渲染完成）
-      if (window.MathJax) {
-        MathJax.typesetPromise().catch((err) => console.error("MathJax typeset failed: ", err));
+      // 使用 KaTeX 自动渲染数学公式
+      if (window.renderMathInElement) {
+        renderMathInElement(chatContainer, {
+          delimiters: [
+            {left: "$$", right: "$$", display: true},
+            {left: "$", right: "$", display: false}
+          ],
+          throwOnError: false
+        });
       }
+      // 保证滚动到底部
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
-    // 复制文本到剪贴板
+    // 将文本复制到剪贴板
     function copyText(text) {
       navigator.clipboard.writeText(text);
     }
@@ -460,6 +512,13 @@
                 }
               }
             }
+            // 若还有残留内容（极少见），处理一下
+            if (buffer.trim()) {
+              try {
+                const data = JSON.parse(buffer.trim());
+                streamHandler(data, false);
+              } catch (e) { }
+            }
           } else {
             const data = await response.json();
             streamHandler(data, false);
@@ -481,7 +540,7 @@
       }
     }
 
-    // 处理用户发送消息
+    // 处理用户发送的消息
     async function processUserMessage() {
       const inputField = document.getElementById("input");
       const userText = inputField.value.trim();
@@ -492,7 +551,7 @@
 
       if (settings.mode === "qwq_gemini") {
         let chainThought = "";
-        // 若开启显示思考过程则添加一条辅助消息（否则，仅内部记录chainThought）
+        // 若开启显示思考过程则添加一条辅助消息
         if (settings.showThinking) {
           conversation.push({ role: "assistant", content: "【思考中……】" });
           renderMessages();
@@ -511,7 +570,6 @@
         await new Promise((resolve) => {
           callAPI(settings.qwq.api_url, settings.qwq.api_key, payload_qwq, (data, done) => {
             if (done) {
-              // 若开启显示思考过程则更新消息，否则不做对话记录更新
               if (settings.showThinking) {
                 conversation[conversation.length - 1].content = chainThought;
                 renderMessages();
@@ -519,9 +577,9 @@
               resolve();
             } else if (data) {
               const delta = data.choices[0].delta;
-              if (delta.reasoning_content) {
-                chainThought += delta.reasoning_content;
-              }
+              // 若 QwQ 返回时字段可能用 content 或 reasoning_content，两者都尝试获取
+              const newChunk = delta.reasoning_content || delta.content || "";
+              chainThought += newChunk;
               if (settings.showThinking) {
                 conversation[conversation.length - 1].content = chainThought;
                 renderMessages();
@@ -530,8 +588,8 @@
           });
         });
 
-        // 调用 Gemini 模型；将 QwQ 得到的思考链通过系统消息传递给 Gemini 模型
-        const geminiSystemMsg = "以下是之前模型的思维链，思维链中的分析和思路请作为参考：" + chainThought;
+        // 调用 Gemini 模型，将 QwQ 的思维链传递给 Gemini 模型
+        const geminiSystemMsg = "以下是之前模型的思维链，思维链中的分析和思路请作为参考，推理分析专家是上个模型的角色设定，与你无关：" + chainThought;
         const payload_gemini = {
           model: settings.gemini.model,
           messages: [
@@ -597,6 +655,62 @@
       }
     }
 
+    // 重置设置面板为默认值
+    function resetSettingsToDefault() {
+      document.getElementById("modeSelect").value = defaultSettings.mode;
+      document.getElementById("maxTokens").value = defaultSettings.max_tokens;
+      document.getElementById("contextMemory").value = defaultSettings.context_memory;
+      document.getElementById("temperature").value = defaultSettings.temperature;
+      document.getElementById("streamCheckbox").checked = defaultSettings.stream;
+      document.getElementById("showThinkingCheckbox").checked = defaultSettings.showThinking;
+
+      document.getElementById("qwqAPIUrl").value = defaultSettings.qwq.api_url;
+      document.getElementById("qwqApiKey").value = defaultSettings.qwq.api_key;
+      document.getElementById("qwqModel").value = defaultSettings.qwq.model;
+
+      document.getElementById("geminiAPIUrl").value = defaultSettings.gemini.api_url;
+      document.getElementById("geminiApiKey").value = defaultSettings.gemini.api_key;
+      document.getElementById("geminiModel").value = defaultSettings.gemini.model;
+
+      document.getElementById("o3APIUrl").value = defaultSettings.o3mini.api_url;
+      document.getElementById("o3ApiKey").value = defaultSettings.o3mini.api_key;
+      document.getElementById("o3Model").value = defaultSettings.o3mini.model;
+      document.getElementById("deepThinkingCheckbox").checked = defaultSettings.o3mini.deep_thinking;
+
+      document.getElementById("chatFontSize").value = defaultSettings.ui.chatFontSize;
+      document.getElementById("chatBubbleWidth").value = defaultSettings.ui.chatBubbleWidth;
+      
+      // 更新当前设置变量（注意：下一次发送消息时会重新从DOM中读取设置）
+      settings = {
+        mode: document.getElementById("modeSelect").value,
+        max_tokens: parseInt(document.getElementById("maxTokens").value),
+        context_memory: parseInt(document.getElementById("contextMemory").value),
+        temperature: parseFloat(document.getElementById("temperature").value),
+        stream: document.getElementById("streamCheckbox").checked,
+        showThinking: document.getElementById("showThinkingCheckbox").checked,
+        qwq: {
+          api_url: document.getElementById("qwqAPIUrl").value,
+          api_key: document.getElementById("qwqApiKey").value,
+          model: document.getElementById("qwqModel").value
+        },
+        gemini: {
+          api_url: document.getElementById("geminiAPIUrl").value,
+          api_key: document.getElementById("geminiApiKey").value,
+          model: document.getElementById("geminiModel").value
+        },
+        o3mini: {
+          api_url: document.getElementById("o3APIUrl").value,
+          api_key: document.getElementById("o3ApiKey").value,
+          model: document.getElementById("o3Model").value,
+          deep_thinking: document.getElementById("deepThinkingCheckbox").checked
+        }
+      };
+      // 同时更新 CSS 变量
+      document.documentElement.style.setProperty('--chat-font-size', defaultSettings.ui.chatFontSize + 'px');
+      document.documentElement.style.setProperty('--chat-bubble-max-width', defaultSettings.ui.chatBubbleWidth + '%');
+      logMessage("已重置设置为默认值");
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
       document.getElementById("sendBtn").addEventListener("click", processUserMessage);
       document.getElementById("clearBtn").addEventListener("click", function() {
@@ -611,6 +725,7 @@
         document.getElementById("settingsPanel").style.display = "none";
       });
       document.getElementById("saveSettings").addEventListener("click", function () {
+        // 从界面中读取最新设置并更新到全局变量
         settings.mode = document.getElementById("modeSelect").value;
         settings.max_tokens = parseInt(document.getElementById("maxTokens").value);
         settings.context_memory = parseInt(document.getElementById("contextMemory").value);
@@ -631,7 +746,7 @@
         settings.o3mini.api_key = document.getElementById("o3ApiKey").value;
         settings.o3mini.model = document.getElementById("o3Model").value;
 
-        // 更新界面设置（通过 CSS 变量控制字体大小和气泡宽度）
+        // 更新界面设置（通过 CSS 变量控制字体大小和消息框宽度）
         const chatFontSize = document.getElementById("chatFontSize").value;
         const chatBubbleWidth = document.getElementById("chatBubbleWidth").value;
         document.documentElement.style.setProperty('--chat-font-size', chatFontSize + 'px');
@@ -639,6 +754,11 @@
 
         document.getElementById("settingsPanel").style.display = "none";
         logMessage("设置已保存");
+      });
+
+      // 重置设置按钮事件
+      document.getElementById("resetSettings").addEventListener("click", function() {
+        resetSettingsToDefault();
       });
 
       const toggleLogBtn = document.getElementById("toggleLogBtn");
