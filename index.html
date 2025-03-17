@@ -1,854 +1,835 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
-  <meta charset="UTF-8">
-  <title>AI 聊天界面</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- 引入 marked 用于 Markdown 渲染 -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script>
-    marked.setOptions({
-      breaks: false
-    });
-  </script>
-  <!-- 引入 highlight.js 用于代码高亮 -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-  <!-- 使用 KaTeX 渲染数学公式 -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/contrib/auto-render.min.js"></script>
-  <style>
-    :root {
-      --chat-font-size: 15px;
-      --chat-bubble-max-width: 70%;
-    }
-    body {
-      margin: 0;
-      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      background: #f2f2f2;
-    }
-    header {
-      padding: 10px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #2d89ef;
-      color: #fff;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    header .btn-group {
-      display: flex;
-      align-items: center;
-    }
-    header button {
-      margin-left: 10px;
-      padding: 6px 12px;
-      border: none;
-      background: rgba(255,255,255,0.8);
-      color: #2d89ef;
-      cursor: pointer;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-    .container {
-      margin: 20px auto;
-      max-width: 800px;
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.05);
-      display: flex;
-      flex-direction: column;
-      height: calc(100vh - 80px);
-      overflow: hidden;
-    }
-    #chat {
-      flex: 1;
-      padding: 15px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-    }
-    .chat-message {
-      margin: 4px 0;
-      padding: 8px 12px;
-      position: relative;
-      word-break: break-word;
-      max-width: var(--chat-bubble-max-width, 70%);
-      font-size: var(--chat-font-size, 15px);
-      line-height: 1.3;
-      border-radius: 18px;
-      white-space: pre-wrap;
-    }
-    .chat-message.user {
-      background: #dcf8c6;
-      align-self: flex-end;
-      border-bottom-right-radius: 0;
-    }
-    .chat-message.assistant {
-      background: #fff;
-      align-self: flex-start;
-      border-bottom-left-radius: 0;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    .message-content pre {
-      background: #f5f5f5;
-      padding: 10px;
-      border-radius: 4px;
-      overflow-x: auto;
-    }
-    .message-content code {
-      font-family: 'Courier New', Courier, monospace;
-      background: #f5f5f5;
-      padding: 2px 4px;
-      border-radius: 2px;
-    }
-    .message-content {
-      font-size: inherit;
-    }
-    /* 修改复制按钮样式：增大尺寸、增加内边距、半透明深色背景与悬停放大效果 */
-    .copy-btn, .copy-code-btn {
-      position: absolute;
-      top: 4px;
-      right: 4px;
-      width: 24px;
-      height: 24px;
-      padding: 2px;
-      border: none;
-      background: rgba(0, 0, 0, 0.1);
-      cursor: pointer;
-      color: #fff;
-      border-radius: 4px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-      transition: transform 0.2s, background 0.2s;
-    }
-    .copy-btn:hover, .copy-code-btn:hover {
-      transform: scale(1.2);
-      background: rgba(0, 0, 0, 0.2);
-    }
-    .copy-code-btn { top: auto; bottom: 4px; }
-    #input-area {
-      display: flex;
-      padding: 10px;
-      border-top: 1px solid #ddd;
-      background: #fafafa;
-    }
-    #input {
-      flex: 1;
-      padding: 8px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      resize: none;
-      height: 50px;
-    }
-    #sendBtn {
-      margin-left: 10px;
-      padding: 0 20px;
-      font-size: 16px;
-      border: none;
-      background: #2d89ef;
-      color: #fff;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    /* 设置面板 */
-    #settingsPanel {
-      display: none;
-      position: fixed;
-      top: 60px;
-      right: 20px;
-      background: #fff;
-      border: 1px solid #ccc;
-      z-index: 1000;
-      padding: 15px;
-      border-radius: 6px;
-      max-width: 300px;
-      max-height: 80vh;
-      overflow-y: auto;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
-    }
-    #settingsPanel h3, #settingsPanel h4 {
-      margin-top: 0;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 5px;
-      margin-bottom: 10px;
-    }
-    #settingsPanel label {
-      display: block;
-      margin-top: 8px;
-      font-size: 14px;
-    }
-    #settingsPanel input, #settingsPanel select {
-      width: 100%;
-      padding: 4px 6px;
-      margin-top: 4px;
-      box-sizing: border-box;
-    }
-    #settingsPanel button {
-      margin-top: 10px;
-      padding: 6px 10px;
-      border: none;
-      background: #2d89ef;
-      color: #fff;
-      border-radius: 4px;
-      cursor: pointer;
-      width: 31%;
-    }
-    #settingsPanel .close-btn {
-      background: #c74444;
-      float: right;
-      width: 31%;
-    }
-    #settingsPanel .reset-btn {
-      background: #888;
-      float: left;
-      width: 31%;
-    }
-    /* 日志窗口 */
-    #log {
-      display: none;
-      height: 100px;
-      overflow-y: auto;
-      background: #333;
-      color: #fff;
-      font-size: 12px;
-      padding: 5px;
-    }
-    #toggleLogBtn {
-      background: rgba(255,255,255,0.8);
-      color: #2d89ef;
-      border: none;
-      border-radius: 4px;
-      padding: 6px 12px;
-      cursor: pointer;
-      font-size: 14px;
-      margin-left: 10px;
-    }
-    /* 移动端适配 */
-    @media (max-width: 600px) {
-      body { font-size: 14px; }
-      header { padding: 10px; }
-      header button, #toggleLogBtn { padding: 6px 8px; font-size: 13px; }
-      .container { margin: 10px; height: calc(100vh - 80px); }
-      #input { height: 40px; font-size: 14px; }
-      #sendBtn { padding: 0 12px; font-size: 14px; }
-      #settingsPanel { right: 10px; width: 90%; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 对话平台</title>
+    <!-- KaTeX CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <!-- KaTeX JS (with auto-render extension) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+        onload="renderMathInElement(document.body);"></script>
+    <!-- highlight.js CSS (Atom One Dark theme) -->
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <!-- highlight.js JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Marked.js -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+        integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        /* 之前的样式保持不变 */
+        body {
+            font-family: 'Open Sans', sans-serif; /* 默认字体 */
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .container {
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #fff;
+            margin-bottom: 10px;
+            overflow: hidden;
+            /* 确保内容不会溢出 */
+        }
+
+        #chat-box {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            margin: 5px;
+            padding: 8px 12px;
+            border-radius: 15px;
+            max-width: 70%;
+            word-wrap: break-word;
+            position: relative;
+            /* 相对定位 */
+        }
+
+        .user-message {
+            background-color: #007bff;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+
+        .ai-message {
+            background-color: #e9ecef;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+
+        /* 复制按钮样式 */
+        .copy-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: none;
+            border: none;
+            color: rgba(0, 0, 0, 0.5);
+            /* 半透明 */
+            cursor: pointer;
+            font-size: 12px;
+            display: none;
+            /* 默认隐藏 */
+            z-index: 2; /* 确保在代码块之上 */
+        }
+          .code-copy-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            color: #333;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px 5px;
+            z-index: 3; /* 比 .copy-btn 更高 */
+            display: none;
+        }
+          .message:hover .copy-btn {
+            display: block;
+        }
+
+
+        /* 代码块样式 */
+          pre {
+              position: relative; /* 为了定位复制按钮 */
+              background-color: #282c34;
+              color: #abb2bf;
+              padding: 1em;
+              border-radius: 5px;
+              overflow-x: auto;
+              display: flex;
+          }
+
+          pre:hover .code-copy-btn{
+              display: block;
+          }
+
+        /* 输入区域 */
+        #input-area {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+        }
+
+        #input-area textarea {
+            flex: 1;
+            padding: 8px;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+            resize: none;
+            margin-right: 10px;
+        }
+
+        /* 按钮样式 */
+        #input-area button,
+        .icon-btn {
+            /* 通用按钮样式 */
+            padding: 8px 15px;
+            border: none;
+            border-radius: 20px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #input-area button:hover,
+        .icon-btn:hover {
+            background-color: #0056b3;
+        }
+
+        /* 图标按钮 */
+        .icon-btn {
+            padding: 8px 12px;
+            /* 图标按钮可能需要更小的内边距 */
+            margin-right: 5px;
+            /* 按钮间距 */
+            background-color: #28a745;
+            /* 设置图标按钮颜色 */
+        }
+
+        /* 设置面板 */
+        #settings-panel {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            width: 80%;
+            max-width: 600px;
+            /* 增加最大宽度 */
+            overflow-y: auto;
+            /* 允许滚动 */
+            max-height: 80vh;
+            /* 限制最大高度 */
+        }
+
+        #settings-panel h2 {
+            margin-top: 0;
+        }
+
+        #settings-panel label {
+            display: block;
+            margin-top: 10px;
+        }
+
+        #settings-panel input[type="text"],
+        #settings-panel input[type="password"],
+        /* 增加 password 类型 */
+        #settings-panel input[type="number"],
+        #settings-panel select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            box-sizing: border-box;
+        }
+
+        #settings-panel button {
+            margin-top: 15px;
+        }
+          #font-settings {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 15px;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: #999;
+        }
+
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        /* 请求日志 */
+        #log-panel {
+           display:none;
+            position: fixed;
+            top: 10%;
+            left: 10%;
+            width: 80%; /* 默认宽度 */
+            height: 70%; /* 默认高度，调整为更小 */
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1001;
+            overflow: auto;
+            padding: 15px;
+            white-space: pre-line; /* 保留换行符 */
+            font-family: 'Courier New', monospace; /* 更适合日志的字体 */
+            font-size: 12px; /* 默认日志字体大小 */
+            color: #333;
+        }
+         #log-panel.show {
+            display: block !important;
+        }
+
+        /* API 配置卡片 */
+        .api-config-card {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+
+        .api-config-card h3 {
+            margin-top: 0;
+        }
+
+        .api-config-card button {
+            margin-top: 10px;
+            background-color: #dc3545;
+            /* 红色删除按钮 */
+            color: white;
+        }
+
+        /* 响应式 - 小屏幕 */
+        @media (max-width: 600px) {
+            #settings-panel {
+                width: 95%;
+            }
+             #log-panel {
+                top: 10px; /* 顶部距离更小 */
+                left: 10px; /* 左边距离更小 */
+                width: calc(95% - 20px); /* 宽度更小，考虑左右 margin */
+                height: calc(90% - 20px); /* 高度更高，但整体窗口更小 */
+            }
+        }
+    </style>
 </head>
+
 <body>
-  <header>
-    <div>AI 聊天界面</div>
-    <div class="btn-group">
-      <button id="clearBtn">清空对话</button>
-      <button id="settingsBtn">设置</button>
-      <button id="toggleLogBtn">日志</button>
+    <div id="app">
+        <div class="container" id="chat-box">
+            <!-- 消息 -->
+        </div>
+
+        <div id="input-area">
+            <textarea id="message-input" placeholder="输入消息..."></textarea>
+            <button id="send-btn">发送</button>
+            <!-- 图标按钮 -->
+            <button id="settings-btn" class="icon-btn" title="设置"><i class="fas fa-cog"></i></button>
+            <button id="clear-context-btn" class="icon-btn" title="清除上下文"><i class="fas fa-broom"></i></button>
+            <button id="toggle-log-btn" class="icon-btn" title="显示/隐藏日志"><i class="fas fa-file-alt"></i></button>
+            <button id="clear-log-btn" class="icon-btn" title="清除日志"><i class="fas fa-trash"></i></button>
+             <select id="api-config-select" title="选择配置">
+                <!-- API 配置选项 -->
+            </select>
+        </div>
+
+
+        <!-- 设置面板 -->
+        <div id="settings-panel">
+            <button class="close-btn" onclick="toggleSettingsPanel()">&times;</button>
+            <h2>设置</h2>
+              <!-- 字体设置 -->
+            <div id="font-settings">
+                <h3>字体设置</h3>
+                <label for="font-family">聊天字体：</label>
+                <select id="font-family">
+                    <option value="'Open Sans', sans-serif">Open Sans</option>
+                    <option value="'Lato', sans-serif">Lato</option>
+                    <option value="'Montserrat', sans-serif">Montserrat</option>
+                    <option value="'Roboto', sans-serif">Roboto</option>
+                    <option value="'Source Sans Pro', sans-serif">Source Sans Pro</option>
+                    <option value="Arial, sans-serif">Arial</option>  <!-- 基础字体 -->
+                    <option value="'Times New Roman', serif">Times New Roman</option>
+                    <option value="'Courier New', monospace">Courier New</option>
+
+                </select>
+
+                <label for="font-size">聊天字号：</label>
+                <input type="number" id="font-size" min="10" max="30" value="16">
+                 <label for="log-font-size">日志字号：</label>
+                <input type="number" id="log-font-size" min="10" max="30" value="12">
+            </div>
+
+            <h2>API 配置</h2>
+            <div id="api-configs-container">
+                <!-- API 配置卡片 -->
+            </div>
+            <button id="add-api-config-btn">添加新配置</button>
+            <button id="save-settings-btn">保存设置</button>
+        </div>
+
+        <div id="overlay"></div>
+
+        <!-- 请求日志面板 -->
+        <div id="log-panel">
+            <button class="close-btn log-close-btn" onclick="closeLogPanel()">&times;</button>  <!-- 添加关闭按钮 -->
+            <pre id="log-content"></pre>
+        </div>
+
     </div>
-  </header>
-  <div class="container">
-    <div id="chat"></div>
-    <div id="input-area">
-      <textarea id="input" placeholder="请输入消息..."></textarea>
-      <button id="sendBtn">发送</button>
-    </div>
-    <div id="log"></div>
-  </div>
 
-  <!-- 设置面板 -->
-  <div id="settingsPanel">
-    <h3>设置</h3>
-    <label for="modeSelect">选择模式：</label>
-    <select id="modeSelect">
-      <option value="qwq_gemini" selected>QwQ + Gemini（默认）</option>
-      <option value="o3mini">o3mini（深度思考）</option>
-    </select>
+    <script>
+        // 获取 DOM 元素
+        const chatBox = document.getElementById('chat-box');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-btn');
+        const settingsButton = document.getElementById('settings-btn');
+        const clearContextButton = document.getElementById('clear-context-btn');
+        const settingsPanel = document.getElementById('settings-panel');
+        const overlay = document.getElementById('overlay');
+        const saveSettingsButton = document.getElementById('save-settings-btn');
+        const logPanel = document.getElementById('log-panel');
+        const logContent = document.getElementById('log-content');
+        const toggleLogButton = document.getElementById('toggle-log-btn');
+        const clearLogButton = document.getElementById('clear-log-btn');
+        const logFontSizeInput = document.getElementById('log-font-size');
 
-    <label for="maxTokens">回复最大 Token（默认60000）：</label>
-    <input type="number" id="maxTokens" value="60000">
 
-    <label for="contextMemory">上下文记忆条数（默认30）：</label>
-    <input type="number" id="contextMemory" value="30">
+        const apiConfigsContainer = document.getElementById('api-configs-container');
+        const addApiConfigButton = document.getElementById('add-api-config-btn');
+        const apiConfigSelect = document.getElementById('api-config-select'); // 新增：配置选择下拉框
+        const fontFamilySelect = document.getElementById('font-family');
+        const fontSizeInput = document.getElementById('font-size');
 
-    <label for="temperature">温度（默认0.7）：</label>
-    <input type="number" step="0.1" id="temperature" value="0.7">
+        // 存储上下文消息
+        let contextMessages = [];
 
-    <label for="streamCheckbox">
-      <input type="checkbox" id="streamCheckbox" checked> 开启流式回复
-    </label>
-
-    <label for="showThinkingCheckbox">
-      <input type="checkbox" id="showThinkingCheckbox" checked> 显示QwQ思考过程
-    </label>
-
-    <!-- QwQ 模型设置 -->
-    <h4>QwQ 模型设置</h4>
-    <label for="qwqAPIUrl">API 地址：</label>
-    <input type="text" id="qwqAPIUrl" value="https://api-inference.modelscope.cn/v1/chat/completions">
-    <label for="qwqApiKey">API Key：</label>
-    <input type="text" id="qwqApiKey" value="a121eb23-a813-48a3-8453-3dc11d0e1386">
-    <label for="qwqModel">模型：</label>
-    <input type="text" id="qwqModel" value="Qwen/QwQ-32B">
-
-    <!-- Gemini 模型设置 -->
-    <h4>Gemini 模型设置</h4>
-    <label for="geminiAPIUrl">API 地址：</label>
-    <input type="text" id="geminiAPIUrl" value="https://api.zetatechs.com/v1/chat/completions">
-    <label for="geminiApiKey">API Key：</label>
-    <input type="text" id="geminiApiKey" value="sk-7c56ZaiPVJOLPzmAPr07e9DaVsHtyS769tg5yjOGE1aiNtSt">
-    <label for="geminiModel">模型：</label>
-    <input type="text" id="geminiModel" value="gemini-2.0-flash-thinking-exp-01-21-free">
-
-    <!-- o3mini 模型设置 -->
-    <h4>o3mini 模型设置</h4>
-    <label for="o3APIUrl">API 地址：</label>
-    <input type="text" id="o3APIUrl" value="https://api.zetatechs.com/v1/chat/completions">
-    <label for="o3ApiKey">API Key：</label>
-    <input type="text" id="o3ApiKey" value="sk-e2a7YHPCZF3yPxpdu9zguWbNlawBJwAQ3a0jav4U6B5LlECK">
-    <label for="o3Model">模型：</label>
-    <input type="text" id="o3Model" value="o3-mini-2025-01-31-high">
-    <label for="deepThinkingCheckbox">
-      <input type="checkbox" id="deepThinkingCheckbox" checked> 开启 o3mini 深度思考
-    </label>
-
-    <!-- 界面设置 -->
-    <h4>界面设置</h4>
-    <label for="chatFontSize">消息字体大小 (px，默认15)：</label>
-    <input type="number" id="chatFontSize" value="12">
-    <label for="chatBubbleWidth">消息框宽度 (%，默认70)：</label>
-    <input type="number" id="chatBubbleWidth" value="70">
-
-    <div style="margin-top:10px; overflow: auto;">
-      <button id="resetSettings" class="reset-btn">重置设置</button>
-      <button id="saveSettings">保存</button>
-      <button id="closeSettings" class="close-btn">关闭</button>
-    </div>
-  </div>
-
-  <script>
-    // 当前对话记录，每条消息格式：{role: "user"/"assistant", content: "消息内容"}
-    let conversation = [];
-
-    // 默认设置（初始默认值，与界面初始值保持一致）
-    const defaultSettings = {
-      mode: "qwq_gemini",
-      max_tokens: 60000,
-      context_memory: 30,
-      temperature: 0.7,
-      stream: true,
-      showThinking: true,
-      qwq: {
-        api_url: "https://api-inference.modelscope.cn/v1/chat/completions",
-        api_key: "a121eb23-a813-48a3-8453-3dc11d0e1386",
-        model: "Qwen/QwQ-32B"
-      },
-      gemini: {
-        api_url: "https://api.zetatechs.com/v1/chat/completions",
-        api_key: "sk-7c56ZaiPVJOLPzmAPr07e9DaVsHtyS769tg5yjOGE1aiNtSt",
-        model: "gemini-2.0-flash-thinking-exp-01-21-free"
-      },
-      o3mini: {
-        api_url: "https://api.zetatechs.com/v1/chat/completions",
-        api_key: "sk-e2a7YHPCZF3yPxpdu9zguWbNlawBJwAQ3a0jav4U6B5LlECK",
-        model: "o3-mini-2025-01-31-high",
-        deep_thinking: true
-      },
-      ui: {
-        chatFontSize: 15,
-        chatBubbleWidth: 70
-      }
-    };
-
-    // 当前设置（初始化时从页面默认值中读取，后续会从 localStorage 加载已保存设置）
-    let settings = {
-      mode: document.getElementById("modeSelect").value,
-      max_tokens: parseInt(document.getElementById("maxTokens").value),
-      context_memory: parseInt(document.getElementById("contextMemory").value),
-      temperature: parseFloat(document.getElementById("temperature").value),
-      stream: document.getElementById("streamCheckbox").checked,
-      showThinking: document.getElementById("showThinkingCheckbox").checked,
-      qwq: {
-        api_url: document.getElementById("qwqAPIUrl").value,
-        api_key: document.getElementById("qwqApiKey").value,
-        model: document.getElementById("qwqModel").value
-      },
-      gemini: {
-        api_url: document.getElementById("geminiAPIUrl").value,
-        api_key: document.getElementById("geminiApiKey").value,
-        model: document.getElementById("geminiModel").value
-      },
-      o3mini: {
-        api_url: document.getElementById("o3APIUrl").value,
-        api_key: document.getElementById("o3ApiKey").value,
-        model: document.getElementById("o3Model").value,
-        deep_thinking: document.getElementById("deepThinkingCheckbox").checked
-      },
-      ui: {
-        chatFontSize: parseInt(document.getElementById("chatFontSize").value),
-        chatBubbleWidth: parseInt(document.getElementById("chatBubbleWidth").value)
-      }
-    };
-
-    // 封装从 localStorage 加载已保存设置的函数
-    function loadStoredSettings() {
-      const stored = localStorage.getItem("chatSettings");
-      if (stored) {
-        try {
-          const saved = JSON.parse(stored);
-          document.getElementById("modeSelect").value = saved.mode;
-          document.getElementById("maxTokens").value = saved.max_tokens;
-          document.getElementById("contextMemory").value = saved.context_memory;
-          document.getElementById("temperature").value = saved.temperature;
-          document.getElementById("streamCheckbox").checked = saved.stream;
-          document.getElementById("showThinkingCheckbox").checked = saved.showThinking;
-          document.getElementById("qwqAPIUrl").value = saved.qwq.api_url;
-          document.getElementById("qwqApiKey").value = saved.qwq.api_key;
-          document.getElementById("qwqModel").value = saved.qwq.model;
-          document.getElementById("geminiAPIUrl").value = saved.gemini.api_url;
-          document.getElementById("geminiApiKey").value = saved.gemini.api_key;
-          document.getElementById("geminiModel").value = saved.gemini.model;
-          document.getElementById("o3APIUrl").value = saved.o3mini.api_url;
-          document.getElementById("o3ApiKey").value = saved.o3mini.api_key;
-          document.getElementById("o3Model").value = saved.o3mini.model;
-          document.getElementById("deepThinkingCheckbox").checked = saved.o3mini.deep_thinking;
-          document.getElementById("chatFontSize").value = saved.ui.chatFontSize;
-          document.getElementById("chatBubbleWidth").value = saved.ui.chatBubbleWidth;
-          // 更新全局 settings 变量
-          settings = {
-            mode: saved.mode,
-            max_tokens: parseInt(saved.max_tokens),
-            context_memory: parseInt(saved.context_memory),
-            temperature: parseFloat(saved.temperature),
-            stream: saved.stream,
-            showThinking: saved.showThinking,
-            qwq: {
-              api_url: saved.qwq.api_url,
-              api_key: saved.qwq.api_key,
-              model: saved.qwq.model
-            },
-            gemini: {
-              api_url: saved.gemini.api_url,
-              api_key: saved.gemini.api_key,
-              model: saved.gemini.model
-            },
-            o3mini: {
-              api_url: saved.o3mini.api_url,
-              api_key: saved.o3mini.api_key,
-              model: saved.o3mini.model,
-              deep_thinking: saved.o3mini.deep_thinking
-            },
-            ui: {
-              chatFontSize: parseInt(saved.ui.chatFontSize),
-              chatBubbleWidth: parseInt(saved.ui.chatBubbleWidth)
+        // API 配置
+        let apiConfigs = {
+            'default': { // 默认配置
+                name: '默认配置',
+                model: '',
+                apiKey: '',  // 示例 API Key，请替换
+                apiUrl: '',
+                maxTokens: 100000,
+                contextLength: 30,
+                temperature: 0,
+                stream: false,
             }
-          };
-          // 更新 CSS 变量（调整界面字体和消息宽度）
-          document.documentElement.style.setProperty('--chat-font-size', saved.ui.chatFontSize + 'px');
-          document.documentElement.style.setProperty('--chat-bubble-max-width', saved.ui.chatBubbleWidth + '%');
-          logMessage("已加载保存的设置");
-        } catch(e) {
-          console.error("加载设置错误", e);
-        }
-      }
-    }
+        };
+          let currentConfigName = 'default'; // 跟踪当前配置
 
-    // 通用 Markdown 预处理函数（保留代码块与数学公式内部换行）
-    function processMarkdown(content) {
-      return content.replace(/(```[\s\S]*?```|\$[\s\S]*?\$|\\\[[\s\S]*?\\\])/g, match => match.replace(/\n/g, '\n'));
-    }
-
-    // 渲染所有对话消息
-    function renderMessages() {
-      const chatContainer = document.getElementById("chat");
-      chatContainer.innerHTML = "";
-      conversation.forEach(msg => {
-        const msgDiv = document.createElement("div");
-        msgDiv.className = "chat-message " + msg.role;
-        const contentDiv = document.createElement("div");
-        contentDiv.className = "message-content";
-        contentDiv.innerHTML = marked.parse(processMarkdown(msg.content));
-        msgDiv.appendChild(contentDiv);
-
-        // 添加复制按钮（使用 SVG 图标）
-        const copyBtn = document.createElement("button");
-        copyBtn.className = "copy-btn";
-        copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13 1H5a2 2 0 0 0-2 2v1H1.5A1.5 1.5 0 0 0 0 5.5v9A1.5 1.5 0 0 0 1.5 16h8A1.5 1.5 0 0 0 11 14.5V13h2a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2zM3 3a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1H3V3zm9 10.5a.5.5 0 0 1-.5.5H1.5a.5.5 0 0 1-.5-.5v-9A.5.5 0 0 1 1.5 4H12.5a.5.5 0 0 1 .5.5v9z"/></svg>';
-        copyBtn.onclick = () => copyText(msg.content);
-        msgDiv.appendChild(copyBtn);
-        chatContainer.appendChild(msgDiv);
-      });
-
-      // 为代码块添加高亮和复制按钮
-      document.querySelectorAll("pre code").forEach(block => {
-        hljs.highlightElement(block);
-        if (!block.parentElement.querySelector(".copy-code-btn")) {
-          const copyCodeBtn = document.createElement("button");
-          copyCodeBtn.className = "copy-code-btn";
-          copyCodeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13 1H5a2 2 0 0 0-2 2v1H1.5A1.5 1.5 0 0 0 0 5.5v9A1.5 1.5 0 0 0 1.5 16h8A1.5 1.5 0 0 0 11 14.5V13h2a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2zM3 3a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1H3V3zm9 10.5a.5.5 0 0 1-.5.5H1.5a.5.5 0 0 1-.5-.5v-9A.5.5 0 0 1 1.5 4H12.5a.5.5 0 0 1 .5.5v9z"/></svg>';
-          copyCodeBtn.onclick = (e) => { copyText(block.innerText); e.stopPropagation(); };
-          block.parentElement.style.position = "relative";
-          block.parentElement.appendChild(copyCodeBtn);
-        }
-      });
-
-      // 使用 KaTeX 自动渲染数学公式
-      if (window.renderMathInElement) {
-        renderMathInElement(chatContainer, {
-          delimiters: [
-            {left: "$$", right: "$$", display: true},
-            {left: "$", right: "$", display: false}
-          ],
-          throwOnError: false
-        });
-      }
-      // 保证滚动到底部
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-
-    // 将文本复制到剪贴板
-    function copyText(text) {
-      navigator.clipboard.writeText(text);
-    }
-
-    // 日志信息记录
-    function logMessage(msg) {
-      const logContainer = document.getElementById("log");
-      const entry = document.createElement("div");
-      entry.textContent = msg;
-      logContainer.appendChild(entry);
-      logContainer.scrollTop = logContainer.scrollHeight;
-    }
-
-    /**
-     * 通用 API 请求函数（支持流式回复，最多重试3次）
-     */
-    async function callAPI(api_url, api_key, payload, streamHandler) {
-      logMessage("请求参数：" + JSON.stringify(payload));
-      const maxRetries = 3;
-      let attempt = 0;
-      while (attempt < maxRetries) {
-        try {
-          const response = await fetch(api_url, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + api_key
-            },
-            body: JSON.stringify(payload)
-          });
-          if (!response.ok) {
-            const errText = await response.text();
-            logMessage(`错误响应 (attempt ${attempt + 1}/${maxRetries})：` + errText);
-            attempt++;
-            if (attempt < maxRetries) {
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              continue;
-            } else {
-              streamHandler({ error: errText }, true);
-              return;
+        // 加载保存的设置
+        function loadSettings() {
+            const savedConfigs = localStorage.getItem('aiChatApiConfigs');
+            if (savedConfigs) {
+                apiConfigs = JSON.parse(savedConfigs);
             }
-          }
-          if (settings.stream) {
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder("utf-8");
-            let doneReading = false;
-            let buffer = "";
-            while (!doneReading) {
-              const { value, done } = await reader.read();
-              doneReading = done;
-              if (value) {
-                buffer += decoder.decode(value, { stream: true });
-                let lines = buffer.split("\n");
-                buffer = lines.pop();
-                for (let line of lines) {
-                  if (line.startsWith("data: ")) {
-                    const dataStr = line.slice(6);
-                    if (dataStr.trim() === "[DONE]") {
-                      streamHandler(null, true);
-                      setTimeout(() => renderMessages(), 50);
-                      return;
-                    }
-                    try {
-                      const data = JSON.parse(dataStr);
-                      streamHandler(data, false);
-                      logMessage("响应chunk：" + JSON.stringify(data));
-                    } catch (e) {
-                      console.error("解析chunk错误", e);
-                    }
-                  }
+             const savedConfigName = localStorage.getItem('aiChatCurrentConfig');
+            if (savedConfigName) {
+                currentConfigName = savedConfigName;
+            }
+            // 加载字体设置
+            const savedFontFamily = localStorage.getItem('aiChatFontFamily');
+            if (savedFontFamily) {
+                document.body.style.fontFamily = savedFontFamily;
+                fontFamilySelect.value = savedFontFamily;
+            }
+
+            const savedFontSize = localStorage.getItem('aiChatFontSize');
+            if (savedFontSize) {
+                document.body.style.fontSize = savedFontSize + 'px';
+                fontSizeInput.value = savedFontSize;
+            }
+             const savedLogFontSize = localStorage.getItem('aiChatLogFontSize');
+            if (savedLogFontSize) {
+                logContent.style.fontSize = savedLogFontSize + 'px';
+                logFontSizeInput.value = savedLogFontSize;
+            }
+
+            renderApiConfigCards(); // 渲染配置卡片
+            updateApiConfigSelect(); // 更新配置选择下拉框
+            selectCurrentConfig();   //选择当前配置
+        }
+        // 保存设置
+        function saveSettings() {
+            localStorage.setItem('aiChatApiConfigs', JSON.stringify(apiConfigs));
+            localStorage.setItem('aiChatCurrentConfig', currentConfigName); // 保存当前配置名
+             // 保存字体设置
+            localStorage.setItem('aiChatFontFamily', fontFamilySelect.value);
+            localStorage.setItem('aiChatFontSize', fontSizeInput.value);
+            localStorage.setItem('aiChatLogFontSize', logFontSizeInput.value);
+            alert('设置已保存！');
+        }
+        // 切换设置面板
+        function toggleSettingsPanel() {
+            settingsPanel.style.display = settingsPanel.style.display === 'block' ? 'none' : 'block';
+            overlay.style.display = overlay.style.display === 'block' ? 'none' : 'block';
+        }
+        // 关闭日志面板
+        function closeLogPanel() {
+            logPanel.style.display = 'none';
+        }
+        // 清除上下文
+        function clearContext() {
+            contextMessages = [];
+            chatBox.innerHTML = ''; // 清空聊天框
+            logMessage('上下文已清除', 'info');
+        }
+        // 复制消息
+        function copyMessage(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                logMessage('已复制', 'info');
+            }).catch(err => {
+                logMessage('复制失败: ' + err, 'error');
+            });
+        }
+         // 复制到剪贴板的函数
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                logMessage('代码已复制', 'info');
+            }).catch(function(err) {
+                logMessage('复制失败: ' + err, 'error');
+            });
+        }
+        // 添加消息到聊天框 (Markdown 渲染, 复制按钮)
+        function appendMessage(message, sender) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', `${sender}-message`);
+
+            // 创建复制按钮
+            const copyButton = document.createElement('button');
+            copyButton.classList.add('copy-btn');
+            copyButton.innerHTML = '<i class="fas fa-copy"></i>'; // 使用 Font Awesome 复制图标
+            copyButton.title = "复制";
+            copyButton.addEventListener('click', (event) => {
+                event.stopPropagation(); // 防止事件冒泡
+                copyMessage(message);
+            });
+            messageElement.appendChild(copyButton);
+
+            const html = marked.parse(message);
+            messageElement.innerHTML += html; // 注意这里用 +=
+            chatBox.appendChild(messageElement);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // 在添加完消息后，处理代码块
+            const codeBlocks = messageElement.querySelectorAll('pre code');
+              codeBlocks.forEach((block) => {
+                hljs.highlightBlock(block);
+
+                // 创建代码块复制按钮
+                const codeCopyBtn = document.createElement('button');
+                codeCopyBtn.classList.add('code-copy-btn');
+                codeCopyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                codeCopyBtn.title = "复制代码";
+                codeCopyBtn.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    copyToClipboard(block.textContent);
+                });
+                block.parentNode.appendChild(codeCopyBtn); // 将按钮添加到 pre 元素中
+              });
+            renderMathInElement(messageElement, {
+                delimiters: [
+                    { left: '$$', right: '$$', display: true },
+                    { left: '$', right: '$', display: false },
+                    { left: '\\(', right: '\\)', display: false },
+                    { left: '\\[', right: '\\]', display: true }
+                ],
+                throwOnError: false
+            });
+        }
+// 发送消息 (处理流式回复)
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            appendMessage(message, 'user');
+            messageInput.value = '';
+
+            contextMessages.push({ role: 'user', content: message });
+            if (contextMessages.length > apiConfigs[currentConfigName].contextLength) {
+                contextMessages.shift();
+            }
+
+            try {
+                const requestData = {
+                    model: apiConfigs[currentConfigName].model,
+                    messages: contextMessages,
+                    max_tokens: apiConfigs[currentConfigName].maxTokens,
+                    temperature: apiConfigs[currentConfigName].temperature,
+                    stream: apiConfigs[currentConfigName].stream,
+                };
+
+                logMessage("发送请求：" + JSON.stringify(requestData, null, 2));
+
+                const response = await fetch(apiConfigs[currentConfigName].apiUrl + '/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiConfigs[currentConfigName].apiKey}`
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API Error: ${errorData.error.message}`);
                 }
-              }
+
+                if (apiConfigs[currentConfigName].stream) {
+                    handleStreamResponse(response);
+                } else {
+                    const responseData = await response.json();
+                    logMessage("收到响应" + JSON.stringify(responseData, null, 2));
+                    const aiReply = responseData.choices[0].message.content;
+                    contextMessages.push({ role: 'assistant', content: aiReply });
+                    appendMessage(aiReply, 'ai');
+                }
+            } catch (error) {
+                appendMessage(`Error: ${error.message}`, 'ai');
+                logMessage(`Error: ${error.message}`, 'error');
             }
-            if (buffer.trim()) {
-              try {
-                const data = JSON.parse(buffer.trim());
-                streamHandler(data, false);
-              } catch (e) { }
-            }
-          } else {
-            const data = await response.json();
-            streamHandler(data, false);
-            streamHandler(null, true);
-            setTimeout(() => renderMessages(), 50);
-          }
-          return;
-        } catch (e) {
-          logMessage(`请求异常 (attempt ${attempt + 1}/${maxRetries})：` + e);
-          attempt++;
-          if (attempt < maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            continue;
-          } else {
-            streamHandler({ error: e.toString() }, true);
-            return;
-          }
         }
-      }
-    }
 
-    // 处理用户发送的消息
-    async function processUserMessage() {
-      const inputField = document.getElementById("input");
-      const userText = inputField.value.trim();
-      if (!userText) return;
-      conversation.push({ role: "user", content: userText });
-      inputField.value = "";
-      renderMessages();
+        // 处理流式响应 (与之前相同)
+        async function handleStreamResponse(response) {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let aiMessageElement = null; // 用于存储当前 AI 消息的 DOM 元素
+            let buffer = ''; //累加content
 
-      if (settings.mode === "qwq_gemini") {
-        let chainThought = "";
-        // 若开启显示思考过程则添加一条辅助消息
-        if (settings.showThinking) {
-          conversation.push({ role: "assistant", content: "【思考中……】" });
-          renderMessages();
-        }
-        const payload_qwq = {
-          model: settings.qwq.model,
-          messages: [
-            { role: "system", content: "你是一个推理分析专家. 请仔细思考，只需要告诉我多种可能的不同的思路，思路要非常详细，以避免任何问题，不需要得出答案，只需要给出详细的思路，不要放过任何细节。" },
-            { role: "user", content: userText }
-          ],
-          max_tokens: settings.max_tokens,
-          temperature: settings.temperature,
-          stream: settings.stream
-        };
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) {
+                        break; // 流结束
+                    }
 
-        await new Promise((resolve) => {
-          callAPI(settings.qwq.api_url, settings.qwq.api_key, payload_qwq, (data, done) => {
-            if (done) {
-              if (settings.showThinking) {
-                // 最后将内容更新为纯思考链
-                conversation[conversation.length - 1].content = chainThought;
-                renderMessages();
-              }
-              resolve();
-            } else if (data) {
-              const delta = data.choices[0].delta;
-              // 这里只获取思考链（只取 reasoning_content，忽略 content 字段）
-              const newChunk = delta.reasoning_content || "";
-              chainThought += newChunk;
-              if (settings.showThinking) {
-                conversation[conversation.length - 1].content = chainThought;
-                renderMessages();
-              }
+                    // 将 Uint8Array 转换为字符串
+                    const chunk = decoder.decode(value);
+                    // console.log(chunk);
+
+                    // 解析流式数据 (假设是 OpenAI 格式)
+                    const lines = chunk.split('\n').filter(line => line.trim() !== '');
+                    for (const line of lines) {
+                        if (line.startsWith('data:')) {
+                            const data = line.substring(5).trim();
+                            if (data === '[DONE]') {
+                                // console.log("Stream ended");
+                                contextMessages.push({ role: 'assistant', content: buffer });
+                                return; // 流结束
+                            }
+
+                            try {
+                                const parsed = JSON.parse(data);
+                                // console.log(parsed);
+                                // 检查是否有 content
+                                if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content) {
+                                    const content = parsed.choices[0].delta.content;
+                                    buffer += content;
+                                    // 如果是第一次接收到内容，创建新的消息元素
+                                    if (!aiMessageElement) {
+                                        aiMessageElement = document.createElement('div');
+                                        aiMessageElement.classList.add('message', 'ai-message');
+                                         // 创建复制按钮
+                                        const copyButton = document.createElement('button');
+                                        copyButton.classList.add('copy-btn');
+                                        copyButton.innerHTML = '<i class="fas fa-copy"></i>'; // 使用 Font Awesome 复制图标
+                                        copyButton.title = "复制";
+                                        copyButton.addEventListener('click', (event) => {
+                                          event.stopPropagation(); // 防止事件冒泡
+                                          copyMessage(buffer);
+                                        });
+                                        aiMessageElement.appendChild(copyButton);
+                                        chatBox.appendChild(aiMessageElement);
+                                    }
+                                     // 更新消息内容,并实时渲染 Markdown
+                                    aiMessageElement.innerHTML = marked.parse(buffer);
+
+                                    // 实时处理代码块
+                                    const codeBlocks = aiMessageElement.querySelectorAll('pre code');
+                                    codeBlocks.forEach((block) => {
+                                        hljs.highlightBlock(block);
+
+                                        // 检查是否已有复制按钮
+                                        let codeCopyBtn = block.parentNode.querySelector('.code-copy-btn');
+                                        if (!codeCopyBtn) {
+                                            // 创建代码块复制按钮
+                                            codeCopyBtn = document.createElement('button');
+                                            codeCopyBtn.classList.add('code-copy-btn');
+                                            codeCopyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                                            codeCopyBtn.title = "复制代码";
+                                            codeCopyBtn.addEventListener('click', (event) => {
+                                                event.stopPropagation();
+                                                copyToClipboard(block.textContent);
+                                            });
+                                            block.parentNode.appendChild(codeCopyBtn);
+                                        }
+                                    });
+
+                                    renderMathInElement(aiMessageElement, {  //渲染数学公式
+                                        delimiters: [
+                                            { left: '$$', right: '$$', display: true },
+                                            { left: '$', right: '$', display: false },
+                                            { left: '\\(', right: '\\)', display: false },
+                                            { left: '\\[', right: '\\]', display: true }
+                                        ],
+                                        throwOnError: false
+                                    });
+                                    chatBox.scrollTop = chatBox.scrollHeight; // 滚动
+                                }
+                            } catch (error) {
+                                console.error('Error parsing stream data:', error);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error reading stream:', error);
+                if (aiMessageElement) {
+                    aiMessageElement.innerHTML += `<br><b>Error: ${error.message}</b>`;
+                }
+            } finally {
+                reader.releaseLock(); // 释放 reader
             }
-          });
+        }
+
+        // 记录日志
+        function logMessage(message, type = 'log') {
+            const now = new Date();
+            const time = now.toLocaleTimeString();
+            logContent.innerHTML += `<span style="${type === 'error' ? 'color: red;' : ''}">${time} - ${type}: ${message}</span><br>`;
+            logPanel.scrollTop = logPanel.scrollHeight;
+        }
+
+        // 切换日志面板
+        function toggleLogPanel() {
+            logPanel.classList.toggle('show');
+        }
+
+        // 清除日志内容
+        function clearLogContent() {
+            logContent.innerHTML = '';
+        }
+
+        // 渲染 API 配置卡片
+        function renderApiConfigCards() {
+            apiConfigsContainer.innerHTML = ''; // 清空
+            for (const key in apiConfigs) {
+                const config = apiConfigs[key];
+                const card = document.createElement('div');
+                card.classList.add('api-config-card');
+                card.innerHTML = `
+                    <h3>${config.name}</h3>
+                    <label>模型: <input type="text" data-key="${key}" data-field="model" value="${config.model}"></label>
+                    <label>API Key: <input type="password" data-key="${key}" data-field="apiKey" value="${config.apiKey}"></label>
+                    <label>API 地址: <input type="text" data-key="${key}" data-field="apiUrl" value="${config.apiUrl}"></label>
+                    <label>最大 Tokens: <input type="number" data-key="${key}" data-field="maxTokens" value="${config.maxTokens}"></label>
+                    <label>上下文长度: <input type="number" data-key="${key}" data-field="contextLength" value="${config.contextLength}"></label>
+                    <label>温度: <input type="number" step="0.1" data-key="${key}" data-field="temperature" value="${config.temperature}"></label>
+                     <label>流式回复: <input type="checkbox" data-key="${key}" data-field="stream" ${config.stream ? 'checked' : ''}></label>
+                    <button data-key="${key}" class="delete-config-btn">删除</button>
+                `;
+                apiConfigsContainer.appendChild(card);
+
+                // 输入框事件监听 (实时更新)
+                card.querySelectorAll('input').forEach(input => {
+                    input.addEventListener('input', (event) => {
+                        const key = event.target.dataset.key;
+                        const field = event.target.dataset.field;
+                        if (field === 'stream') {
+                            apiConfigs[key][field] = event.target.checked;
+                        }
+                        else if (field === 'maxTokens' || field === 'contextLength') {
+                            apiConfigs[key][field] = parseInt(event.target.value, 10);
+                        } else if (field === 'temperature') {
+                            apiConfigs[key][field] = parseFloat(event.target.value);
+                        } else {
+                            apiConfigs[key][field] = event.target.value;
+                        }
+                         updateApiConfigSelect();
+                         selectCurrentConfig();
+                    });
+                });
+                // 删除按钮事件监听
+                card.querySelector('.delete-config-btn').addEventListener('click', (event) => {
+                    const key = event.target.dataset.key;
+                    if (confirm(`确定删除配置 "${apiConfigs[key].name}"?`)) {
+                        delete apiConfigs[key];
+                         if (currentConfigName === key) {
+                            currentConfigName = 'default'; // 如果删除的是当前配置，切换到默认
+                        }
+                        renderApiConfigCards();
+                        updateApiConfigSelect();
+                        selectCurrentConfig();
+                    }
+                });
+            }
+        }
+
+        // 添加新配置
+        function addNewApiConfig() {
+            const name = prompt("请输入新配置的名称:");
+            if (name) {
+                const key = name.toLowerCase().replace(/\s+/g, '-'); // 简单生成 key
+                apiConfigs[key] = {
+                    ...apiConfigs['default'], // 复制默认配置
+                    name: name,
+                    model: '', // 可以设置默认值
+                    apiKey: '',
+                    apiUrl: '',
+                };
+                currentConfigName = key; // 切换到新配置
+                renderApiConfigCards();
+                updateApiConfigSelect();
+                selectCurrentConfig();
+            }
+        }
+         // 更新 API 配置选择下拉框
+        function updateApiConfigSelect() {
+            apiConfigSelect.innerHTML = ''; // 清空
+            for (const key in apiConfigs) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = apiConfigs[key].name;
+                apiConfigSelect.appendChild(option);
+            }
+        }
+        // 选择当前配置
+        function selectCurrentConfig() {
+            apiConfigSelect.value = currentConfigName;
+        }
+        // 事件监听器
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
         });
 
-        // 调用 Gemini 模型，将 QwQ 的思维链传递给 Gemini 模型
-        const geminiSystemMsg = "以下是之前模型的思维链，思维链中的分析和思路请作为参考，推理分析专家是上个模型的角色设定，与你无关：" + chainThought;
-        const payload_gemini = {
-          model: settings.gemini.model,
-          messages: [
-            { role: "system", content: geminiSystemMsg },
-            { role: "user", content: userText }
-          ],
-          max_tokens: settings.max_tokens,
-          temperature: settings.temperature,
-          stream: settings.stream
-        };
-        conversation.push({ role: "assistant", content: "【Gemini 模型正在生成答案……】" });
-        renderMessages();
-        await new Promise((resolve) => {
-          callAPI(settings.gemini.api_url, settings.gemini.api_key, payload_gemini, (data, done) => {
-            const lastIndex = conversation.length - 1;
-            if (done) {
-              setTimeout(() => renderMessages(), 50);
-              resolve();
-            } else if (data) {
-              const delta = data.choices[0].delta;
-              let textChunk = delta.content || "";
-              if (conversation[lastIndex].content === "【Gemini 模型正在生成答案……】") {
-                conversation[lastIndex].content = "";
-              }
-              conversation[lastIndex].content += textChunk;
-              renderMessages();
-            }
-          });
+        settingsButton.addEventListener('click', toggleSettingsPanel);
+        clearContextButton.addEventListener('click', clearContext);
+        saveSettingsButton.addEventListener('click', saveSettings);
+        toggleLogButton.addEventListener('click', toggleLogPanel); // 切换日志面板
+        clearLogButton.addEventListener('click', clearLogContent); // 清除日志内容
+
+        addApiConfigButton.addEventListener('click', addNewApiConfig);
+        apiConfigSelect.addEventListener('change', (event) => {
+            currentConfigName = event.target.value;
+            // 可以根据需要在这里更新 UI 或做其他操作
         });
-      } else if (settings.mode === "o3mini") {
-        const payload_o3 = {
-          model: settings.o3mini.model,
-          messages: [
-            { role: "system", content: "You are a helpful assistant." },
-            { role: "user", content: userText }
-          ],
-          max_tokens: settings.max_tokens,
-          temperature: settings.temperature,
-          stream: settings.stream
-        };
-        if (settings.o3mini.deep_thinking) {
-          payload_o3.deep_thinking = true;
-        }
-        conversation.push({ role: "assistant", content: "【o3mini 正在生成答案……】" });
-        renderMessages();
-        await new Promise((resolve) => {
-          callAPI(settings.o3mini.api_url, settings.o3mini.api_key, payload_o3, (data, done) => {
-            const lastIndex = conversation.length - 1;
-            if (done) {
-              setTimeout(() => renderMessages(), 50);
-              resolve();
-            } else if (data) {
-              const delta = data.choices[0].delta;
-              let textChunk = delta.content || "";
-              if (conversation[lastIndex].content === "【o3mini 正在生成答案……】") {
-                conversation[lastIndex].content = "";
-              }
-              conversation[lastIndex].content += textChunk;
-              renderMessages();
-            }
-          });
+          // 字体更改事件
+        fontFamilySelect.addEventListener('change', () => {
+            document.body.style.fontFamily = fontFamilySelect.value;
         });
-      }
-    }
 
-    // 重置设置面板为默认值，并同步到 localStorage
-    function resetSettingsToDefault() {
-      document.getElementById("modeSelect").value = defaultSettings.mode;
-      document.getElementById("maxTokens").value = defaultSettings.max_tokens;
-      document.getElementById("contextMemory").value = defaultSettings.context_memory;
-      document.getElementById("temperature").value = defaultSettings.temperature;
-      document.getElementById("streamCheckbox").checked = defaultSettings.stream;
-      document.getElementById("showThinkingCheckbox").checked = defaultSettings.showThinking;
+        fontSizeInput.addEventListener('change', () => {
+            document.body.style.fontSize = fontSizeInput.value + 'px';
+        });
+        logFontSizeInput.addEventListener('change', () => {
+            logContent.style.fontSize = logFontSizeInput.value + 'px';
+        });
 
-      document.getElementById("qwqAPIUrl").value = defaultSettings.qwq.api_url;
-      document.getElementById("qwqApiKey").value = defaultSettings.qwq.api_key;
-      document.getElementById("qwqModel").value = defaultSettings.qwq.model;
-
-      document.getElementById("geminiAPIUrl").value = defaultSettings.gemini.api_url;
-      document.getElementById("geminiApiKey").value = defaultSettings.gemini.api_key;
-      document.getElementById("geminiModel").value = defaultSettings.gemini.model;
-
-      document.getElementById("o3APIUrl").value = defaultSettings.o3mini.api_url;
-      document.getElementById("o3ApiKey").value = defaultSettings.o3mini.api_key;
-      document.getElementById("o3Model").value = defaultSettings.o3mini.model;
-      document.getElementById("deepThinkingCheckbox").checked = defaultSettings.o3mini.deep_thinking;
-
-      document.getElementById("chatFontSize").value = defaultSettings.ui.chatFontSize;
-      document.getElementById("chatBubbleWidth").value = defaultSettings.ui.chatBubbleWidth;
-
-      // 更新当前设置变量（下一次发送消息时会重新从DOM中读取设置）
-      settings = {
-        mode: document.getElementById("modeSelect").value,
-        max_tokens: parseInt(document.getElementById("maxTokens").value),
-        context_memory: parseInt(document.getElementById("contextMemory").value),
-        temperature: parseFloat(document.getElementById("temperature").value),
-        stream: document.getElementById("streamCheckbox").checked,
-        showThinking: document.getElementById("showThinkingCheckbox").checked,
-        qwq: {
-          api_url: document.getElementById("qwqAPIUrl").value,
-          api_key: document.getElementById("qwqApiKey").value,
-          model: document.getElementById("qwqModel").value
-        },
-        gemini: {
-          api_url: document.getElementById("geminiAPIUrl").value,
-          api_key: document.getElementById("geminiApiKey").value,
-          model: document.getElementById("geminiModel").value
-        },
-        o3mini: {
-          api_url: document.getElementById("o3APIUrl").value,
-          api_key: document.getElementById("o3ApiKey").value,
-          model: document.getElementById("o3Model").value,
-          deep_thinking: document.getElementById("deepThinkingCheckbox").checked
-        },
-        ui: {
-          chatFontSize: parseInt(document.getElementById("chatFontSize").value),
-          chatBubbleWidth: parseInt(document.getElementById("chatBubbleWidth").value)
-        }
-      };
-      document.documentElement.style.setProperty('--chat-font-size', defaultSettings.ui.chatFontSize + 'px');
-      document.documentElement.style.setProperty('--chat-bubble-max-width', defaultSettings.ui.chatBubbleWidth + '%');
-      // 同步到 localStorage
-      localStorage.setItem("chatSettings", JSON.stringify(defaultSettings));
-      logMessage("已重置设置为默认值");
-    }
-
-    document.addEventListener("DOMContentLoaded", function () {
-      // 优先加载保存的设置
-      loadStoredSettings();
-
-      document.getElementById("sendBtn").addEventListener("click", processUserMessage);
-      document.getElementById("clearBtn").addEventListener("click", function() {
-        conversation = [];
-        document.getElementById("log").innerHTML = "";
-        renderMessages();
-      });
-      document.getElementById("settingsBtn").addEventListener("click", function () {
-        document.getElementById("settingsPanel").style.display = "block";
-      });
-      document.getElementById("closeSettings").addEventListener("click", function () {
-        document.getElementById("settingsPanel").style.display = "none";
-      });
-      document.getElementById("saveSettings").addEventListener("click", function () {
-        // 从界面中读取最新设置并更新到全局变量
-        settings.mode = document.getElementById("modeSelect").value;
-        settings.max_tokens = parseInt(document.getElementById("maxTokens").value);
-        settings.context_memory = parseInt(document.getElementById("contextMemory").value);
-        settings.temperature = parseFloat(document.getElementById("temperature").value);
-        settings.stream = document.getElementById("streamCheckbox").checked;
-        settings.showThinking = document.getElementById("showThinkingCheckbox").checked;
-        settings.o3mini.deep_thinking = document.getElementById("deepThinkingCheckbox").checked;
-
-        settings.qwq.api_url = document.getElementById("qwqAPIUrl").value;
-        settings.qwq.api_key = document.getElementById("qwqApiKey").value;
-        settings.qwq.model = document.getElementById("qwqModel").value;
-
-        settings.gemini.api_url = document.getElementById("geminiAPIUrl").value;
-        settings.gemini.api_key = document.getElementById("geminiApiKey").value;
-        settings.gemini.model = document.getElementById("geminiModel").value;
-
-        settings.o3mini.api_url = document.getElementById("o3APIUrl").value;
-        settings.o3mini.api_key = document.getElementById("o3ApiKey").value;
-        settings.o3mini.model = document.getElementById("o3Model").value;
-
-        settings.ui.chatFontSize = parseInt(document.getElementById("chatFontSize").value);
-        settings.ui.chatBubbleWidth = parseInt(document.getElementById("chatBubbleWidth").value);
-        document.documentElement.style.setProperty('--chat-font-size', settings.ui.chatFontSize + 'px');
-        document.documentElement.style.setProperty('--chat-bubble-max-width', settings.ui.chatBubbleWidth + '%');
-
-        document.getElementById("settingsPanel").style.display = "none";
-        // 保存当前设置到 localStorage
-        localStorage.setItem("chatSettings", JSON.stringify(settings));
-        logMessage("设置已保存");
-      });
-
-      // 重置设置按钮事件
-      document.getElementById("resetSettings").addEventListener("click", function() {
-        resetSettingsToDefault();
-      });
-
-      const toggleLogBtn = document.getElementById("toggleLogBtn");
-      toggleLogBtn.addEventListener("click", function() {
-        const logElement = document.getElementById("log");
-        if (logElement.style.display === "none" || logElement.style.display === "") {
-          logElement.style.display = "block";
-          toggleLogBtn.textContent = "隐藏日志";
-        } else {
-          logElement.style.display = "none";
-          toggleLogBtn.textContent = "日志";
-        }
-      });
-    });
-  </script>
+        // 初始化
+        loadSettings();
+    </script>
 </body>
+
 </html>
