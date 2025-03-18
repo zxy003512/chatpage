@@ -696,10 +696,12 @@
       appendMessage(message, 'user');
       messageInput.value = '';
       try {
+        // **[修改点 1]** 保存原始用户消息
+        const originalUserMessage = message;
         // 调用思考模型，获取思维链
         const thinkingChain = await callThinkingModel(message);
-        // 构造传递给回答模型的提示（只传递思考模型的思维链）
-        const answerPrompt = "基于以下思维链，请给出最终答案：\n" + thinkingChain;
+        // **[修改点 2]** 构造传递给回答模型的提示，包含原始用户消息和思维链
+        const answerPrompt = `用户的原始问题是：\n\`\`\`\n${originalUserMessage}\`\`\`\n\n基于以下思维链，请给出**针对原始问题的最终回答**：\n${thinkingChain}`;
         await callAnswerModelChain(answerPrompt);
       } catch (e) {
         console.error("Error in combined mode:", e);
@@ -788,7 +790,8 @@
       const requestData = {
         model: apiConfigs[currentConfigName].model,
         messages: [
-          { role: 'system', content: "你现在是一个回答助手，请基于下方的思维链和用户给出的任务，给出最终回答，而不是思路：" },
+          // **[修改点 3]** 修改 system message 和 user message，明确指示回答模型基于思维链回答原始问题
+          { role: 'system', content: "你现在是一个回答助手，请仔细阅读用户提出的原始问题和思考模型给出的思维链，并基于思维链给出**针对原始问题的最终回答**。" },
           { role: 'user', content: prompt }
         ],
         max_tokens: apiConfigs[currentConfigName].maxTokens,
