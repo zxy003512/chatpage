@@ -11,8 +11,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
       onload="renderMathInElement(document.body);"></script>
   <!-- highlight.js CSS (Atom One Dark theme) -->
-  <link rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
   <!-- highlight.js JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <!-- Marked.js -->
@@ -274,9 +273,17 @@
     <div id="input-area">
       <textarea id="message-input" placeholder="输入消息..."></textarea>
       <button id="send-btn">发送</button>
-      <!-- 新增：启用“思考组合”功能复选框 -->
+      <!-- 启用“思考组合”复选框 -->
       <label for="enable-combined" style="margin-left:10px; color:#333; font-size:14px;">
         <input type="checkbox" id="enable-combined"> 启用思考组合
+      </label>
+      <!-- 新增：思考模型选择下拉框 -->
+      <label for="thinking-model-select" style="margin-left:10px; color:#333; font-size:14px;">
+        思考模型：
+        <select id="thinking-model-select">
+          <option value="qwq">Qwen/QwQ-32B</option>
+          <option value="deepseek">deepseek-ai/DeepSeek-R1</option>
+        </select>
       </label>
       <!-- 图标按钮 -->
       <button id="settings-btn" class="icon-btn" title="设置"><i class="fas fa-cog"></i></button>
@@ -346,6 +353,36 @@
     const fontFamilySelect = document.getElementById('font-family');
     const fontSizeInput = document.getElementById('font-size');
 
+    // 辅助函数：sleep 与重试 fetch
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function fetchWithRetry(url, options, maxRetries = 3, delayMs = 1000) {
+      let attempt = 0;
+      while (attempt < maxRetries) {
+        try {
+          const response = await fetch(url, options);
+          if (!response.ok) {
+            let errorMessage = "";
+            try {
+              const errorData = await response.clone().json();
+              errorMessage = errorData.error.message;
+            } catch (e) {
+              errorMessage = await response.clone().text();
+            }
+            throw new Error(errorMessage);
+          }
+          return response;
+        } catch (error) {
+          attempt++;
+          console.error(`Fetch attempt ${attempt} failed: ${error.message}`);
+          if (attempt >= maxRetries) throw error;
+          await sleep(delayMs);
+        }
+      }
+    }
+
     // 存储上下文消息（回答模型相关）
     let contextMessages = [];
 
@@ -365,15 +402,26 @@
     let currentConfigName = 'default'; // 跟踪当前配置
 
     //////////////////////////////////////////////////////////
-    // 新增：思考模型的配置（固定，不由用户修改）
-    const thinkingModelConfig = {
-      model: 'Qwen/QwQ-32B',
-      apiKey: 'a121eb23-a813-48a3-8453-3dc11d0e1386',
-      apiUrl: 'https://api-inference.modelscope.cn/v1',
-      stream: true,
-      maxTokens: 2000,
-      temperature: 0,
-      contextLength: 30,
+    // 新增：思考模型的配置，提供选择功能
+    const thinkingModelConfigs = {
+      qwq: {
+        model: 'Qwen/QwQ-32B',
+        apiKey: 'a121eb23-a813-48a3-8453-3dc11d0e1386',
+        apiUrl: 'https://api-inference.modelscope.cn/v1',
+        stream: true,
+        maxTokens: 2000,
+        temperature: 0,
+        contextLength: 30,
+      },
+      deepseek: {
+        model: 'deepseek-ai/DeepSeek-R1',
+        apiKey: 'a121eb23-a813-48a3-8453-3dc11d0e1386',
+        apiUrl: 'https://api-inference.modelscope.cn/v1',
+        stream: true,
+        maxTokens: 2000,
+        temperature: 0,
+        contextLength: 30,
+      }
     };
 
     //////////////////////////////////////////////////////////
@@ -507,7 +555,7 @@
           stream: apiConfigs[currentConfigName].stream,
         };
         logMessage("发送请求：" + JSON.stringify(requestData, null, 2));
-        const response = await fetch(apiConfigs[currentConfigName].apiUrl + '/chat/completions', {
+        const response = await fetchWithRetry(apiConfigs[currentConfigName].apiUrl + '/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -515,16 +563,6 @@
           },
           body: JSON.stringify(requestData)
         });
-        if (!response.ok) {
-          let errorMessage = "";
-          try {
-            const errorData = await response.clone().json();
-            errorMessage = errorData.error.message;
-          } catch(err) {
-            errorMessage = await response.clone().text();
-          }
-          throw new Error(`API Error: ${errorMessage}`);
-        }
         if (apiConfigs[currentConfigName].stream) {
           handleStreamResponse(response);
         } else {
@@ -643,34 +681,26 @@
         console.error("Error in combined mode:", e);
       }
     }
-    // 2. 调用思考模型（固定配置，流式返回，提取 delta.reasoning_content 部分）
+    // 2. 调用思考模型（选择配置，流式返回，提取 delta.reasoning_content 部分）
     async function callThinkingModel(message) {
+      const selectedThinking = document.getElementById('thinking-model-select').value;
+      const currentThinkingConfig = thinkingModelConfigs[selectedThinking] || thinkingModelConfigs['qwq'];
       const requestData = {
-        model: thinkingModelConfig.model,
+        model: currentThinkingConfig.model,
         messages: [{ role: 'user', content: message }],
-        max_tokens: thinkingModelConfig.maxTokens,
-        temperature: thinkingModelConfig.temperature,
-        stream: thinkingModelConfig.stream,
+        max_tokens: currentThinkingConfig.maxTokens,
+        temperature: currentThinkingConfig.temperature,
+        stream: currentThinkingConfig.stream,
       };
       try {
-        const response = await fetch(thinkingModelConfig.apiUrl + '/chat/completions', {
+        const response = await fetchWithRetry(currentThinkingConfig.apiUrl + '/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${thinkingModelConfig.apiKey}`
+            'Authorization': `Bearer ${currentThinkingConfig.apiKey}`
           },
           body: JSON.stringify(requestData)
         });
-        if (!response.ok) {
-          let errorMessage = "";
-          try {
-            const errorData = await response.clone().json();
-            errorMessage = errorData.error.message;
-          } catch(err) {
-            errorMessage = await response.clone().text();
-          }
-          throw new Error(`Thinking API Error: ${errorMessage}`);
-        }
         // 创建思考模型输出的消息泡，稍作区分
         const thinkingBubble = document.createElement('div');
         thinkingBubble.classList.add('message', 'ai-message');
@@ -731,7 +761,6 @@
     }
     // 4. 调用回答模型：将构造好的提示（仅包含思维链）发送给回答模型
     async function callAnswerModelChain(prompt) {
-      // 修改部分：构造一个由 system 消息和 user 消息组成的 messages 数组
       const requestData = {
         model: apiConfigs[currentConfigName].model,
         messages: [
@@ -744,7 +773,7 @@
       };
       logMessage("发送回答请求：" + JSON.stringify(requestData, null, 2));
       try {
-        const response = await fetch(apiConfigs[currentConfigName].apiUrl + '/chat/completions', {
+        const response = await fetchWithRetry(apiConfigs[currentConfigName].apiUrl + '/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -752,16 +781,6 @@
           },
           body: JSON.stringify(requestData)
         });
-        if (!response.ok) {
-          let errorMessage = "";
-          try {
-            const errorData = await response.clone().json();
-            errorMessage = errorData.error.message;
-          } catch (err) {
-            errorMessage = await response.clone().text();
-          }
-          throw new Error(`Answer API Error: ${errorMessage}`);
-        }
         const answerBubble = document.createElement('div');
         answerBubble.classList.add('message', 'ai-message');
         const copyButton = document.createElement('button');
