@@ -699,7 +699,7 @@
         // 调用思考模型，获取思维链
         const thinkingChain = await callThinkingModel(message);
         // 构造传递给回答模型的提示（只传递思考模型的思维链）
-        const answerPrompt = "基于以下思维链，请给出最终回答：\n" + thinkingChain;
+        const answerPrompt = "基于以下思维链，请给出最终答案：\n" + thinkingChain;
         await callAnswerModelChain(answerPrompt);
       } catch (e) {
         console.error("Error in combined mode:", e);
@@ -788,7 +788,7 @@
       const requestData = {
         model: apiConfigs[currentConfigName].model,
         messages: [
-          { role: 'system', content: "你现在是一个回答助手，请基于下方的思维链给出最终回答：" },
+          { role: 'system', content: "你现在是一个回答助手，请基于下方的思维链和用户给出的任务，给出最终回答，而不是思路：" },
           { role: 'user', content: prompt }
         ],
         max_tokens: apiConfigs[currentConfigName].maxTokens,
