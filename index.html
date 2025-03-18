@@ -21,7 +21,7 @@
       integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
       crossorigin="anonymous" referrerpolicy="no-referrer" />
   <style>
-    /* 与之前相同的样式 */
+    /* 通用样式 */
     body {
       font-family: 'Open Sans', sans-serif;
       margin: 0;
@@ -117,12 +117,15 @@
     }
     /* 输入区域 */
     #input-area {
-      display: flex;
-      align-items: center;
       padding: 10px;
       border-top: 1px solid #ddd;
     }
-    #input-area textarea {
+    /* 将输入区域拆分为两行 */
+    .input-line {
+      display: flex;
+      align-items: center;
+    }
+    .input-line textarea {
       flex: 1;
       padding: 8px;
       border-radius: 20px;
@@ -130,9 +133,7 @@
       resize: none;
       margin-right: 10px;
     }
-    /* 按钮样式 */
-    #input-area button,
-    .icon-btn {
+    .input-line button {
       padding: 8px 15px;
       border: none;
       border-radius: 20px;
@@ -141,15 +142,35 @@
       cursor: pointer;
       transition: background-color 0.3s ease;
     }
-    #input-area button:hover,
-    .icon-btn:hover {
+    .input-line button:hover {
       background-color: #0056b3;
+    }
+    .control-line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .control-line label,
+    .control-line button,
+    .control-line select {
+      margin-right: 10px;
+      margin-bottom: 5px;
+      font-size: 14px;
+      color: #333;
     }
     /* 图标按钮 */
     .icon-btn {
       padding: 8px 12px;
-      margin-right: 5px;
       background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .icon-btn:hover {
+      background-color: #1e7e34;
     }
     /* 设置面板 */
     #settings-panel {
@@ -271,28 +292,31 @@
       <!-- 聊天消息显示区域 -->
     </div>
     <div id="input-area">
-      <textarea id="message-input" placeholder="输入消息..."></textarea>
-      <button id="send-btn">发送</button>
-      <!-- 启用“思考组合”复选框 -->
-      <label for="enable-combined" style="margin-left:10px; color:#333; font-size:14px;">
-        <input type="checkbox" id="enable-combined"> 启用思考组合
-      </label>
-      <!-- 新增：思考模型选择下拉框 -->
-      <label for="thinking-model-select" style="margin-left:10px; color:#333; font-size:14px;">
-        思考模型：
-        <select id="thinking-model-select">
-          <option value="qwq">Qwen/QwQ-32B</option>
-          <option value="deepseek">deepseek-ai/DeepSeek-R1</option>
+      <!-- 第一行：输入框和发送按钮 -->
+      <div class="input-line">
+        <textarea id="message-input" placeholder="输入消息..."></textarea>
+        <button id="send-btn">发送</button>
+      </div>
+      <!-- 第二行：各项设置和操作按钮 -->
+      <div class="control-line">
+        <label for="enable-combined">
+          <input type="checkbox" id="enable-combined"> 启用思考组合
+        </label>
+        <label for="thinking-model-select">
+          思考模型：
+          <select id="thinking-model-select">
+            <option value="qwq">Qwen/QwQ-32B</option>
+            <option value="deepseek">deepseek-ai/DeepSeek-R1</option>
+          </select>
+        </label>
+        <button id="settings-btn" class="icon-btn" title="设置"><i class="fas fa-cog"></i></button>
+        <button id="clear-context-btn" class="icon-btn" title="清除上下文"><i class="fas fa-broom"></i></button>
+        <button id="toggle-log-btn" class="icon-btn" title="显示/隐藏日志"><i class="fas fa-file-alt"></i></button>
+        <button id="clear-log-btn" class="icon-btn" title="清除日志"><i class="fas fa-trash"></i></button>
+        <select id="api-config-select" title="选择配置">
+          <!-- API 配置选项 -->
         </select>
-      </label>
-      <!-- 图标按钮 -->
-      <button id="settings-btn" class="icon-btn" title="设置"><i class="fas fa-cog"></i></button>
-      <button id="clear-context-btn" class="icon-btn" title="清除上下文"><i class="fas fa-broom"></i></button>
-      <button id="toggle-log-btn" class="icon-btn" title="显示/隐藏日志"><i class="fas fa-file-alt"></i></button>
-      <button id="clear-log-btn" class="icon-btn" title="清除日志"><i class="fas fa-trash"></i></button>
-      <select id="api-config-select" title="选择配置">
-        <!-- API 配置选项 -->
-      </select>
+      </div>
     </div>
     <!-- 设置面板 -->
     <div id="settings-panel">
