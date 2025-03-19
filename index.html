@@ -701,7 +701,7 @@
         // 调用思考模型，获取思维链
         const thinkingChain = await callThinkingModel(message);
         // **[修改点 2]** 构造传递给回答模型的提示，包含原始用户消息和思维链
-        const answerPrompt = `用户的原始问题是：\n\`\`\`\n${originalUserMessage}\`\`\`\n\n基于以下思维链，请给出**针对原始问题的最终回答**：\n${thinkingChain}`;
+        const answerPrompt = `用户的原始问题是：\n\`\`\`\n${originalUserMessage}\`\`\`\n\n结合以下思维链和你自己对于用户原始问题的分析，请给出**针对原始问题的最终回答**：\n${thinkingChain}`;
         await callAnswerModelChain(answerPrompt);
       } catch (e) {
         console.error("Error in combined mode:", e);
@@ -791,7 +791,7 @@
         model: apiConfigs[currentConfigName].model,
         messages: [
           // **[修改点 3]** 修改 system message 和 user message，明确指示回答模型基于思维链回答原始问题
-          { role: 'system', content: "你现在是一个回答助手，请仔细阅读用户提出的原始问题和思考模型给出的思维链，并基于思维链给出**针对原始问题的最终回答**。" },
+          { role: 'system', content: "你现在是一个全能专家，请仔细阅读用户提出的原始问题和思考模型给出的思维链，并结合思维链和自己对于用户原始问题的分析，给出**针对原始问题的最终回答**。" },
           { role: 'user', content: prompt }
         ],
         max_tokens: apiConfigs[currentConfigName].maxTokens,
