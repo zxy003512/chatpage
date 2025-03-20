@@ -120,6 +120,7 @@
       font-size: 14px;
       opacity: 0; /* 初始隐藏 */
       transition: opacity 0.2s ease-in-out;
+      z-index: 1;
     }
 
     .message:hover .copy-btn {
@@ -239,7 +240,6 @@
       box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
     }
 
-
     /* 图标按钮 */
     .icon-btn {
       padding: 10px 14px;
@@ -319,7 +319,6 @@
       border-color: var(--primary-color);
       box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
     }
-
 
     #settings-panel button {
       margin-top: 20px;
@@ -441,40 +440,39 @@
       background-color: #c82333;
     }
 
-
     /* 响应式 - 小屏幕 */
-    @media (max-width: 768px) { /* 调整断点为768px */
+    @media (max-width: 768px) {
       #settings-panel, #log-panel {
         width: 95%;
-        top: 50%; /* 确保在垂直方向也居中 */
+        top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        max-height: 95vh; /* 小屏幕上设置面板和日志面板最大高度 */
+        max-height: 95vh;
       }
 
       .message {
-        max-width: 90%; /* 小屏幕上消息气泡最大宽度 */
+        max-width: 90%;
       }
 
       .input-line textarea, .input-line button, .control-line label, .control-line button, .control-line select, .icon-btn {
-        font-size: 14px; /* 小屏幕上输入框和按钮等字体大小 */
+        font-size: 14px;
       }
 
       #settings-panel h2, #font-settings h3, #api-configs-container h3, .api-config-card h3 {
-        font-size: 1.3em; /* 小屏幕上标题字体大小 */
+        font-size: 1.3em;
       }
 
       #settings-panel input[type="text"],
       #settings-panel input[type="password"],
       #settings-panel input[type="number"],
       #settings-panel select, #settings-panel button {
-        font-size: 14px; /* 小屏幕上设置面板输入框和按钮字体大小 */
+        font-size: 14px;
       }
 
       #log-panel {
         top: 10px;
         left: 10px;
-        transform: none; /* 移除transform，让日志面板靠边显示 */
+        transform: none;
         width: calc(95% - 20px);
         height: calc(90% - 20px);
       }
@@ -552,6 +550,23 @@
     </div>
   </div>
   <script>
+    //////////////////////////////////////////////////////////
+    // ----- 全局辅助函数及 marked 自定义配置 -----
+    // 将 HTML 字符串转义，防止被浏览器解析执行
+    function escapeHTML(html) {
+      return html.replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+    }
+
+    // 创建自定义 renderer，对 html 方法进行覆写，将输入的 html 字符串转义
+    const renderer = new marked.Renderer();
+    renderer.html = function(html) {
+      return escapeHTML(html);
+    };
+
     //////////////////////////////////////////////////////////
     // 获取 DOM 元素
     const chatBox = document.getElementById('chat-box');
@@ -699,7 +714,7 @@
       chatBox.innerHTML = '';
       logMessage('上下文已清除', 'info');
     }
-    // 复制消息
+    // 复制消息（复制原始 markdown 文本）
     function copyMessage(text) {
       navigator.clipboard.writeText(text).then(() => {
         logMessage('已复制', 'info');
@@ -707,7 +722,7 @@
         logMessage('复制失败: ' + err, 'error');
       });
     }
-    // 复制到剪贴板的函数
+    // 复制到剪贴板的函数（用于代码块）
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text).then(function() {
         logMessage('代码已复制', 'info');
@@ -715,10 +730,13 @@
         logMessage('复制失败: ' + err, 'error');
       });
     }
-    // 添加消息到聊天框（支持 Markdown 渲染及复制按钮）
+    //////////////////////////////////////////////////////////
+    // 修改后的：添加消息到聊天框（使用内容容器，且调用 marked.parse 时传入自定义 renderer）
     function appendMessage(message, sender) {
       const messageElement = document.createElement('div');
       messageElement.classList.add('message', `${sender}-message`);
+      
+      // 先添加复制按钮（绝对定位，始终显示在右上角）
       const copyButton = document.createElement('button');
       copyButton.classList.add('copy-btn');
       copyButton.innerHTML = '<i class="fas fa-copy"></i>';
@@ -728,24 +746,34 @@
         copyMessage(message);
       });
       messageElement.appendChild(copyButton);
-      const html = marked.parse(message);
-      messageElement.innerHTML += html;
+      
+      // 创建用于展示内容的容器，传入 marked.parse 时指定 renderer
+      const contentContainer = document.createElement('div');
+      contentContainer.classList.add('content-container');
+      contentContainer.innerHTML = marked.parse(message, { renderer: renderer });
+      messageElement.appendChild(contentContainer);
+      
       chatBox.appendChild(messageElement);
       chatBox.scrollTop = chatBox.scrollHeight;
-      const codeBlocks = messageElement.querySelectorAll('pre code');
+      
+      // 对代码块进行高亮及添加复制按钮
+      const codeBlocks = contentContainer.querySelectorAll('pre code');
       codeBlocks.forEach((block) => {
-        hljs.highlightBlock(block);
-        const codeCopyBtn = document.createElement('button');
-        codeCopyBtn.classList.add('code-copy-btn');
-        codeCopyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-        codeCopyBtn.title = "复制代码";
-        codeCopyBtn.addEventListener('click', (event) => {
-          event.stopPropagation();
-          copyToClipboard(block.textContent);
-        });
-        block.parentNode.appendChild(codeCopyBtn);
+          hljs.highlightElement(block);
+          const codeCopyBtn = document.createElement('button');
+          codeCopyBtn.classList.add('code-copy-btn');
+          codeCopyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+          codeCopyBtn.title = "复制代码";
+          codeCopyBtn.addEventListener('click', (event) => {
+              event.stopPropagation();
+              copyToClipboard(block.textContent);
+          });
+          block.parentNode.style.position = "relative";
+          block.parentNode.appendChild(codeCopyBtn);
       });
-      renderMathInElement(messageElement, {
+      
+      // 渲染数学公式
+      renderMathInElement(contentContainer, {
         delimiters: [
           { left: '$$', right: '$$', display: true },
           { left: '$', right: '$', display: false },
@@ -798,11 +826,12 @@
       }
     }
     //////////////////////////////////////////////////////////
-    // 处理回答模型的流式响应（传入指定的消息元素）
+    // 处理回答模型的流式响应（保证复制按钮不被覆盖，使用内容容器更新内容）
     async function handleStreamResponse(response) {
       const reader = response.body.getReader();
       const decoder = new TextDecoder('utf-8');
       let aiMessageElement = null;
+      let contentContainer = null;
       let buffer = '';
       try {
         while (true) {
@@ -827,6 +856,7 @@
                     if (!aiMessageElement) {
                       aiMessageElement = document.createElement('div');
                       aiMessageElement.classList.add('message', 'ai-message');
+                      
                       const copyButton = document.createElement('button');
                       copyButton.classList.add('copy-btn');
                       copyButton.innerHTML = '<i class="fas fa-copy"></i>';
@@ -836,15 +866,21 @@
                         copyMessage(buffer);
                       });
                       aiMessageElement.appendChild(copyButton);
+                      
+                      contentContainer = document.createElement('div');
+                      contentContainer.classList.add('content-container');
+                      aiMessageElement.appendChild(contentContainer);
+                      
                       chatBox.appendChild(aiMessageElement);
                     }
-                    aiMessageElement.innerHTML = marked.parse(buffer);
-                    const codeBlocks = aiMessageElement.querySelectorAll('pre code');
+                    contentContainer.innerHTML = marked.parse(buffer, { renderer: renderer });
+                    
+                    const codeBlocks = contentContainer.querySelectorAll('pre code');
                     codeBlocks.forEach((block) => {
-                      hljs.highlightBlock(block);
-                      let codeCopyBtn = block.parentNode.querySelector('.code-copy-btn');
-                      if (!codeCopyBtn) {
-                        codeCopyBtn = document.createElement('button');
+                      hljs.highlightElement(block);
+                      let existingBtn = block.parentNode.querySelector('.code-copy-btn');
+                      if (!existingBtn) {
+                        const codeCopyBtn = document.createElement('button');
                         codeCopyBtn.classList.add('code-copy-btn');
                         codeCopyBtn.innerHTML = '<i class="fas fa-copy"></i>';
                         codeCopyBtn.title = "复制代码";
@@ -852,10 +888,12 @@
                           event.stopPropagation();
                           copyToClipboard(block.textContent);
                         });
+                        block.parentNode.style.position = 'relative';
                         block.parentNode.appendChild(codeCopyBtn);
                       }
                     });
-                    renderMathInElement(aiMessageElement, {
+                    
+                    renderMathInElement(contentContainer, {
                       delimiters: [
                         { left: '$$', right: '$$', display: true },
                         { left: '$', right: '$', display: false },
@@ -875,8 +913,8 @@
         }
       } catch (error) {
         console.error('Error reading stream:', error);
-        if (aiMessageElement) {
-          aiMessageElement.innerHTML += `<br><b>Error: ${error.message}</b>`;
+        if (aiMessageElement && contentContainer) {
+          contentContainer.innerHTML += `<br><b>Error: ${error.message}</b>`;
         }
       } finally {
         reader.releaseLock();
@@ -884,26 +922,25 @@
     }
     //////////////////////////////////////////////////////////
     // 以下实现“思考组合”功能
-    // 1. sendMessageCombined：先调用思考模型获取思维链，再调用回答模型给出最终答案
     async function sendMessageCombined() {
       const message = messageInput.value.trim();
       if (!message) return;
-      // 显示用户消息
       appendMessage(message, 'user');
       messageInput.value = '';
       try {
-        // **[修改点 1]** 保存原始用户消息
+        // 保存原始用户消息
         const originalUserMessage = message;
-        // 调用思考模型，获取思维链
+        // 调用思考模型获取思维链
         const thinkingChain = await callThinkingModel(message);
-        // **[修改点 2]** 构造传递给回答模型的提示，包含原始用户消息和思维链
-        const answerPrompt = `用户的原始问题是：\n\`\`\`\n${originalUserMessage}\`\`\`\n\n结合以下思维链和你自己对于用户原始问题的分析，请给出**针对原始问题的最终回答**：\n${thinkingChain}`;
+        // 构造给回答模型的提示，包含原始问题和思维链
+        const answerPrompt = `用户的原始问题是：\n\`\`\`\n${originalUserMessage}\n\`\`\`\n\n结合以下思维链，请给出**针对原始问题的最终回答**：\n${thinkingChain}`;
         await callAnswerModelChain(answerPrompt);
       } catch (e) {
         console.error("Error in combined mode:", e);
       }
     }
-    // 2. 调用思考模型（选择配置，流式返回，提取 delta.reasoning_content 部分）
+    //////////////////////////////////////////////////////////
+    // 调用思考模型（流式返回，提取 delta.reasoning_content）
     async function callThinkingModel(message) {
       const selectedThinking = document.getElementById('thinking-model-select').value;
       const currentThinkingConfig = thinkingModelConfigs[selectedThinking] || thinkingModelConfigs['qwq'];
@@ -923,11 +960,16 @@
           },
           body: JSON.stringify(requestData)
         });
-        // 创建思考模型输出的消息泡，稍作区分
+        // 创建思考模型输出的消息泡（添加前缀及内容容器）
         const thinkingBubble = document.createElement('div');
         thinkingBubble.classList.add('message', 'ai-message');
         thinkingBubble.style.backgroundColor = "#f0f0f0";
-        thinkingBubble.innerHTML = `<i>【思考模型】</i><br>`;
+        const prefix = document.createElement('div');
+        prefix.innerHTML = `<i>【思考模型】</i><br>`;
+        thinkingBubble.appendChild(prefix);
+        const contentContainer = document.createElement('div');
+        contentContainer.classList.add('content-container');
+        thinkingBubble.appendChild(contentContainer);
         chatBox.appendChild(thinkingBubble);
         chatBox.scrollTop = chatBox.scrollHeight;
         // 流式处理思考模型响应，提取 reasoning_content
@@ -939,11 +981,13 @@
         throw error;
       }
     }
-    // 3. 处理思考模型的流式响应：只提取 delta.reasoning_content 并不断更新 thinkingBubble 的内容
+    //////////////////////////////////////////////////////////
+    // 处理思考模型的流式响应，仅更新思维链部分（使用内容容器）
     async function handleThinkingStreamResponse(response, outputElement) {
       const reader = response.body.getReader();
       const decoder = new TextDecoder('utf-8');
       let chainOfThought = "";
+      let contentContainer = outputElement.querySelector('.content-container');
       try {
         while (true) {
           const { done, value } = await reader.read();
@@ -963,7 +1007,7 @@
                   const reasoning = parsed.choices[0].delta.reasoning_content || "";
                   if (reasoning !== '') {
                     chainOfThought += reasoning;
-                    outputElement.innerHTML = marked.parse("<i>【思考模型】</i><br>" + chainOfThought);
+                    contentContainer.innerHTML = marked.parse(chainOfThought, { renderer: renderer });
                     logMessage("思考模型流式响应 chunk: " + reasoning);
                     chatBox.scrollTop = chatBox.scrollHeight;
                   }
@@ -981,13 +1025,13 @@
         reader.releaseLock();
       }
     }
-    // 4. 调用回答模型：将构造好的提示（仅包含思维链）发送给回答模型
+    //////////////////////////////////////////////////////////
+    // 调用回答模型：将构造好的提示发送给回答模型（同样采用内容容器）
     async function callAnswerModelChain(prompt) {
       const requestData = {
         model: apiConfigs[currentConfigName].model,
         messages: [
-          // **[修改点 3]** 修改 system message 和 user message，明确指示回答模型基于思维链回答原始问题
-          { role: 'system', content: "你现在是一个全能专家，请仔细阅读用户提出的原始问题和思考模型给出的思维链，并结合思维链和自己对于用户原始问题的分析，给出**针对原始问题的最终回答**。" },
+          { role: 'system', content: "你现在是一个全能专家，请仔细阅读用户提出的原始问题和思考模型给出的思维链，并结合二者给出**针对原始问题的最终回答**。" },
           { role: 'user', content: prompt }
         ],
         max_tokens: apiConfigs[currentConfigName].maxTokens,
@@ -1015,6 +1059,10 @@
           copyMessage(answerBubble.innerText);
         });
         answerBubble.appendChild(copyButton);
+        // 添加内容容器，用于后续流式回复更新，不会覆盖复制按钮
+        const contentContainer = document.createElement('div');
+        contentContainer.classList.add('content-container');
+        answerBubble.appendChild(contentContainer);
         chatBox.appendChild(answerBubble);
         chatBox.scrollTop = chatBox.scrollHeight;
         await handleAnswerStreamResponse(response, answerBubble);
@@ -1023,11 +1071,13 @@
         logMessage(`Error in answer model: ${error.message}`, 'error');
       }
     }
-    // 5. 处理回答模型的流式响应，写入指定元素
+    //////////////////////////////////////////////////////////
+    // 处理回答模型的流式响应（更新内容容器）
     async function handleAnswerStreamResponse(response, answerBubble) {
       const reader = response.body.getReader();
       const decoder = new TextDecoder('utf-8');
       let buffer = "";
+      let contentContainer = answerBubble.querySelector('.content-container');
       try {
         while (true) {
           const { done, value } = await reader.read();
@@ -1048,13 +1098,13 @@
                   if (content) {
                     buffer += content;
                     logMessage("回答模型流式回复 chunk: " + content);
-                    answerBubble.innerHTML = marked.parse(buffer);
-                    const codeBlocks = answerBubble.querySelectorAll('pre code');
+                    contentContainer.innerHTML = marked.parse(buffer, { renderer: renderer });
+                    const codeBlocks = contentContainer.querySelectorAll('pre code');
                     codeBlocks.forEach((block) => {
-                      hljs.highlightBlock(block);
-                      let codeCopyBtn = block.parentNode.querySelector('.code-copy-btn');
-                      if (!codeCopyBtn) {
-                        codeCopyBtn = document.createElement('button');
+                      hljs.highlightElement(block);
+                      let existingBtn = block.parentNode.querySelector('.code-copy-btn');
+                      if (!existingBtn) {
+                        const codeCopyBtn = document.createElement('button');
                         codeCopyBtn.classList.add('code-copy-btn');
                         codeCopyBtn.innerHTML = '<i class="fas fa-copy"></i>';
                         codeCopyBtn.title = "复制代码";
@@ -1062,10 +1112,11 @@
                           event.stopPropagation();
                           copyToClipboard(block.textContent);
                         });
+                        block.parentNode.style.position = 'relative';
                         block.parentNode.appendChild(codeCopyBtn);
                       }
                     });
-                    renderMathInElement(answerBubble, {
+                    renderMathInElement(contentContainer, {
                       delimiters: [
                         { left: '$$', right: '$$', display: true },
                         { left: '$', right: '$', display: false },
@@ -1085,7 +1136,7 @@
         }
       } catch (error) {
         console.error('Error reading answer stream:', error);
-        answerBubble.innerHTML += `<br><b>Error: ${error.message}</b>`;
+        contentContainer.innerHTML += `<br><b>Error: ${error.message}</b>`;
       } finally {
         reader.releaseLock();
       }
@@ -1191,7 +1242,7 @@
       apiConfigSelect.value = currentConfigName;
     }
     //////////////////////////////////////////////////////////
-    // 事件监听器（根据是否启用思考组合调用不同的发送函数）
+    // 事件监听器
     sendButton.addEventListener('click', () => {
       if (document.getElementById('enable-combined').checked) {
         sendMessageCombined();
