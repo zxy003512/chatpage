@@ -21,157 +21,249 @@
       integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
       crossorigin="anonymous" referrerpolicy="no-referrer" />
   <style>
-    /* 通用样式 */
+    /* 颜色变量 */
+    :root {
+      --primary-color: #007bff;
+      --primary-color-darker: #0056b3;
+      --bg-color: #f8f9fa;
+      --text-color: #343a40;
+      --message-user-bg: #e2f3ff;
+      --message-ai-bg: #ffffff;
+      --border-color: #dee2e6;
+      --shadow-color: rgba(0, 0, 0, 0.1);
+    }
+
     body {
       font-family: 'Open Sans', sans-serif;
       margin: 0;
       padding: 0;
-      background-color: #f4f4f4;
-      color: #333;
+      background-color: var(--bg-color);
+      color: var(--text-color);
       display: flex;
       flex-direction: column;
       height: 100vh;
+      overflow: hidden; /* 防止body滚动条 */
     }
+
     #app {
       display: flex;
       flex-direction: column;
       flex: 1;
       overflow: hidden;
     }
+
     .container {
-      padding: 10px;
-      border-radius: 8px;
-      background-color: #fff;
-      margin-bottom: 10px;
+      padding: 15px;
+      border-radius: 10px;
+      background-color: #fff; /* 容器背景白色 */
+      margin-bottom: 15px;
       overflow: hidden;
+      box-shadow: 0 2px 5px var(--shadow-color); /* 容器阴影 */
     }
+
     #chat-box {
       flex: 1;
       overflow-y: auto;
-      padding: 10px;
+      padding: 15px;
       display: flex;
       flex-direction: column;
+      scrollbar-width: thin; /* Firefox */
+      scrollbar-color: var(--border-color) transparent; /* Firefox */
     }
+
+    #chat-box::-webkit-scrollbar {
+      width: 8px; /* WebKit */
+    }
+
+    #chat-box::-webkit-scrollbar-track {
+      background: transparent; /* WebKit */
+    }
+
+    #chat-box::-webkit-scrollbar-thumb {
+      background-color: var(--border-color); /* WebKit */
+      border-radius: 4px; /* WebKit */
+    }
+
     .message {
-      margin: 5px;
-      padding: 8px 12px;
-      border-radius: 15px;
-      max-width: 70%;
+      margin-bottom: 8px;
+      padding: 12px 18px;
+      border-radius: 20px;
+      max-width: 75%; /* 消息气泡最大宽度 */
       word-wrap: break-word;
       position: relative;
+      box-shadow: 0 1px 2px var(--shadow-color); /* 消息气泡阴影 */
     }
+
     .user-message {
-      background-color: #007bff;
-      color: white;
+      background-color: var(--message-user-bg);
+      color: var(--text-color);
       align-self: flex-end;
-      border-bottom-right-radius: 2px;
+      border-bottom-right-radius: 3px;
     }
+
     .ai-message {
-      background-color: #e9ecef;
-      color: #333;
+      background-color: var(--message-ai-bg);
+      color: var(--text-color);
       align-self: flex-start;
-      border-bottom-left-radius: 2px;
+      border-bottom-left-radius: 3px;
     }
+
     /* 复制按钮样式 */
     .copy-btn {
       position: absolute;
-      top: 5px;
-      right: 5px;
+      top: 8px;
+      right: 8px;
       background: none;
       border: none;
-      color: rgba(0, 0, 0, 0.5);
+      color: rgba(0, 0, 0, 0.4);
       cursor: pointer;
-      font-size: 12px;
-      display: none;
-      z-index: 2;
+      font-size: 14px;
+      opacity: 0; /* 初始隐藏 */
+      transition: opacity 0.2s ease-in-out;
     }
+
+    .message:hover .copy-btn {
+      opacity: 1; /* 鼠标悬停时显示 */
+    }
+
     .code-copy-btn {
       position: absolute;
-      top: 5px;
-      right: 5px;
-      background: rgba(255, 255, 255, 0.8);
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      color: #333;
+      top: 8px;
+      right: 8px;
+      background: rgba(255, 255, 255, 0.85); /* 代码块复制按钮背景 */
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      color: var(--text-color);
       cursor: pointer;
       font-size: 12px;
-      padding: 2px 5px;
-      z-index: 3;
-      display: none;
+      padding: 4px 8px;
+      opacity: 0; /* 初始隐藏 */
+      transition: opacity 0.2s ease-in-out;
     }
-    .message:hover .copy-btn {
-      display: block;
+
+    pre:hover .code-copy-btn {
+      opacity: 1; /* 代码块悬停时显示 */
     }
+
     /* 代码块样式 */
     pre {
       position: relative;
       background-color: #282c34;
       color: #abb2bf;
-      padding: 1em;
-      border-radius: 5px;
+      padding: 1.2em;
+      border-radius: 8px;
       overflow-x: auto;
-      display: flex;
+      margin: 10px 0; /* 代码块上下外边距 */
     }
-    pre:hover .code-copy-btn {
-      display: block;
-    }
+
     /* 输入区域 */
     #input-area {
-      padding: 10px;
-      border-top: 1px solid #ddd;
+      padding: 15px;
+      border-top: 1px solid var(--border-color);
+      background-color: #fff; /* 输入区域背景白色 */
+      box-shadow: 0 -2px 5px var(--shadow-color); /* 输入区域顶部阴影 */
     }
-    /* 将输入区域拆分为两行 */
+
     .input-line {
       display: flex;
       align-items: center;
     }
+
     .input-line textarea {
       flex: 1;
-      padding: 8px;
-      border-radius: 20px;
-      border: 1px solid #ddd;
+      padding: 12px 15px;
+      border-radius: 25px;
+      border: 1px solid var(--border-color);
       resize: none;
       margin-right: 10px;
+      font-size: 16px; /* 输入框字体大小 */
+      line-height: 1.5; /* 输入框行高 */
+      box-shadow: inset 0 1px 3px var(--shadow-color); /* 输入框内阴影 */
     }
+
+    .input-line textarea:focus {
+      outline: none;
+      border-color: var(--primary-color); /* 聚焦时边框颜色 */
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25), inset 0 1px 3px var(--shadow-color); /* 聚焦时外发光和内阴影 */
+    }
+
     .input-line button {
-      padding: 8px 15px;
+      padding: 12px 20px;
       border: none;
-      border-radius: 20px;
-      background-color: #007bff;
+      border-radius: 25px;
+      background-color: var(--primary-color);
       color: white;
       cursor: pointer;
       transition: background-color 0.3s ease;
+      font-size: 16px; /* 发送按钮字体大小 */
+      box-shadow: 0 1px 3px var(--shadow-color); /* 发送按钮阴影 */
     }
+
     .input-line button:hover {
-      background-color: #0056b3;
+      background-color: var(--primary-color-darker);
     }
+
     .control-line {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      margin-top: 10px;
+      margin-top: 12px;
     }
+
     .control-line label,
     .control-line button,
     .control-line select {
       margin-right: 10px;
-      margin-bottom: 5px;
+      margin-bottom: 8px;
       font-size: 14px;
-      color: #333;
+      color: var(--text-color);
     }
+
+    .control-line select {
+      padding: 8px;
+      border-radius: 5px;
+      border: 1px solid var(--border-color);
+      background-color: #fff;
+      appearance: none; /* 移除默认下拉箭头 */
+      -webkit-appearance: none; /* Safari */
+      -moz-appearance: none; /* Firefox */
+      background-image: url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+      background-repeat: no-repeat;
+      background-position-x: calc(100% - 8px);
+      background-position-y: center;
+    }
+
+    .control-line select:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+
+
     /* 图标按钮 */
     .icon-btn {
-      padding: 8px 12px;
-      background-color: #28a745;
-      color: white;
-      border: none;
-      border-radius: 20px;
+      padding: 10px 14px;
+      background-color: #ffffff; /* 图标按钮背景白色 */
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      border-radius: 25px;
       cursor: pointer;
-      transition: background-color 0.3s ease;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      box-shadow: 0 1px 3px var(--shadow-color); /* 图标按钮阴影 */
     }
+
     .icon-btn:hover {
-      background-color: #1e7e34;
+      background-color: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
     }
+
+    .icon-btn:focus {
+      outline: none;
+      border-color: var(--primary-color-darker);
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+
     /* 设置面板 */
     #settings-panel {
       display: none;
@@ -180,51 +272,100 @@
       left: 50%;
       transform: translate(-50%, -50%);
       background-color: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); /* 更强的设置面板阴影 */
       z-index: 1000;
-      width: 80%;
-      max-width: 600px;
+      width: 90%; /* 设置面板宽度百分比 */
+      max-width: 700px; /* 设置面板最大宽度 */
       overflow-y: auto;
-      max-height: 80vh;
+      max-height: 90vh; /* 设置面板最大高度 */
     }
+
     #settings-panel h2 {
       margin-top: 0;
+      margin-bottom: 20px;
+      color: var(--text-color);
+      border-bottom: 2px solid var(--primary-color);
+      padding-bottom: 5px;
     }
+
     #settings-panel label {
       display: block;
-      margin-top: 10px;
+      margin-top: 15px;
+      color: var(--text-color);
     }
+
     #settings-panel input[type="text"],
     #settings-panel input[type="password"],
     #settings-panel input[type="number"],
     #settings-panel select {
       width: 100%;
-      padding: 8px;
-      margin-top: 5px;
-      border-radius: 5px;
-      border: 1px solid #ddd;
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
       box-sizing: border-box;
+      font-size: 16px; /* 设置面板输入框字体大小 */
+      color: var(--text-color);
+      background-color: var(--message-ai-bg); /* 设置面板输入框背景白色 */
     }
+
+    #settings-panel input[type="text"]:focus,
+    #settings-panel input[type="password"]:focus,
+    #settings-panel input[type="number"]:focus,
+    #settings-panel select:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+
+
     #settings-panel button {
-      margin-top: 15px;
+      margin-top: 20px;
+      padding: 12px 25px;
+      border-radius: 25px;
+      border: none;
+      background-color: var(--primary-color);
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      font-size: 16px; /* 设置面板按钮字体大小 */
+      box-shadow: 0 2px 4px var(--shadow-color); /* 设置面板按钮阴影 */
     }
+
+    #settings-panel button:hover {
+      background-color: var(--primary-color-darker);
+    }
+
     #font-settings {
-      margin-bottom: 20px;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 15px;
+      margin-bottom: 25px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
     }
+
+    #font-settings h3, #api-configs-container h3 {
+      color: var(--text-color);
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+
     .close-btn {
       position: absolute;
-      top: 10px;
-      right: 10px;
-      font-size: 20px;
+      top: 15px;
+      right: 15px;
+      font-size: 24px;
       cursor: pointer;
       background: none;
       border: none;
-      color: #999;
+      color: #6c757d;
+      transition: color 0.3s ease;
     }
+
+    .close-btn:hover {
+      color: #343a40;
+    }
+
     #overlay {
       display: none;
       position: fixed;
@@ -235,51 +376,105 @@
       background-color: rgba(0, 0, 0, 0.5);
       z-index: 999;
     }
+
     /* 请求日志 */
     #log-panel {
       display: none;
       position: fixed;
-      top: 10%;
-      left: 10%;
-      width: 80%;
-      height: 70%;
-      background-color: #f9f9f9;
-      border: 1px solid #ccc;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%; /* 日志面板宽度百分比 */
+      max-width: 900px; /* 日志面板最大宽度 */
+      height: 80%;
+      background-color: #fff;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); /* 更强的日志面板阴影 */
       z-index: 1001;
       overflow: auto;
-      padding: 15px;
+      padding: 20px;
       white-space: pre-line;
       font-family: 'Courier New', monospace;
-      font-size: 12px;
-      color: #333;
+      font-size: 14px; /* 日志字体大小 */
+      color: var(--text-color);
     }
+
     #log-panel.show {
       display: block !important;
     }
+
     /* API 配置卡片 */
     .api-config-card {
-      border: 1px solid #ddd;
-      padding: 10px;
-      margin-bottom: 10px;
-      border-radius: 5px;
+      border: 1px solid var(--border-color);
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 10px;
+      background-color: var(--message-ai-bg); /* API卡片背景白色 */
+      box-shadow: 0 2px 4px var(--shadow-color); /* API卡片阴影 */
     }
+
     .api-config-card h3 {
       margin-top: 0;
+      margin-bottom: 15px;
+      color: var(--text-color);
     }
+
+    .api-config-card label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text-color);
+    }
+
     .api-config-card button {
-      margin-top: 10px;
+      margin-top: 15px;
       background-color: #dc3545;
       color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      box-shadow: 0 1px 3px var(--shadow-color); /* API卡片按钮阴影 */
     }
+
+    .api-config-card button:hover {
+      background-color: #c82333;
+    }
+
+
     /* 响应式 - 小屏幕 */
-    @media (max-width: 600px) {
-      #settings-panel {
+    @media (max-width: 768px) { /* 调整断点为768px */
+      #settings-panel, #log-panel {
         width: 95%;
+        top: 50%; /* 确保在垂直方向也居中 */
+        left: 50%;
+        transform: translate(-50%, -50%);
+        max-height: 95vh; /* 小屏幕上设置面板和日志面板最大高度 */
       }
+
+      .message {
+        max-width: 90%; /* 小屏幕上消息气泡最大宽度 */
+      }
+
+      .input-line textarea, .input-line button, .control-line label, .control-line button, .control-line select, .icon-btn {
+        font-size: 14px; /* 小屏幕上输入框和按钮等字体大小 */
+      }
+
+      #settings-panel h2, #font-settings h3, #api-configs-container h3, .api-config-card h3 {
+        font-size: 1.3em; /* 小屏幕上标题字体大小 */
+      }
+
+      #settings-panel input[type="text"],
+      #settings-panel input[type="password"],
+      #settings-panel input[type="number"],
+      #settings-panel select, #settings-panel button {
+        font-size: 14px; /* 小屏幕上设置面板输入框和按钮字体大小 */
+      }
+
       #log-panel {
         top: 10px;
         left: 10px;
+        transform: none; /* 移除transform，让日志面板靠边显示 */
         width: calc(95% - 20px);
         height: calc(90% - 20px);
       }
@@ -343,6 +538,7 @@
       </div>
       <h2>API 配置</h2>
       <div id="api-configs-container">
+        <h3>API 配置列表</h3>
         <!-- API 配置卡片 -->
       </div>
       <button id="add-api-config-btn">添加新配置</button>
