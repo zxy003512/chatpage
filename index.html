@@ -552,13 +552,13 @@
   <script>
     //////////////////////////////////////////////////////////
     // ----- 全局辅助函数及 marked 自定义配置 -----
-    // 将 HTML 字符串转义，防止被浏览器解析执行
+    // 修改后的 escapeHTML 函数：先转换为字符串再调用 replace
     function escapeHTML(html) {
-      return html.replace(/&/g, "&amp;")
-                 .replace(/</g, "&lt;")
-                 .replace(/>/g, "&gt;")
-                 .replace(/"/g, "&quot;")
-                 .replace(/'/g, "&#039;");
+      return String(html).replace(/&/g, "&amp;")
+                         .replace(/</g, "&lt;")
+                         .replace(/>/g, "&gt;")
+                         .replace(/"/g, "&quot;")
+                         .replace(/'/g, "&#039;");
     }
 
     // 创建自定义 renderer，对 html 方法进行覆写，将输入的 html 字符串转义
