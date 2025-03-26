@@ -1,1286 +1,1537 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI 对话平台</title>
-  <!-- KaTeX CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-  <!-- KaTeX JS (with auto-render extension) -->
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-      onload="renderMathInElement(document.body);"></script>
-  <!-- highlight.js CSS (Atom One Dark theme) -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-  <!-- highlight.js JS -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <!-- Marked.js -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <!-- Font Awesome for icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-      integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
-      crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <style>
-    /* 颜色变量 */
-    :root {
-      --primary-color: #007bff;
-      --primary-color-darker: #0056b3;
-      --bg-color: #f8f9fa;
-      --text-color: #343a40;
-      --message-user-bg: #e2f3ff;
-      --message-ai-bg: #ffffff;
-      --border-color: #dee2e6;
-      --shadow-color: rgba(0, 0, 0, 0.1);
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高级 AI 对话</title>
+    <!-- Marked library for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- highlight.js for code syntax highlighting (Light Theme) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Icon library (optional, for copy icons etc.) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-    body {
-      font-family: 'Open Sans', sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden; /* 防止body滚动条 */
-    }
+    <style>
+        :root {
+            /* Base Colors */
+            --bg-color: #f8f9fa;
+            --text-color: #212529;
+            --primary-color: #007bff;
+            --secondary-color: #ffffff;
+            --border-color: #dee2e6;
+            --input-bg: #ffffff;
+            --error-color: #dc3545;
 
-    #app {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      overflow: hidden;
-    }
+            /* Chat Specific */
+            --user-msg-bg: #e7f5ff;
+            --user-msg-text: #004085;
+            --assistant-msg-bg: #f1f3f5;
+            --assistant-msg-text: var(--text-color);
 
-    .container {
-      padding: 15px;
-      border-radius: 10px;
-      background-color: #fff; /* 容器背景白色 */
-      margin-bottom: 15px;
-      overflow: hidden;
-      box-shadow: 0 2px 5px var(--shadow-color); /* 容器阴影 */
-    }
+            /* Buttons */
+            --button-bg: var(--primary-color);
+            --button-text: #ffffff;
+            --button-hover-bg: #0056b3;
+            --button-secondary-bg: #6c757d;
+            --button-secondary-hover-bg: #5a6268;
+            --button-danger-bg: var(--error-color);
+            --button-danger-hover-bg: #c82333;
 
-    #chat-box {
-      flex: 1;
-      overflow-y: auto;
-      padding: 15px;
-      display: flex;
-      flex-direction: column;
-      scrollbar-width: thin; /* Firefox */
-      scrollbar-color: var(--border-color) transparent; /* Firefox */
-    }
+            /* Other */
+            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --border-radius: 8px;
+            --base-font-size: 16px; /* Default font size, controlled by JS */
+        }
 
-    #chat-box::-webkit-scrollbar {
-      width: 8px; /* WebKit */
-    }
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-size: var(--base-font-size); /* Use CSS variable */
+            line-height: 1.6;
+        }
 
-    #chat-box::-webkit-scrollbar-track {
-      background: transparent; /* WebKit */
-    }
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: var(--secondary-color);
+            box-shadow: var(--box-shadow);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
 
-    #chat-box::-webkit-scrollbar-thumb {
-      background-color: var(--border-color); /* WebKit */
-      border-radius: 4px; /* WebKit */
-    }
+        /* Header */
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px; /* Slightly reduced padding */
+            background-color: var(--secondary-color);
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+            gap: 10px; /* Add gap between elements */
+        }
 
-    .message {
-      margin-bottom: 8px;
-      padding: 12px 18px;
-      border-radius: 20px;
-      max-width: 75%; /* 消息气泡最大宽度 */
-      word-wrap: break-word;
-      position: relative;
-      box-shadow: 0 1px 2px var(--shadow-color); /* 消息气泡阴影 */
-    }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
 
-    .user-message {
-      background-color: var(--message-user-bg);
-      color: var(--text-color);
-      align-self: flex-end;
-      border-bottom-right-radius: 3px;
-    }
+        .chat-header h1 {
+            margin: 0;
+            font-size: 1.4em;
+            font-weight: 600;
+            color: var(--primary-color);
+            white-space: nowrap;
+        }
 
-    .ai-message {
-      background-color: var(--message-ai-bg);
-      color: var(--text-color);
-      align-self: flex-start;
-      border-bottom-left-radius: 3px;
-    }
+        .active-config-display {
+            font-size: 0.8em;
+            color: #6c757d;
+            background-color: #e9ecef;
+            padding: 3px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px; /* Limit width */
+            cursor: default;
+            transition: max-width 0.3s ease;
+        }
+        .active-config-display:hover {
+             max-width: 300px; /* Expand on hover */
+        }
+        .active-config-display.none {
+            color: var(--error-color);
+            background-color: rgba(220, 53, 69, 0.1);
+        }
 
-    /* 复制按钮样式 */
-    .copy-btn {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: none;
-      border: none;
-      color: rgba(0, 0, 0, 0.4);
-      cursor: pointer;
-      font-size: 14px;
-      opacity: 0; /* 初始隐藏 */
-      transition: opacity 0.2s ease-in-out;
-      z-index: 1;
-    }
 
-    .message:hover .copy-btn {
-      opacity: 1; /* 鼠标悬停时显示 */
-    }
+        .header-buttons {
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Gap between buttons */
+        }
 
-    .code-copy-btn {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: rgba(255, 255, 255, 0.85); /* 代码块复制按钮背景 */
-      border: 1px solid var(--border-color);
-      border-radius: 5px;
-      color: var(--text-color);
-      cursor: pointer;
-      font-size: 12px;
-      padding: 4px 8px;
-      opacity: 0; /* 初始隐藏 */
-      transition: opacity 0.2s ease-in-out;
-    }
+        .header-buttons button, .font-controls button {
+            padding: 6px 12px; /* Smaller buttons */
+            background-color: var(--button-secondary-bg);
+            color: var(--button-text);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            white-space: nowrap;
+        }
+        .header-buttons button:hover, .font-controls button:hover {
+            background-color: var(--button-secondary-hover-bg);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .header-buttons button#settingsButton {
+             background-color: var(--button-bg);
+        }
+         .header-buttons button#settingsButton:hover {
+             background-color: var(--button-hover-bg);
+         }
+        .header-buttons button#clearChatButton {
+             background-color: var(--button-danger-bg);
+        }
+         .header-buttons button#clearChatButton:hover {
+             background-color: var(--button-danger-hover-bg);
+         }
 
-    pre:hover .code-copy-btn {
-      opacity: 1; /* 代码块悬停时显示 */
-    }
+        .font-controls {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            border-left: 1px solid var(--border-color);
+            padding-left: 8px;
+        }
+        .font-controls span {
+            font-size: 0.85em;
+            color: #6c757d;
+            margin-right: 3px;
+        }
+        .font-controls button {
+            width: 28px; /* Fixed width for +/- */
+            height: 28px;
+            padding: 0;
+            line-height: 28px;
+            text-align: center;
+        }
 
-    /* 代码块样式 */
-    pre {
-      position: relative;
-      background-color: #282c34;
-      color: #abb2bf;
-      padding: 1.2em;
-      border-radius: 8px;
-      overflow-x: auto;
-      margin: 10px 0; /* 代码块上下外边距 */
-    }
+        /* Modals (Settings & Logs) */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease;
+        }
 
-    /* 输入区域 */
-    #input-area {
-      padding: 15px;
-      border-top: 1px solid var(--border-color);
-      background-color: #fff; /* 输入区域背景白色 */
-      box-shadow: 0 -2px 5px var(--shadow-color); /* 输入区域顶部阴影 */
-    }
+        .modal-content {
+            background-color: var(--bg-color);
+            margin: 5% auto; /* Reduced top margin */
+            padding: 25px 30px;
+            border: 1px solid var(--border-color);
+            width: 90%;
+            max-width: 750px; /* Slightly wider */
+            border-radius: var(--border-radius);
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        #logModal .modal-content {
+             max-width: 900px; /* Wider for logs */
+        }
 
-    .input-line {
-      display: flex;
-      align-items: center;
-    }
+        .close-button {
+            color: #aaa;
+            position: absolute;
+            top: 15px;
+            right: 25px;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .close-button:hover, .close-button:focus {
+            color: var(--text-color);
+        }
 
-    .input-line textarea {
-      flex: 1;
-      padding: 12px 15px;
-      border-radius: 25px;
-      border: 1px solid var(--border-color);
-      resize: none;
-      margin-right: 10px;
-      font-size: 16px; /* 输入框字体大小 */
-      line-height: 1.5; /* 输入框行高 */
-      box-shadow: inset 0 1px 3px var(--shadow-color); /* 输入框内阴影 */
-    }
+        .modal h2 {
+            margin-top: 0;
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
 
-    .input-line textarea:focus {
-      outline: none;
-      border-color: var(--primary-color); /* 聚焦时边框颜色 */
-      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25), inset 0 1px 3px var(--shadow-color); /* 聚焦时外发光和内阴影 */
-    }
+        /* Settings Modal Specifics */
+        #settingsModal label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #495057;
+        }
+        #settingsModal input[type="text"],
+        #settingsModal input[type="password"],
+        #settingsModal input[type="number"],
+        #settingsModal select,
+        #settingsModal textarea {
+            width: calc(100% - 24px);
+            padding: 10px 12px;
+            margin-bottom: 18px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            font-size: 1em;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        #settingsModal input:focus, #settingsModal select:focus, #settingsModal textarea:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+            outline: none;
+        }
+        #settingsModal textarea { min-height: 80px; resize: vertical; }
+        #settingsModal button {
+            padding: 10px 22px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        #settingsModal button#saveConfigButton { background-color: var(--button-bg); color: var(--button-text); }
+        #settingsModal button#saveConfigButton:hover { background-color: var(--button-hover-bg); }
+        #settingsModal button.danger { background-color: var(--button-danger-bg); color: var(--button-text); }
+        #settingsModal button.danger:hover { background-color: var(--button-danger-hover-bg); }
+        #settingsModal button.secondary { background-color: var(--button-secondary-bg); color: var(--button-text); }
+        #settingsModal button.secondary:hover { background-color: var(--button-secondary-hover-bg); }
 
-    .input-line button {
-      padding: 12px 20px;
-      border: none;
-      border-radius: 25px;
-      background-color: var(--primary-color);
-      color: white;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-      font-size: 16px; /* 发送按钮字体大小 */
-      box-shadow: 0 1px 3px var(--shadow-color); /* 发送按钮阴影 */
-    }
+        .config-section { border: 1px solid var(--border-color); background-color: var(--secondary-color); padding: 20px; margin-bottom: 25px; border-radius: var(--border-radius); }
+        .config-section h3 { margin-top: 0; margin-bottom: 15px; font-weight: 600; color: #343a40; }
+        #configList { max-height: 180px; overflow-y: auto; margin-bottom: 15px; border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; background-color: var(--bg-color); }
+        #configList div { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #e9ecef; transition: background-color 0.15s ease; border-radius: 4px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+        #configList div:last-child { border-bottom: none; margin-bottom: 0; }
+        #configList div:hover { background-color: #e9ecef; }
+        #configList div.selected { background-color: var(--primary-color); color: var(--button-text); font-weight: 500; }
+        #configList div.selected:hover { background-color: var(--primary-color); }
+        #configList div .config-stream-indicator { font-size: 0.8em; opacity: 0.7; margin-left: 10px; }
 
-    .input-line button:hover {
-      background-color: var(--primary-color-darker);
-    }
+        .form-row { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 18px; }
+        .form-row > div { flex: 1; min-width: 150px; /* Prevent excessive shrinking */ }
+        .form-row label { margin-bottom: 5px; }
+        .form-row input { margin-bottom: 0; width: calc(100% - 24px); }
 
-    .control-line {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      margin-top: 12px;
-    }
+        .checkbox-group { display: flex; align-items: center; margin-bottom: 18px; }
+        .checkbox-group input[type="checkbox"] { margin-right: 10px; width: auto; height: 16px; width: 16px; cursor: pointer;}
+        .checkbox-group label { margin-bottom: 0; cursor: pointer; font-weight: normal; color: var(--text-color); }
 
-    .control-line label,
-    .control-line button,
-    .control-line select {
-      margin-right: 10px;
-      margin-bottom: 8px;
-      font-size: 14px;
-      color: var(--text-color);
-    }
+        /* Log Modal Specifics */
+        #logContainer {
+            max-height: 60vh;
+            overflow-y: auto;
+            background-color: var(--secondary-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 0.9em; /* Smaller font for logs */
+        }
+        .log-entry {
+            border-bottom: 1px dashed var(--border-color);
+            padding: 10px 0;
+            margin-bottom: 10px;
+        }
+        .log-entry:last-child { border-bottom: none; margin-bottom: 0; }
+        .log-entry strong { display: block; margin-bottom: 5px; color: var(--primary-color); }
+        .log-entry pre {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap; /* Wrap long lines */
+            word-break: break-all; /* Break long words/strings */
+            margin: 0;
+            max-height: 300px; /* Limit height of individual log data */
+            overflow-y: auto;
+        }
+        .log-entry .log-meta { font-size: 0.85em; color: #6c757d; margin-bottom: 5px; }
+        .log-entry .log-type-request strong { color: #17a2b8; } /* Teal for request */
+        .log-entry .log-type-response strong { color: #28a745; } /* Green for response */
+        .log-entry .log-type-error strong { color: var(--error-color); } /* Red for error */
+        .log-entry .log-type-info strong { color: #ffc107; } /* Yellow for info */
 
-    .control-line select {
-      padding: 8px;
-      border-radius: 5px;
-      border: 1px solid var(--border-color);
-      background-color: #fff;
-      appearance: none; /* 移除默认下拉箭头 */
-      -webkit-appearance: none; /* Safari */
-      -moz-appearance: none; /* Firefox */
-      background-image: url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
-      background-repeat: no-repeat;
-      background-position-x: calc(100% - 8px);
-      background-position-y: center;
-    }
+        #logModal button {
+            padding: 10px 22px; border: none; border-radius: 6px; cursor: pointer; font-size: 1em;
+            transition: background-color 0.2s ease; margin-right: 10px;
+            background-color: var(--button-danger-bg); color: var(--button-text);
+        }
+         #logModal button:hover { background-color: var(--button-danger-hover-bg); }
 
-    .control-line select:focus {
-      outline: none;
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-    }
+        /* Chat Box */
+        .chat-box {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            background-color: var(--bg-color);
+        }
 
-    /* 图标按钮 */
-    .icon-btn {
-      padding: 10px 14px;
-      background-color: #ffffff; /* 图标按钮背景白色 */
-      color: var(--text-color);
-      border: 1px solid var(--border-color);
-      border-radius: 25px;
-      cursor: pointer;
-      transition: background-color 0.3s ease, color 0.3s ease;
-      box-shadow: 0 1px 3px var(--shadow-color); /* 图标按钮阴影 */
-    }
+        .message {
+            padding: 12px 18px;
+            border-radius: 18px;
+            max-width: 85%;
+            word-wrap: break-word;
+            position: relative; /* Needed for copy button positioning */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            line-height: 1.5;
+        }
+        .message:hover .copy-message-button {
+            opacity: 1;
+        }
 
-    .icon-btn:hover {
-      background-color: var(--primary-color);
-      color: white;
-      border-color: var(--primary-color);
-    }
+        .message.user {
+            background-color: var(--user-msg-bg);
+            color: var(--user-msg-text);
+            align-self: flex-end;
+            border-bottom-right-radius: 6px;
+        }
 
-    .icon-btn:focus {
-      outline: none;
-      border-color: var(--primary-color-darker);
-      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-    }
+        .message.assistant {
+            background-color: var(--assistant-msg-bg);
+            color: var(--assistant-msg-text);
+            align-self: flex-start;
+            border-bottom-left-radius: 6px;
+        }
 
-    /* 设置面板 */
-    #settings-panel {
-      display: none;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background-color: #fff;
-      padding: 25px;
-      border-radius: 15px;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); /* 更强的设置面板阴影 */
-      z-index: 1000;
-      width: 90%; /* 设置面板宽度百分比 */
-      max-width: 700px; /* 设置面板最大宽度 */
-      overflow-y: auto;
-      max-height: 90vh; /* 设置面板最大高度 */
-    }
+        .message.error {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: var(--error-color);
+            border: 1px solid rgba(220, 53, 69, 0.3);
+            align-self: stretch;
+            max-width: 100%;
+            text-align: center;
+            border-radius: 6px;
+            padding: 10px 15px;
+        }
 
-    #settings-panel h2 {
-      margin-top: 0;
-      margin-bottom: 20px;
-      color: var(--text-color);
-      border-bottom: 2px solid var(--primary-color);
-      padding-bottom: 5px;
-    }
+        .message strong.role-indicator {
+            display: block;
+            font-size: 0.85em;
+            margin-bottom: 6px;
+            color: var(--primary-color);
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+        .message.user strong.role-indicator { color: #0056b3; }
+        .message.error strong { color: var(--error-color); font-weight: 600; }
 
-    #settings-panel label {
-      display: block;
-      margin-top: 15px;
-      color: var(--text-color);
-    }
+        /* Copy Message Button */
+        .copy-message-button {
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            background: rgba(0,0,0,0.1);
+            border: none;
+            color: rgba(0,0,0,0.5);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            padding: 3px 6px;
+            opacity: 0; /* Hidden by default */
+            transition: opacity 0.2s ease, background-color 0.2s ease;
+            z-index: 10;
+        }
+        .message.user .copy-message-button { right: 8px; } /* Adjust if needed */
+        .message.assistant .copy-message-button { right: 8px; }
+        .copy-message-button:hover {
+            background: rgba(0,0,0,0.2);
+            color: rgba(0,0,0,0.8);
+        }
+        .copy-message-button i { pointer-events: none; } /* Prevent icon from capturing click */
 
-    #settings-panel input[type="text"],
-    #settings-panel input[type="password"],
-    #settings-panel input[type="number"],
-    #settings-panel select {
-      width: 100%;
-      padding: 10px;
-      margin-top: 8px;
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-      box-sizing: border-box;
-      font-size: 16px; /* 设置面板输入框字体大小 */
-      color: var(--text-color);
-      background-color: var(--message-ai-bg); /* 设置面板输入框背景白色 */
-    }
+        /* Markdown Styles within messages */
+        .message .content-wrapper { margin-top: 4px; }
+        .message pre {
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 12px 0;
+            font-size: 0.9em;
+            position: relative; /* For copy button */
+        }
+        .message pre:hover .copy-code-button { opacity: 1; }
 
-    #settings-panel input[type="text"]:focus,
-    #settings-panel input[type="password"]:focus,
-    #settings-panel input[type="number"]:focus,
-    #settings-panel select:focus {
-      outline: none;
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-    }
+        .message code:not(pre code) {
+             background-color: rgba(0, 123, 255, 0.1);
+             color: #0056b3;
+             padding: 0.2em 0.5em;
+             border-radius: 4px;
+             font-size: 0.9em;
+        }
+        .message pre code { background: none; padding: 0; border: none; color: inherit; }
+        .message blockquote { border-left: 4px solid var(--primary-color); padding-left: 15px; margin-left: 0; color: #6c757d; background-color: #f8f9fa; padding-top: 5px; padding-bottom: 5px; }
+        .message table { border-collapse: collapse; margin: 15px 0; width: auto; border: 1px solid var(--border-color); }
+        .message th, .message td { border: 1px solid var(--border-color); padding: 8px 12px; text-align: left; }
+        .message th { background-color: #e9ecef; font-weight: 600; }
+        .message ul, .message ol { padding-left: 25px; margin-top: 8px; margin-bottom: 8px; }
+        .message p { margin-top: 0; margin-bottom: 0.8em; }
+        .message p:last-child { margin-bottom: 0; }
 
-    #settings-panel button {
-      margin-top: 20px;
-      padding: 12px 25px;
-      border-radius: 25px;
-      border: none;
-      background-color: var(--primary-color);
-      color: white;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-      font-size: 16px; /* 设置面板按钮字体大小 */
-      box-shadow: 0 2px 4px var(--shadow-color); /* 设置面板按钮阴影 */
-    }
+        /* Copy Code Button inside <pre> */
+        .copy-code-button {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.4);
+            border: none;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            padding: 4px 8px;
+            opacity: 0; /* Hidden by default */
+            transition: opacity 0.2s ease, background-color 0.2s ease;
+            z-index: 10;
+        }
+        .copy-code-button:hover { background: rgba(0,0,0,0.6); }
+        .copy-code-button.copied { background-color: #28a745; } /* Green when copied */
+        .copy-code-button i { margin-right: 4px; }
 
-    #settings-panel button:hover {
-      background-color: var(--primary-color-darker);
-    }
+        /* Input Area */
+        .input-area {
+            display: flex;
+            align-items: flex-end;
+            padding: 15px 20px;
+            border-top: 1px solid var(--border-color);
+            background-color: var(--secondary-color);
+            flex-shrink: 0;
+        }
 
-    #font-settings {
-      margin-bottom: 25px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid var(--border-color);
-    }
+        #userInput {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            resize: none;
+            min-height: 48px;
+            max-height: 250px;
+            overflow-y: auto;
+            font-size: 1em;
+            line-height: 1.5;
+            margin-right: 12px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+         #userInput:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+            outline: none;
+         }
 
-    #font-settings h3, #api-configs-container h3 {
-      color: var(--text-color);
-      margin-top: 0;
-      margin-bottom: 15px;
-    }
+        #sendButton, #stopButton {
+            padding: 0 28px;
+            height: 48px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            white-space: nowrap;
+            align-self: flex-end;
+        }
+        #sendButton {
+            background-color: var(--button-bg);
+            color: var(--button-text);
+        }
+        #sendButton:hover:not(:disabled) { background-color: var(--button-hover-bg); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
+        #sendButton:disabled { background-color: #adb5bd; cursor: not-allowed; box-shadow: none; }
 
-    .close-btn {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      font-size: 24px;
-      cursor: pointer;
-      background: none;
-      border: none;
-      color: #6c757d;
-      transition: color 0.3s ease;
-    }
+        #stopButton {
+            display: none; /* Hidden by default */
+            background-color: var(--button-danger-bg);
+            color: var(--button-text);
+        }
+        #stopButton:hover { background-color: var(--button-danger-hover-bg); }
 
-    .close-btn:hover {
-      color: #343a40;
-    }
 
-    #overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      z-index: 999;
-    }
+        .loading-indicator { display: none; margin-left: 15px; align-self: center; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
 
-    /* 请求日志 */
-    #log-panel {
-      display: none;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 90%; /* 日志面板宽度百分比 */
-      max-width: 900px; /* 日志面板最大宽度 */
-      height: 80%;
-      background-color: #fff;
-      border-radius: 15px;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); /* 更强的日志面板阴影 */
-      z-index: 1001;
-      overflow: auto;
-      padding: 20px;
-      white-space: pre-line;
-      font-family: 'Courier New', monospace;
-      font-size: 14px; /* 日志字体大小 */
-      color: var(--text-color);
-    }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from {opacity: 0;} to {opacity: 1;} }
 
-    #log-panel.show {
-      display: block !important;
-    }
-
-    /* API 配置卡片 */
-    .api-config-card {
-      border: 1px solid var(--border-color);
-      padding: 15px;
-      margin-bottom: 15px;
-      border-radius: 10px;
-      background-color: var(--message-ai-bg); /* API卡片背景白色 */
-      box-shadow: 0 2px 4px var(--shadow-color); /* API卡片阴影 */
-    }
-
-    .api-config-card h3 {
-      margin-top: 0;
-      margin-bottom: 15px;
-      color: var(--text-color);
-    }
-
-    .api-config-card label {
-      display: block;
-      margin-bottom: 8px;
-      color: var(--text-color);
-    }
-
-    .api-config-card button {
-      margin-top: 15px;
-      background-color: #dc3545;
-      color: white;
-      border: none;
-      border-radius: 20px;
-      padding: 10px 20px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-      box-shadow: 0 1px 3px var(--shadow-color); /* API卡片按钮阴影 */
-    }
-
-    .api-config-card button:hover {
-      background-color: #c82333;
-    }
-
-    /* 响应式 - 小屏幕 */
-    @media (max-width: 768px) {
-      #settings-panel, #log-panel {
-        width: 95%;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        max-height: 95vh;
-      }
-
-      .message {
-        max-width: 90%;
-      }
-
-      .input-line textarea, .input-line button, .control-line label, .control-line button, .control-line select, .icon-btn {
-        font-size: 14px;
-      }
-
-      #settings-panel h2, #font-settings h3, #api-configs-container h3, .api-config-card h3 {
-        font-size: 1.3em;
-      }
-
-      #settings-panel input[type="text"],
-      #settings-panel input[type="password"],
-      #settings-panel input[type="number"],
-      #settings-panel select, #settings-panel button {
-        font-size: 14px;
-      }
-
-      #log-panel {
-        top: 10px;
-        left: 10px;
-        transform: none;
-        width: calc(95% - 20px);
-        height: calc(90% - 20px);
-      }
-    }
-  </style>
+        /* Responsive */
+        @media (max-width: 768px) {
+            .chat-container { max-width: 100%; height: 100%; border-radius: 0; box-shadow: none; }
+            .chat-header { padding: 8px 15px; flex-wrap: wrap; } /* Allow wrapping */
+            .header-left { flex-basis: 100%; justify-content: space-between; margin-bottom: 5px; } /* Header left takes full width */
+            .chat-header h1 { font-size: 1.2em; }
+            .active-config-display { max-width: 100px; }
+            .header-buttons { flex-grow: 1; justify-content: flex-end; } /* Buttons take remaining space */
+            .header-buttons button, .font-controls button { padding: 5px 10px; font-size: 0.85em; }
+            .font-controls button { width: 24px; height: 24px; line-height: 24px; }
+            .chat-box { padding: 15px; gap: 15px; }
+            .message { max-width: 90%; padding: 10px 15px; }
+            .input-area { padding: 10px 15px; }
+            #userInput { padding: 10px 12px; margin-right: 8px; min-height: 44px; }
+            #sendButton, #stopButton { padding: 0 20px; height: 44px; }
+            .modal-content { width: 95%; margin: 5% auto; padding: 20px; }
+            #logModal .modal-content { max-width: 95%; }
+            .form-row { flex-direction: column; gap: 0; margin-bottom: 0; }
+            .form-row > div { margin-bottom: 18px; min-width: unset; }
+            .form-row input { margin-bottom: 0; }
+            .form-row > div:last-child { margin-bottom: 0; }
+        }
+    </style>
 </head>
 <body>
-  <div id="app">
-    <div class="container" id="chat-box">
-      <!-- 聊天消息显示区域 -->
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="header-left">
+                 <h1>高级 AI 对话</h1>
+                 <div id="activeConfigDisplay" class="active-config-display" title="当前使用的配置">无配置</div>
+            </div>
+            <div class="header-buttons">
+                <div class="font-controls">
+                    <span>字体:</span>
+                    <button id="decreaseFontButton" title="减小字号">-</button>
+                    <button id="increaseFontButton" title="增大字号">+</button>
+                </div>
+                <button id="logButton" title="查看日志"><i class="fas fa-file-alt"></i> 日志</button>
+                <button id="settingsButton" title="API 设置"><i class="fas fa-cog"></i> 设置</button>
+                <button id="clearChatButton" title="清空对话"><i class="fas fa-trash-alt"></i> 清空</button>
+            </div>
+        </div>
+
+        <div class="chat-box" id="chatBox">
+            <!-- 消息将在这里添加 -->
+        </div>
+
+        <div class="input-area">
+            <textarea id="userInput" placeholder="在此输入消息... (Shift+Enter 换行)" rows="1"></textarea>
+            <button id="sendButton">发送</button>
+            <button id="stopButton">停止</button> <!-- Initially hidden -->
+            <div class="loading-indicator" id="loadingIndicator">
+                <div class="spinner"></div>
+            </div>
+        </div>
     </div>
-    <div id="input-area">
-      <!-- 第一行：输入框和发送按钮 -->
-      <div class="input-line">
-        <textarea id="message-input" placeholder="输入消息..."></textarea>
-        <button id="send-btn">发送</button>
-      </div>
-      <!-- 第二行：各项设置和操作按钮 -->
-      <div class="control-line">
-        <label for="enable-combined">
-          <input type="checkbox" id="enable-combined"> 启用思考组合
-        </label>
-        <label for="thinking-model-select">
-          思考模型：
-          <select id="thinking-model-select">
-            <option value="qwq">Qwen/QwQ-32B</option>
-            <option value="deepseek">deepseek-ai/DeepSeek-R1</option>
-          </select>
-        </label>
-        <button id="settings-btn" class="icon-btn" title="设置"><i class="fas fa-cog"></i></button>
-        <button id="clear-context-btn" class="icon-btn" title="清除上下文"><i class="fas fa-broom"></i></button>
-        <button id="toggle-log-btn" class="icon-btn" title="显示/隐藏日志"><i class="fas fa-file-alt"></i></button>
-        <button id="clear-log-btn" class="icon-btn" title="清除日志"><i class="fas fa-trash"></i></button>
-        <select id="api-config-select" title="选择配置">
-          <!-- API 配置选项 -->
-        </select>
-      </div>
+
+    <!-- 设置 Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closeSettingsModalButton">&times;</span>
+            <h2>API 设置</h2>
+            <div class="config-section">
+                <h3>管理配置</h3>
+                <label for="configSelector">选择配置:</label>
+                <div id="configList"></div>
+                <button id="removeConfigButton" class="danger">删除选中配置</button>
+            </div>
+            <div class="config-section">
+                <h3>编辑 / 新增配置</h3>
+                <label for="configName">配置名称:</label>
+                <input type="text" id="configName" placeholder="例如：我的本地模型">
+                <label for="apiUrl">API 端点 URL:</label>
+                <input type="text" id="apiUrl" placeholder="例如：http://localhost:11434/v1/chat/completions">
+                <label for="apiKey">API 密钥 (可选):</label>
+                <input type="password" id="apiKey" placeholder="输入你的 API Key">
+                <label for="modelName">模型名称:</label>
+                <input type="text" id="modelName" placeholder="例如：llama3, gpt-4o-mini">
+                <div class="form-row">
+                    <div>
+                        <label for="maxTokens">最大 Token 数:</label>
+                        <input type="number" id="maxTokens" placeholder="默认值由API决定" min="1">
+                    </div>
+                    <div>
+                        <label for="temperature">温度 (0-2):</label>
+                        <input type="number" id="temperature" placeholder="例如: 0.7" min="0" max="2" step="0.1">
+                    </div>
+                     <div>
+                        <label for="contextCount">上下文消息数:</label>
+                        <input type="number" id="contextCount" placeholder="例如: 10" min="0">
+                    </div>
+                </div>
+                 <div class="checkbox-group">
+                     <input type="checkbox" id="streamResponse">
+                     <label for="streamResponse">启用流式响应 (实时显示)</label>
+                 </div>
+                <label for="systemPrompt">系统提示 (可选):</label>
+                <textarea id="systemPrompt" placeholder="例如：你是一个乐于助人的助手。"></textarea>
+                <button id="saveConfigButton">保存/新增配置</button>
+                <button id="newConfigButton" class="secondary">清空表单以新增</button>
+            </div>
+             <p style="font-size: 0.85em; color: #6c757d; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                <strong>⚠️ 安全警告:</strong> API 密钥存储在您的浏览器本地存储 (localStorage) 中。请谨慎使用敏感密钥。API 端点必须启用 CORS 才能从浏览器访问。
+            </p>
+        </div>
     </div>
-    <!-- 设置面板 -->
-    <div id="settings-panel">
-      <button class="close-btn" onclick="toggleSettingsPanel()">&times;</button>
-      <h2>设置</h2>
-      <!-- 字体设置 -->
-      <div id="font-settings">
-        <h3>字体设置</h3>
-        <label for="font-family">聊天字体：</label>
-        <select id="font-family">
-          <option value="'Open Sans', sans-serif">Open Sans</option>
-          <option value="'Lato', sans-serif">Lato</option>
-          <option value="'Montserrat', sans-serif">Montserrat</option>
-          <option value="'Roboto', sans-serif">Roboto</option>
-          <option value="'Source Sans Pro', sans-serif">Source Sans Pro</option>
-          <option value="Arial, sans-serif">Arial</option>
-          <option value="'Times New Roman', serif">Times New Roman</option>
-          <option value="'Courier New', monospace">Courier New</option>
-        </select>
-        <label for="font-size">聊天字号：</label>
-        <input type="number" id="font-size" min="10" max="30" value="16">
-        <label for="log-font-size">日志字号：</label>
-        <input type="number" id="log-font-size" min="10" max="30" value="12">
-      </div>
-      <h2>API 配置</h2>
-      <div id="api-configs-container">
-        <h3>API 配置列表</h3>
-        <!-- API 配置卡片 -->
-      </div>
-      <button id="add-api-config-btn">添加新配置</button>
-      <button id="save-settings-btn">保存设置</button>
+
+    <!-- 日志 Modal -->
+    <div id="logModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closeLogModalButton">&times;</span>
+            <h2>详细日志</h2>
+            <div id="logContainer">
+                <!-- 日志条目将在这里填充 -->
+                <div style="text-align: center; color: #6c757d;">暂无日志记录</div>
+            </div>
+            <button id="clearLogsButton">清空日志</button>
+        </div>
     </div>
-    <div id="overlay"></div>
-    <!-- 请求日志面板 -->
-    <div id="log-panel">
-      <button class="close-btn log-close-btn" onclick="closeLogPanel()">&times;</button>
-      <pre id="log-content"></pre>
-    </div>
-  </div>
-  <script>
-    //////////////////////////////////////////////////////////
-    // ----- 全局辅助函数及 marked 自定义配置 -----
-    // 修改后的 escapeHTML 函数：先转换为字符串再调用 replace
-    function escapeHTML(html) {
-      return String(html).replace(/&/g, "&amp;")
-                         .replace(/</g, "&lt;")
-                         .replace(/>/g, "&gt;")
-                         .replace(/"/g, "&quot;")
-                         .replace(/'/g, "&#039;");
-    }
 
-    // 创建自定义 renderer，对 html 方法进行覆写，将输入的 html 字符串转义
-    const renderer = new marked.Renderer();
-    renderer.html = function(html) {
-      return escapeHTML(html);
-    };
+    <script>
+        // --- DOM 元素获取 ---
+        const chatBox = document.getElementById('chatBox');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+        const stopButton = document.getElementById('stopButton');
+        const clearChatButton = document.getElementById('clearChatButton');
+        const settingsButton = document.getElementById('settingsButton');
+        const logButton = document.getElementById('logButton');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const activeConfigDisplay = document.getElementById('activeConfigDisplay');
+        const decreaseFontButton = document.getElementById('decreaseFontButton');
+        const increaseFontButton = document.getElementById('increaseFontButton');
 
-    //////////////////////////////////////////////////////////
-    // 获取 DOM 元素
-    const chatBox = document.getElementById('chat-box');
-    const messageInput = document.getElementById('message-input');
-    const sendButton = document.getElementById('send-btn');
-    const settingsButton = document.getElementById('settings-btn');
-    const clearContextButton = document.getElementById('clear-context-btn');
-    const settingsPanel = document.getElementById('settings-panel');
-    const overlay = document.getElementById('overlay');
-    const saveSettingsButton = document.getElementById('save-settings-btn');
-    const logPanel = document.getElementById('log-panel');
-    const logContent = document.getElementById('log-content');
-    const toggleLogButton = document.getElementById('toggle-log-btn');
-    const clearLogButton = document.getElementById('clear-log-btn');
-    const logFontSizeInput = document.getElementById('log-font-size');
-    const apiConfigsContainer = document.getElementById('api-configs-container');
-    const addApiConfigButton = document.getElementById('add-api-config-btn');
-    const apiConfigSelect = document.getElementById('api-config-select');
-    const fontFamilySelect = document.getElementById('font-family');
-    const fontSizeInput = document.getElementById('font-size');
+        // --- 设置 Modal 元素 ---
+        const settingsModal = document.getElementById('settingsModal');
+        const closeSettingsModalButton = document.getElementById('closeSettingsModalButton');
+        const configListDiv = document.getElementById('configList');
+        const removeConfigButton = document.getElementById('removeConfigButton');
+        const configNameInput = document.getElementById('configName');
+        const apiUrlInput = document.getElementById('apiUrl');
+        const apiKeyInput = document.getElementById('apiKey');
+        const modelNameInput = document.getElementById('modelName');
+        const maxTokensInput = document.getElementById('maxTokens');
+        const temperatureInput = document.getElementById('temperature');
+        const contextCountInput = document.getElementById('contextCount');
+        const streamResponseCheckbox = document.getElementById('streamResponse');
+        const systemPromptInput = document.getElementById('systemPrompt');
+        const saveConfigButton = document.getElementById('saveConfigButton');
+        const newConfigButton = document.getElementById('newConfigButton');
 
-    // 辅助函数：sleep 与重试 fetch
-    function sleep(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
-    }
+        // --- 日志 Modal 元素 ---
+        const logModal = document.getElementById('logModal');
+        const closeLogModalButton = document.getElementById('closeLogModalButton');
+        const logContainer = document.getElementById('logContainer');
+        const clearLogsButton = document.getElementById('clearLogsButton');
 
-    async function fetchWithRetry(url, options, maxRetries = 3, delayMs = 1000) {
-      let attempt = 0;
-      while (attempt < maxRetries) {
-        try {
-          const response = await fetch(url, options);
-          if (!response.ok) {
-            let errorMessage = "";
-            try {
-              const errorData = await response.clone().json();
-              errorMessage = errorData.error.message;
-            } catch (e) {
-              errorMessage = await response.clone().text();
-            }
-            throw new Error(errorMessage);
-          }
-          return response;
-        } catch (error) {
-          attempt++;
-          console.error(`Fetch attempt ${attempt} failed: ${error.message}`);
-          if (attempt >= maxRetries) throw error;
-          await sleep(delayMs);
-        }
-      }
-    }
+        // --- 状态变量 ---
+        let chatHistory = []; // {role: 'user'/'assistant', content: '...'}
+        let apiConfigs = [];
+        let currentConfigIndex = -1;
+        let isLoading = false;
+        let currentAbortController = null; // 用于中止 fetch 请求
+        let logs = []; // 存储日志条目
+        let currentFontSize = 16; // 默认字体大小
+        const MIN_FONT_SIZE = 8;
+        const MAX_LOG_ENTRIES = 100; // 日志存储上限
 
-    // 存储上下文消息（回答模型相关）
-    let contextMessages = [];
+        // --- 默认值 ---
+        const DEFAULT_CONTEXT_COUNT = 10;
+        const DEFAULT_TEMPERATURE = null; // 让 API 使用自己的默认值
+        const DEFAULT_MAX_TOKENS = null; // 让 API 使用自己的默认值
+        const DEFAULT_STREAM = false;
 
-    // 当前 API 配置（回答模型，其可由用户设置，默认配置如下）
-    let apiConfigs = {
-      'default': {
-        name: '默认配置',
-        model: '',  // 用户需填写回答模型的 model id
-        apiKey: '', // 用户自己的 API Key
-        apiUrl: '', // 用户自己的 API 地址
-        maxTokens: 100000,
-        contextLength: 30,
-        temperature: 0,
-        stream: false,
-      }
-    };
-    let currentConfigName = 'default'; // 跟踪当前配置
-
-    //////////////////////////////////////////////////////////
-    // 新增：思考模型的配置，提供选择功能
-    const thinkingModelConfigs = {
-      qwq: {
-        model: 'Qwen/QwQ-32B',
-        apiKey: 'a121eb23-a813-48a3-8453-3dc11d0e1386',
-        apiUrl: 'https://api-inference.modelscope.cn/v1',
-        stream: true,
-        maxTokens: 2000,
-        temperature: 0,
-        contextLength: 30,
-      },
-      deepseek: {
-        model: 'deepseek-ai/DeepSeek-R1',
-        apiKey: 'a121eb23-a813-48a3-8453-3dc11d0e1386',
-        apiUrl: 'https://api-inference.modelscope.cn/v1',
-        stream: true,
-        maxTokens: 2000,
-        temperature: 0,
-        contextLength: 30,
-      }
-    };
-
-    //////////////////////////////////////////////////////////
-    // 加载保存的设置
-    function loadSettings() {
-      const savedConfigs = localStorage.getItem('aiChatApiConfigs');
-      if (savedConfigs) {
-        apiConfigs = JSON.parse(savedConfigs);
-      }
-      const savedConfigName = localStorage.getItem('aiChatCurrentConfig');
-      if (savedConfigName) {
-        currentConfigName = savedConfigName;
-      }
-      // 加载字体设置
-      const savedFontFamily = localStorage.getItem('aiChatFontFamily');
-      if (savedFontFamily) {
-        document.body.style.fontFamily = savedFontFamily;
-        fontFamilySelect.value = savedFontFamily;
-      }
-      const savedFontSize = localStorage.getItem('aiChatFontSize');
-      if (savedFontSize) {
-        document.body.style.fontSize = savedFontSize + 'px';
-        fontSizeInput.value = savedFontSize;
-      }
-      const savedLogFontSize = localStorage.getItem('aiChatLogFontSize');
-      if (savedLogFontSize) {
-        logContent.style.fontSize = savedLogFontSize + 'px';
-        logFontSizeInput.value = savedLogFontSize;
-      }
-      renderApiConfigCards(); // 渲染 API 配置卡片
-      updateApiConfigSelect(); // 更新配置选择下拉框
-      selectCurrentConfig();   // 选择当前配置
-    }
-    // 保存设置
-    function saveSettings() {
-      localStorage.setItem('aiChatApiConfigs', JSON.stringify(apiConfigs));
-      localStorage.setItem('aiChatCurrentConfig', currentConfigName);
-      localStorage.setItem('aiChatFontFamily', fontFamilySelect.value);
-      localStorage.setItem('aiChatFontSize', fontSizeInput.value);
-      localStorage.setItem('aiChatLogFontSize', logFontSizeInput.value);
-      alert('设置已保存！');
-    }
-    // 切换设置面板
-    function toggleSettingsPanel() {
-      settingsPanel.style.display = settingsPanel.style.display === 'block' ? 'none' : 'block';
-      overlay.style.display = overlay.style.display === 'block' ? 'none' : 'block';
-    }
-    // 关闭日志面板
-    function closeLogPanel() {
-      logPanel.style.display = 'none';
-    }
-    // 清除上下文
-    function clearContext() {
-      contextMessages = [];
-      chatBox.innerHTML = '';
-      logMessage('上下文已清除', 'info');
-    }
-    // 复制消息（复制原始 markdown 文本）
-    function copyMessage(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        logMessage('已复制', 'info');
-      }).catch(err => {
-        logMessage('复制失败: ' + err, 'error');
-      });
-    }
-    // 复制到剪贴板的函数（用于代码块）
-    function copyToClipboard(text) {
-      navigator.clipboard.writeText(text).then(function() {
-        logMessage('代码已复制', 'info');
-      }).catch(function(err) {
-        logMessage('复制失败: ' + err, 'error');
-      });
-    }
-    //////////////////////////////////////////////////////////
-    // 修改后的：添加消息到聊天框（使用内容容器，且调用 marked.parse 时传入自定义 renderer）
-    function appendMessage(message, sender) {
-      const messageElement = document.createElement('div');
-      messageElement.classList.add('message', `${sender}-message`);
-      
-      // 先添加复制按钮（绝对定位，始终显示在右上角）
-      const copyButton = document.createElement('button');
-      copyButton.classList.add('copy-btn');
-      copyButton.innerHTML = '<i class="fas fa-copy"></i>';
-      copyButton.title = "复制";
-      copyButton.addEventListener('click', (event) => {
-        event.stopPropagation();
-        copyMessage(message);
-      });
-      messageElement.appendChild(copyButton);
-      
-      // 创建用于展示内容的容器，传入 marked.parse 时指定 renderer
-      const contentContainer = document.createElement('div');
-      contentContainer.classList.add('content-container');
-      contentContainer.innerHTML = marked.parse(message, { renderer: renderer });
-      messageElement.appendChild(contentContainer);
-      
-      chatBox.appendChild(messageElement);
-      chatBox.scrollTop = chatBox.scrollHeight;
-      
-      // 对代码块进行高亮及添加复制按钮
-      const codeBlocks = contentContainer.querySelectorAll('pre code');
-      codeBlocks.forEach((block) => {
-          hljs.highlightElement(block);
-          const codeCopyBtn = document.createElement('button');
-          codeCopyBtn.classList.add('code-copy-btn');
-          codeCopyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-          codeCopyBtn.title = "复制代码";
-          codeCopyBtn.addEventListener('click', (event) => {
-              event.stopPropagation();
-              copyToClipboard(block.textContent);
-          });
-          block.parentNode.style.position = "relative";
-          block.parentNode.appendChild(codeCopyBtn);
-      });
-      
-      // 渲染数学公式
-      renderMathInElement(contentContainer, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false },
-          { left: '\\(', right: '\\)', display: false },
-          { left: '\\[', right: '\\]', display: true }
-        ],
-        throwOnError: false
-      });
-    }
-    //////////////////////////////////////////////////////////
-    // 发送消息（回答模型，不含思考组合）
-    async function sendMessage() {
-      const message = messageInput.value.trim();
-      if (!message) return;
-      appendMessage(message, 'user');
-      messageInput.value = '';
-      contextMessages.push({ role: 'user', content: message });
-      if (contextMessages.length > apiConfigs[currentConfigName].contextLength) {
-        contextMessages.shift();
-      }
-      try {
-        const requestData = {
-          model: apiConfigs[currentConfigName].model,
-          messages: contextMessages,
-          max_tokens: apiConfigs[currentConfigName].maxTokens,
-          temperature: apiConfigs[currentConfigName].temperature,
-          stream: apiConfigs[currentConfigName].stream,
-        };
-        logMessage("发送请求：" + JSON.stringify(requestData, null, 2));
-        const response = await fetchWithRetry(apiConfigs[currentConfigName].apiUrl + '/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiConfigs[currentConfigName].apiKey}`
-          },
-          body: JSON.stringify(requestData)
+        // --- 初始化 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFontSize();
+            applyFontSize();
+            loadLogs();
+            loadConfigs(); // 加载 API 配置 (会更新 currentConfigIndex)
+            loadChatHistory(); // 加载聊天记录
+            renderChatHistory(); // 渲染聊天记录 (依赖 chatHistory)
+            updateSettingsUI(); // 更新设置界面 (依赖 apiConfigs, currentConfigIndex)
+            updateActiveConfigDisplay(); // 更新顶部配置显示
+            setupEventListeners(); // 设置事件监听器
+            adjustTextareaHeight(); // 初始化文本域高度
+            configureMarked(); // 配置 Markdown 渲染
         });
-        if (apiConfigs[currentConfigName].stream) {
-          handleStreamResponse(response);
-        } else {
-          const responseData = await response.json();
-          logMessage("收到响应：" + JSON.stringify(responseData, null, 2));
-          const aiReply = responseData.choices[0].message.content;
-          contextMessages.push({ role: 'assistant', content: aiReply });
-          appendMessage(aiReply, 'ai');
-        }
-      } catch (error) {
-        appendMessage(`Error: ${error.message}`, 'ai');
-        logMessage(`Error: ${error.message}`, 'error');
-      }
-    }
-    //////////////////////////////////////////////////////////
-    // 处理回答模型的流式响应（保证复制按钮不被覆盖，使用内容容器更新内容）
-    async function handleStreamResponse(response) {
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-      let aiMessageElement = null;
-      let contentContainer = null;
-      let buffer = '';
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n').filter(line => line.trim() !== '');
-          for (const line of lines) {
-            if (line.startsWith('data:')) {
-              const dataLine = line.substring(5).trim();
-              if (dataLine === "[DONE]") return;
-              if (dataLine.startsWith("<")) {
-                throw new Error("Unexpected HTML response: " + dataLine);
-              }
-              try {
-                const parsed = JSON.parse(dataLine);
-                if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
-                  const content = parsed.choices[0].delta.content;
-                  if (content) {
-                    buffer += content;
-                    logMessage("回答模型流式回复 chunk: " + content);
-                    if (!aiMessageElement) {
-                      aiMessageElement = document.createElement('div');
-                      aiMessageElement.classList.add('message', 'ai-message');
-                      
-                      const copyButton = document.createElement('button');
-                      copyButton.classList.add('copy-btn');
-                      copyButton.innerHTML = '<i class="fas fa-copy"></i>';
-                      copyButton.title = "复制";
-                      copyButton.addEventListener('click', (event) => {
-                        event.stopPropagation();
-                        copyMessage(buffer);
-                      });
-                      aiMessageElement.appendChild(copyButton);
-                      
-                      contentContainer = document.createElement('div');
-                      contentContainer.classList.add('content-container');
-                      aiMessageElement.appendChild(contentContainer);
-                      
-                      chatBox.appendChild(aiMessageElement);
+
+        // --- 配置 Marked ---
+        function configureMarked() {
+            marked.setOptions({
+                highlight: function(code, lang) {
+                    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                    try {
+                        return hljs.highlight(code, { language, ignoreIllegals: true }).value;
+                    } catch (e) {
+                        logEvent('error', `Highlighting error for lang ${lang}: ${e.message}`);
+                        return hljs.highlightAuto(code).value;
                     }
-                    contentContainer.innerHTML = marked.parse(buffer, { renderer: renderer });
-                    
-                    const codeBlocks = contentContainer.querySelectorAll('pre code');
-                    codeBlocks.forEach((block) => {
-                      hljs.highlightElement(block);
-                      let existingBtn = block.parentNode.querySelector('.code-copy-btn');
-                      if (!existingBtn) {
-                        const codeCopyBtn = document.createElement('button');
-                        codeCopyBtn.classList.add('code-copy-btn');
-                        codeCopyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-                        codeCopyBtn.title = "复制代码";
-                        codeCopyBtn.addEventListener('click', (event) => {
-                          event.stopPropagation();
-                          copyToClipboard(block.textContent);
-                        });
-                        block.parentNode.style.position = 'relative';
-                        block.parentNode.appendChild(codeCopyBtn);
-                      }
-                    });
-                    
-                    renderMathInElement(contentContainer, {
-                      delimiters: [
-                        { left: '$$', right: '$$', display: true },
-                        { left: '$', right: '$', display: false },
-                        { left: '\\(', right: '\\)', display: false },
-                        { left: '\\[', right: '\\]', display: true }
-                      ],
-                      throwOnError: false
-                    });
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                  }
+                },
+                langPrefix: 'hljs language-',
+                gfm: true,
+                breaks: true,
+            });
+        }
+
+        // --- 事件监听器设置 ---
+        function setupEventListeners() {
+            sendButton.addEventListener('click', sendMessage);
+            stopButton.addEventListener('click', stopGeneration);
+            userInput.addEventListener('keydown', handleInputKeydown);
+            userInput.addEventListener('input', adjustTextareaHeight);
+            clearChatButton.addEventListener('click', clearChat);
+
+            // Modals
+            settingsButton.addEventListener('click', openSettingsModal);
+            closeSettingsModalButton.addEventListener('click', closeSettingsModal);
+            logButton.addEventListener('click', openLogModal);
+            closeLogModalButton.addEventListener('click', closeLogModal);
+            window.addEventListener('click', (event) => { // 点击 Modal 外部关闭
+                if (event.target == settingsModal) closeSettingsModal();
+                if (event.target == logModal) closeLogModal();
+            });
+
+            // Settings Modal 内
+            saveConfigButton.addEventListener('click', saveOrAddConfig);
+            removeConfigButton.addEventListener('click', removeSelectedConfig);
+            newConfigButton.addEventListener('click', clearConfigFields);
+            configListDiv.addEventListener('click', handleConfigSelection);
+
+            // Log Modal 内
+            clearLogsButton.addEventListener('click', clearLogs);
+
+            // Font Size Controls
+            increaseFontButton.addEventListener('click', increaseFontSize);
+            decreaseFontButton.addEventListener('click', decreaseFontSize);
+
+            // Copy Buttons (Event Delegation on chatBox)
+            chatBox.addEventListener('click', handleChatBoxClick);
+        }
+
+        // --- 核心聊天功能 ---
+
+        function adjustTextareaHeight() {
+            userInput.style.height = 'auto';
+            const newHeight = Math.max(userInput.scrollHeight, 48);
+            userInput.style.height = newHeight + 'px';
+        }
+
+        function handleInputKeydown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // 处理聊天框内的点击事件 (用于复制按钮)
+        function handleChatBoxClick(event) {
+            const target = event.target;
+
+            // 消息复制按钮
+            if (target.classList.contains('copy-message-button') || target.closest('.copy-message-button')) {
+                const button = target.closest('.copy-message-button');
+                const messageElement = button.closest('.message');
+                const messageIndex = Array.from(chatBox.children).indexOf(messageElement);
+                // Find the corresponding message in history (adjust index if initial message exists)
+                const historyIndex = chatHistory.findIndex((_, idx) => idx === messageIndex - (chatHistory.length > 0 && chatBox.children[0].classList.contains('assistant') && chatHistory[0]?.role !== 'assistant' ? 0 : (chatBox.children.length - chatHistory.length)));
+
+                if (historyIndex !== -1 && chatHistory[historyIndex]) {
+                    copyToClipboard(chatHistory[historyIndex].content, button);
+                } else {
+                    // Fallback for initial message or error messages not in history
+                    const contentWrapper = messageElement.querySelector('.content-wrapper');
+                    if (contentWrapper) {
+                         copyToClipboard(contentWrapper.textContent || contentWrapper.innerText, button);
+                    }
+                    logEvent('info', `Could not find message in history for index ${messageIndex}. Copied rendered text.`);
                 }
-              } catch (error) {
-                console.error('Error parsing stream data:', error);
-              }
+                return; // Prevent further processing
             }
-          }
-        }
-      } catch (error) {
-        console.error('Error reading stream:', error);
-        if (aiMessageElement && contentContainer) {
-          contentContainer.innerHTML += `<br><b>Error: ${error.message}</b>`;
-        }
-      } finally {
-        reader.releaseLock();
-      }
-    }
-    //////////////////////////////////////////////////////////
-    // 以下实现“思考组合”功能
-    async function sendMessageCombined() {
-      const message = messageInput.value.trim();
-      if (!message) return;
-      appendMessage(message, 'user');
-      messageInput.value = '';
-      try {
-        // 保存原始用户消息
-        const originalUserMessage = message;
-        // 调用思考模型获取思维链
-        const thinkingChain = await callThinkingModel(message);
-        // 构造给回答模型的提示，包含原始问题和思维链
-        const answerPrompt = `用户的原始问题是：\n\`\`\`\n${originalUserMessage}\n\`\`\`\n\n结合以下思维链，请给出**针对原始问题的最终回答**：\n${thinkingChain}`;
-        await callAnswerModelChain(answerPrompt);
-      } catch (e) {
-        console.error("Error in combined mode:", e);
-      }
-    }
-    //////////////////////////////////////////////////////////
-    // 调用思考模型（流式返回，提取 delta.reasoning_content）
-    async function callThinkingModel(message) {
-      const selectedThinking = document.getElementById('thinking-model-select').value;
-      const currentThinkingConfig = thinkingModelConfigs[selectedThinking] || thinkingModelConfigs['qwq'];
-      const requestData = {
-        model: currentThinkingConfig.model,
-        messages: [{ role: 'user', content: message }],
-        max_tokens: currentThinkingConfig.maxTokens,
-        temperature: currentThinkingConfig.temperature,
-        stream: currentThinkingConfig.stream,
-      };
-      try {
-        const response = await fetchWithRetry(currentThinkingConfig.apiUrl + '/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${currentThinkingConfig.apiKey}`
-          },
-          body: JSON.stringify(requestData)
-        });
-        // 创建思考模型输出的消息泡（添加前缀及内容容器）
-        const thinkingBubble = document.createElement('div');
-        thinkingBubble.classList.add('message', 'ai-message');
-        thinkingBubble.style.backgroundColor = "#f0f0f0";
-        const prefix = document.createElement('div');
-        prefix.innerHTML = `<i>【思考模型】</i><br>`;
-        thinkingBubble.appendChild(prefix);
-        const contentContainer = document.createElement('div');
-        contentContainer.classList.add('content-container');
-        thinkingBubble.appendChild(contentContainer);
-        chatBox.appendChild(thinkingBubble);
-        chatBox.scrollTop = chatBox.scrollHeight;
-        // 流式处理思考模型响应，提取 reasoning_content
-        const chainOfThought = await handleThinkingStreamResponse(response, thinkingBubble);
-        return chainOfThought;
-      } catch (error) {
-        appendMessage(`Error in thinking model: ${error.message}`, 'ai');
-        logMessage(`Error in thinking model: ${error.message}`, 'error');
-        throw error;
-      }
-    }
-    //////////////////////////////////////////////////////////
-    // 处理思考模型的流式响应，仅更新思维链部分（使用内容容器）
-    async function handleThinkingStreamResponse(response, outputElement) {
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-      let chainOfThought = "";
-      let contentContainer = outputElement.querySelector('.content-container');
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n').filter(line => line.trim() !== '');
-          for (const line of lines) {
-            if (line.startsWith('data:')) {
-              const dataLine = line.substring(5).trim();
-              if (dataLine === "[DONE]") return chainOfThought;
-              if (dataLine.startsWith("<")) {
-                throw new Error("Unexpected HTML response: " + dataLine);
-              }
-              try {
-                const parsed = JSON.parse(dataLine);
-                if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
-                  const reasoning = parsed.choices[0].delta.reasoning_content || "";
-                  if (reasoning !== '') {
-                    chainOfThought += reasoning;
-                    contentContainer.innerHTML = marked.parse(chainOfThought, { renderer: renderer });
-                    logMessage("思考模型流式响应 chunk: " + reasoning);
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                  }
+
+            // 代码块复制按钮
+            if (target.classList.contains('copy-code-button') || target.closest('.copy-code-button')) {
+                const button = target.closest('.copy-code-button');
+                const preElement = button.closest('pre');
+                const codeElement = preElement?.querySelector('code');
+                if (codeElement) {
+                    copyToClipboard(codeElement.textContent, button);
                 }
-              } catch (e) {
-                console.error('Error parsing thinking stream data:', e);
-              }
+                return; // Prevent further processing
             }
-          }
         }
-        return chainOfThought;
-      } catch (error) {
-        console.error("Error reading thinking stream:", error);
-      } finally {
-        reader.releaseLock();
-      }
-    }
-    //////////////////////////////////////////////////////////
-    // 调用回答模型：将构造好的提示发送给回答模型（同样采用内容容器）
-    async function callAnswerModelChain(prompt) {
-      const requestData = {
-        model: apiConfigs[currentConfigName].model,
-        messages: [
-          { role: 'system', content: "你现在是一个全能专家，请仔细阅读用户提出的原始问题和思考模型给出的思维链，并结合二者给出**针对原始问题的最终回答**。" },
-          { role: 'user', content: prompt }
-        ],
-        max_tokens: apiConfigs[currentConfigName].maxTokens,
-        temperature: apiConfigs[currentConfigName].temperature,
-        stream: apiConfigs[currentConfigName].stream
-      };
-      logMessage("发送回答请求：" + JSON.stringify(requestData, null, 2));
-      try {
-        const response = await fetchWithRetry(apiConfigs[currentConfigName].apiUrl + '/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiConfigs[currentConfigName].apiKey}`
-          },
-          body: JSON.stringify(requestData)
-        });
-        const answerBubble = document.createElement('div');
-        answerBubble.classList.add('message', 'ai-message');
-        const copyButton = document.createElement('button');
-        copyButton.classList.add('copy-btn');
-        copyButton.innerHTML = '<i class="fas fa-copy"></i>';
-        copyButton.title = "复制";
-        copyButton.addEventListener('click', (event) => {
-          event.stopPropagation();
-          copyMessage(answerBubble.innerText);
-        });
-        answerBubble.appendChild(copyButton);
-        // 添加内容容器，用于后续流式回复更新，不会覆盖复制按钮
-        const contentContainer = document.createElement('div');
-        contentContainer.classList.add('content-container');
-        answerBubble.appendChild(contentContainer);
-        chatBox.appendChild(answerBubble);
-        chatBox.scrollTop = chatBox.scrollHeight;
-        await handleAnswerStreamResponse(response, answerBubble);
-      } catch (error) {
-        appendMessage(`Error in answer model: ${error.message}`, 'ai');
-        logMessage(`Error in answer model: ${error.message}`, 'error');
-      }
-    }
-    //////////////////////////////////////////////////////////
-    // 处理回答模型的流式响应（更新内容容器）
-    async function handleAnswerStreamResponse(response, answerBubble) {
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-      let buffer = "";
-      let contentContainer = answerBubble.querySelector('.content-container');
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n').filter(line => line.trim() !== '');
-          for (const line of lines) {
-            if (line.startsWith('data:')) {
-              const dataLine = line.substring(5).trim();
-              if (dataLine === "[DONE]") return;
-              if (dataLine.startsWith("<")) {
-                throw new Error("Unexpected HTML response: " + dataLine);
-              }
-              try {
-                const parsed = JSON.parse(dataLine);
-                if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
-                  const content = parsed.choices[0].delta.content;
-                  if (content) {
-                    buffer += content;
-                    logMessage("回答模型流式回复 chunk: " + content);
-                    contentContainer.innerHTML = marked.parse(buffer, { renderer: renderer });
-                    const codeBlocks = contentContainer.querySelectorAll('pre code');
-                    codeBlocks.forEach((block) => {
-                      hljs.highlightElement(block);
-                      let existingBtn = block.parentNode.querySelector('.code-copy-btn');
-                      if (!existingBtn) {
-                        const codeCopyBtn = document.createElement('button');
-                        codeCopyBtn.classList.add('code-copy-btn');
-                        codeCopyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-                        codeCopyBtn.title = "复制代码";
-                        codeCopyBtn.addEventListener('click', (event) => {
-                          event.stopPropagation();
-                          copyToClipboard(block.textContent);
-                        });
-                        block.parentNode.style.position = 'relative';
-                        block.parentNode.appendChild(codeCopyBtn);
-                      }
-                    });
-                    renderMathInElement(contentContainer, {
-                      delimiters: [
-                        { left: '$$', right: '$$', display: true },
-                        { left: '$', right: '$', display: false },
-                        { left: '\\(', right: '\\)', display: false },
-                        { left: '\\[', right: '\\]', display: true }
-                      ],
-                      throwOnError: false
-                    });
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                  }
+
+        // 复制到剪贴板函数
+        function copyToClipboard(text, buttonElement = null) {
+            navigator.clipboard.writeText(text).then(() => {
+                logEvent('info', '内容已复制到剪贴板');
+                if (buttonElement) {
+                    const originalText = buttonElement.innerHTML;
+                    buttonElement.innerHTML = '<i class="fas fa-check"></i> 已复制';
+                    buttonElement.classList.add('copied');
+                    setTimeout(() => {
+                        buttonElement.innerHTML = originalText;
+                        buttonElement.classList.remove('copied');
+                    }, 1500); // 恢复按钮状态
                 }
-              } catch (error) {
-                console.error("Error parsing answer stream data:", error);
-              }
-            }
-          }
+            }).catch(err => {
+                logEvent('error', `无法复制内容: ${err}`);
+                alert('复制失败: ' + err);
+            });
         }
-      } catch (error) {
-        console.error('Error reading answer stream:', error);
-        contentContainer.innerHTML += `<br><b>Error: ${error.message}</b>`;
-      } finally {
-        reader.releaseLock();
-      }
-    }
-    //////////////////////////////////////////////////////////
-    // 记录日志
-    function logMessage(message, type = 'log') {
-      const now = new Date();
-      const time = now.toLocaleTimeString();
-      logContent.innerHTML += `<span style="${type === 'error' ? 'color: red;' : ''}">${time} - ${type}: ${message}</span><br>`;
-      logPanel.scrollTop = logPanel.scrollHeight;
-    }
-    // 切换日志面板
-    function toggleLogPanel() {
-      logPanel.classList.toggle('show');
-    }
-    // 清除日志内容
-    function clearLogContent() {
-      logContent.innerHTML = '';
-    }
-    //////////////////////////////////////////////////////////
-    // 渲染 API 配置卡片
-    function renderApiConfigCards() {
-      apiConfigsContainer.innerHTML = '';
-      for (const key in apiConfigs) {
-        const config = apiConfigs[key];
-        const card = document.createElement('div');
-        card.classList.add('api-config-card');
-        card.innerHTML = `
-          <h3>${config.name}</h3>
-          <label>模型: <input type="text" data-key="${key}" data-field="model" value="${config.model}"></label>
-          <label>API Key: <input type="password" data-key="${key}" data-field="apiKey" value="${config.apiKey}"></label>
-          <label>API 地址: <input type="text" data-key="${key}" data-field="apiUrl" value="${config.apiUrl}"></label>
-          <label>最大 Tokens: <input type="number" data-key="${key}" data-field="maxTokens" value="${config.maxTokens}"></label>
-          <label>上下文长度: <input type="number" data-key="${key}" data-field="contextLength" value="${config.contextLength}"></label>
-          <label>温度: <input type="number" step="0.1" data-key="${key}" data-field="temperature" value="${config.temperature}"></label>
-          <label>流式回复: <input type="checkbox" data-key="${key}" data-field="stream" ${config.stream ? 'checked' : ''}></label>
-          <button data-key="${key}" class="delete-config-btn">删除</button>
-        `;
-        apiConfigsContainer.appendChild(card);
-        card.querySelectorAll('input').forEach(input => {
-          input.addEventListener('input', (event) => {
-            const key = event.target.dataset.key;
-            const field = event.target.dataset.field;
-            if (field === 'stream') {
-              apiConfigs[key][field] = event.target.checked;
+
+
+        // 向聊天框添加消息 (返回创建的元素)
+        function addMessageToChat(role, content, isError = false, messageId = null) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', role);
+            if (messageId) messageElement.dataset.messageId = messageId; // 用于流式更新
+
+            const roleIndicator = document.createElement('strong');
+            roleIndicator.classList.add('role-indicator');
+
+            const contentWrapper = document.createElement('div');
+            contentWrapper.classList.add('content-wrapper');
+
+            // 添加消息复制按钮 (除了错误消息)
+            if (!isError) {
+                const copyButton = document.createElement('button');
+                copyButton.classList.add('copy-message-button');
+                copyButton.title = '复制消息内容';
+                copyButton.innerHTML = '<i class="fas fa-copy"></i>';
+                messageElement.appendChild(copyButton);
             }
-            else if (field === 'maxTokens' || field === 'contextLength') {
-              apiConfigs[key][field] = parseInt(event.target.value, 10);
-            } else if (field === 'temperature') {
-              apiConfigs[key][field] = parseFloat(event.target.value);
+
+            if (isError) {
+                messageElement.classList.add('error');
+                roleIndicator.textContent = '错误';
+                contentWrapper.textContent = content;
             } else {
-              apiConfigs[key][field] = event.target.value;
+                roleIndicator.textContent = role === 'user' ? '你' : '助手';
+                updateMessageContent(contentWrapper, content, role === 'assistant'); // 使用统一函数处理内容
             }
-            updateApiConfigSelect();
-            selectCurrentConfig();
-          });
-        });
-        card.querySelector('.delete-config-btn').addEventListener('click', (event) => {
-          const key = event.target.dataset.key;
-          if (confirm(`确定删除配置 "${apiConfigs[key].name}"?`)) {
-            delete apiConfigs[key];
-            if (currentConfigName === key) {
-              currentConfigName = 'default';
-            }
-            renderApiConfigCards();
-            updateApiConfigSelect();
-            selectCurrentConfig();
-          }
-        });
-      }
-    }
-    // 添加新配置
-    function addNewApiConfig() {
-      const name = prompt("请输入新配置的名称:");
-      if (name) {
-        const key = name.toLowerCase().replace(/\s+/g, '-');
-        apiConfigs[key] = {
-          ...apiConfigs['default'],
-          name: name,
-          model: '',
-          apiKey: '',
-          apiUrl: '',
-        };
-        currentConfigName = key;
-        renderApiConfigCards();
-        updateApiConfigSelect();
-        selectCurrentConfig();
-      }
-    }
-    // 更新 API 配置选择下拉框
-    function updateApiConfigSelect() {
-      apiConfigSelect.innerHTML = '';
-      for (const key in apiConfigs) {
-        const option = document.createElement('option');
-        option.value = key;
-        option.textContent = apiConfigs[key].name;
-        apiConfigSelect.appendChild(option);
-      }
-    }
-    // 选择当前配置
-    function selectCurrentConfig() {
-      apiConfigSelect.value = currentConfigName;
-    }
-    //////////////////////////////////////////////////////////
-    // 事件监听器
-    sendButton.addEventListener('click', () => {
-      if (document.getElementById('enable-combined').checked) {
-        sendMessageCombined();
-      } else {
-        sendMessage();
-      }
-    });
-    messageInput.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' && !event.shiftKey) {
-        event.preventDefault();
-        if (document.getElementById('enable-combined').checked) {
-          sendMessageCombined();
-        } else {
-          sendMessage();
+
+            messageElement.appendChild(roleIndicator);
+            messageElement.appendChild(contentWrapper);
+            chatBox.appendChild(messageElement);
+            scrollToBottom();
+            return messageElement; // 返回元素以便流式更新
         }
-      }
-    });
-    settingsButton.addEventListener('click', toggleSettingsPanel);
-    clearContextButton.addEventListener('click', clearContext);
-    saveSettingsButton.addEventListener('click', saveSettings);
-    toggleLogButton.addEventListener('click', toggleLogPanel);
-    clearLogButton.addEventListener('click', clearLogContent);
-    addApiConfigButton.addEventListener('click', addNewApiConfig);
-    apiConfigSelect.addEventListener('change', (event) => {
-      currentConfigName = event.target.value;
-    });
-    fontFamilySelect.addEventListener('change', () => {
-      document.body.style.fontFamily = fontFamilySelect.value;
-    });
-    fontSizeInput.addEventListener('change', () => {
-      document.body.style.fontSize = fontSizeInput.value + 'px';
-    });
-    logFontSizeInput.addEventListener('change', () => {
-      logContent.style.fontSize = logFontSizeInput.value + 'px';
-    });
-    //////////////////////////////////////////////////////////
-    // 初始化设置
-    loadSettings();
-  </script>
+
+        // 更新消息内容 (用于初始添加和流式更新)
+        function updateMessageContent(contentWrapper, content, isAssistant) {
+             if (isAssistant) {
+                // 使用 marked 渲染 Markdown
+                contentWrapper.innerHTML = marked.parse(content || "*思考中...*");
+                // 渲染后为代码块添加复制按钮
+                contentWrapper.querySelectorAll('pre').forEach(pre => {
+                    if (pre.querySelector('.copy-code-button')) return; // 避免重复添加
+
+                    const codeElement = pre.querySelector('code');
+                    if (!codeElement) return; // Skip if no code element found
+
+                    const copyButton = document.createElement('button');
+                    copyButton.classList.add('copy-code-button');
+                    copyButton.innerHTML = '<i class="fas fa-copy"></i> 复制';
+                    copyButton.title = '复制代码';
+                    pre.appendChild(copyButton);
+                });
+            } else {
+                // 用户消息直接显示文本内容 (防止 XSS)
+                contentWrapper.textContent = content;
+            }
+        }
+
+        // 渲染整个聊天历史
+        function renderChatHistory() {
+            chatBox.innerHTML = '';
+            if (chatHistory.length === 0) {
+                 addMessageToChat('assistant', '你好！请在“设置”中配置你的 API 信息，然后开始对话吧。');
+            } else {
+                chatHistory.forEach((msg, index) => {
+                    addMessageToChat(msg.role, msg.content, false, `msg-${index}`);
+                });
+            }
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // 设置加载状态
+        function setLoading(loading, isStreaming = false) {
+            isLoading = loading;
+            userInput.disabled = loading;
+            userInput.placeholder = loading ? "等待 AI 响应..." : "在此输入消息... (Shift+Enter 换行)";
+
+            if (loading) {
+                sendButton.style.display = 'none'; // 隐藏发送按钮
+                if (isStreaming) {
+                    stopButton.style.display = 'inline-block'; // 显示停止按钮
+                    loadingIndicator.style.display = 'none'; // 流式时不显示 spinner
+                } else {
+                    stopButton.style.display = 'none'; // 非流式隐藏停止按钮
+                    loadingIndicator.style.display = 'flex'; // 显示 spinner
+                }
+            } else {
+                sendButton.style.display = 'inline-block'; // 显示发送按钮
+                stopButton.style.display = 'none'; // 隐藏停止按钮
+                loadingIndicator.style.display = 'none'; // 隐藏 spinner
+                sendButton.disabled = false; // 确保发送按钮可用
+            }
+        }
+
+        // 发送消息
+        async function sendMessage() {
+            const userText = userInput.value.trim();
+            if (!userText || isLoading) return;
+
+            if (currentConfigIndex < 0 || !apiConfigs[currentConfigIndex]) {
+                addMessageToChat('error', '请先在“设置”中选择或添加一个有效的 API 配置。', true);
+                return;
+            }
+
+            const currentConfig = apiConfigs[currentConfigIndex];
+            if (!currentConfig.endpoint || !currentConfig.model) {
+                 addMessageToChat('error', '当前选择的 API 配置不完整（缺少端点 URL 或模型名称）。', true);
+                return;
+            }
+
+            // 1. 添加用户消息
+            const userMessage = { role: 'user', content: userText };
+            chatHistory.push(userMessage);
+            addMessageToChat(userMessage.role, userMessage.content, false, `msg-${chatHistory.length - 1}`);
+            userInput.value = '';
+            adjustTextareaHeight();
+            saveChatHistory();
+
+            // 2. 准备 API 请求
+            const messagesForApi = prepareMessagesForApi(currentConfig);
+            const requestBody = buildRequestBody(currentConfig, messagesForApi);
+            const useStreaming = currentConfig.stream ?? DEFAULT_STREAM;
+
+            setLoading(true, useStreaming); // 进入加载状态，指明是否流式
+            currentAbortController = new AbortController(); // 创建新的 AbortController
+
+            logEvent('request', { url: currentConfig.endpoint, headers: { ...(currentConfig.key ? { 'Authorization': 'Bearer ***' } : {}), 'Content-Type': 'application/json' }, body: requestBody });
+
+            try {
+                const response = await fetch(currentConfig.endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(currentConfig.key ? { 'Authorization': `Bearer ${currentConfig.key}` } : {})
+                    },
+                    body: JSON.stringify(requestBody),
+                    signal: currentAbortController.signal // 关联 AbortController
+                });
+
+                if (!response.ok) {
+                    let errorMsg = `API 错误: ${response.status} ${response.statusText}`;
+                    try {
+                        const errorData = await response.json();
+                        errorMsg += ` - ${errorData.error?.message || JSON.stringify(errorData)}`;
+                        logEvent('error', `API Error Response: ${JSON.stringify(errorData)}`);
+                    } catch (e) {
+                        const textError = await response.text();
+                        errorMsg += ` - ${textError}`;
+                        logEvent('error', `API Error Response (non-JSON): ${textError}`);
+                    }
+                    throw new Error(errorMsg);
+                }
+
+                // 3. 处理响应 (流式或非流式)
+                if (useStreaming && response.body) {
+                    await handleStreamingResponse(response.body);
+                } else {
+                    const data = await response.json();
+                    logEvent('response', data);
+                    handleNonStreamingResponse(data);
+                }
+
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    logEvent('info', '请求被用户中止');
+                    // 可以在中止时添加一个特定的消息
+                    const lastMessage = chatBox.lastElementChild;
+                    if (lastMessage && lastMessage.classList.contains('assistant')) {
+                        const contentWrapper = lastMessage.querySelector('.content-wrapper');
+                        if (contentWrapper && contentWrapper.innerHTML.includes("思考中")) {
+                             contentWrapper.innerHTML += "<br><small>(已停止)</small>";
+                        } else if (contentWrapper) {
+                             contentWrapper.innerHTML += "... <small>(已停止)</small>";
+                        }
+                        // 更新 history 中的部分内容
+                        const lastHistory = chatHistory[chatHistory.length - 1];
+                        if (lastHistory && lastHistory.role === 'assistant') {
+                            lastHistory.content = contentWrapper?.innerHTML || lastHistory.content + "... (已停止)";
+                            saveChatHistory();
+                        }
+                    } else {
+                        addMessageToChat('assistant', '*生成已停止*', false);
+                    }
+                } else {
+                    logEvent('error', `请求失败: ${error.message}`);
+                    addMessageToChat('error', `请求失败: ${error.message}`, true);
+                    // 考虑是否移除最后一条助手消息（如果已部分生成）
+                    const lastHistory = chatHistory[chatHistory.length - 1];
+                     if (lastHistory && lastHistory.role === 'assistant' && lastHistory.content.includes("思考中")) {
+                         chatHistory.pop(); // 移除未完成的助手消息记录
+                     }
+                }
+            } finally {
+                setLoading(false); // 结束加载状态
+                currentAbortController = null; // 清理 AbortController
+            }
+        }
+
+        // 准备发送给 API 的消息列表
+        function prepareMessagesForApi(config) {
+            const messages = [];
+            if (config.systemPrompt) {
+                messages.push({ role: 'system', content: config.systemPrompt });
+            }
+            const contextCount = config.contextCount ?? DEFAULT_CONTEXT_COUNT;
+            const historyStartIndex = Math.max(0, chatHistory.length - contextCount);
+            messages.push(...chatHistory.slice(historyStartIndex));
+            return messages;
+        }
+
+        // 构建 API 请求体
+        function buildRequestBody(config, messages) {
+            const body = {
+                model: config.model,
+                messages: messages,
+                stream: config.stream ?? DEFAULT_STREAM
+            };
+            if (config.maxTokens !== null && config.maxTokens > 0) {
+                body.max_tokens = config.maxTokens;
+            }
+            if (config.temperature !== null) {
+                body.temperature = Math.max(0, Math.min(2, config.temperature));
+            }
+            // 可以根据需要添加其他 OpenAI 兼容参数
+            // if (config.top_p !== null) body.top_p = config.top_p;
+            // if (config.frequency_penalty !== null) body.frequency_penalty = config.frequency_penalty;
+            // if (config.presence_penalty !== null) body.presence_penalty = config.presence_penalty;
+            return body;
+        }
+
+        // 处理非流式响应
+        function handleNonStreamingResponse(data) {
+            if (data.choices && data.choices.length > 0 && data.choices[0].message) {
+                const assistantMessageContent = data.choices[0].message.content?.trim() || "*AI 未返回有效内容*";
+                const assistantMessage = { role: 'assistant', content: assistantMessageContent };
+                chatHistory.push(assistantMessage);
+                addMessageToChat(assistantMessage.role, assistantMessage.content, false, `msg-${chatHistory.length - 1}`);
+                saveChatHistory();
+            } else {
+                logEvent('warn', "API 响应格式不符合预期 (非流式)", data);
+                throw new Error('API 响应中未找到有效的消息内容。');
+            }
+        }
+
+        // 处理流式响应 (SSE)
+        async function handleStreamingResponse(readableStream) {
+            const reader = readableStream.getReader();
+            const decoder = new TextDecoder();
+            let accumulatedContent = "";
+            let assistantMessageElement = null;
+            let messageId = `msg-${chatHistory.length}`; // 预先确定 ID
+
+            // 先创建一个空的助手消息气泡
+            assistantMessageElement = addMessageToChat('assistant', '', false, messageId);
+            const contentWrapper = assistantMessageElement.querySelector('.content-wrapper');
+
+            let buffer = ''; // Buffer for incomplete lines
+
+            try {
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) {
+                        logEvent('info', 'Stream finished.');
+                        break;
+                    }
+
+                    buffer += decoder.decode(value, { stream: true }); // Append chunk to buffer
+                    const lines = buffer.split('\n'); // Split into lines
+
+                    buffer = lines.pop() || ''; // Keep the last (potentially incomplete) line in buffer
+
+                    for (const line of lines) {
+                        if (line.trim() === '') continue; // Skip empty lines
+                        if (line.startsWith(':')) continue; // Skip comments
+
+                        if (line.startsWith('data: ')) {
+                            const dataJson = line.substring(6).trim(); // Get the JSON part
+                            if (dataJson === '[DONE]') {
+                                logEvent('info', 'Stream received [DONE] marker.');
+                                // Optional: Check finish reason if available in a final chunk
+                                break; // Exit inner loop, outer loop will check reader.read() result
+                            }
+                            try {
+                                const data = JSON.parse(dataJson);
+                                logEvent('response', data); // Log each chunk
+                                if (data.choices && data.choices.length > 0) {
+                                    const delta = data.choices[0].delta;
+                                    if (delta && delta.content) {
+                                        accumulatedContent += delta.content;
+                                        // Update the content wrapper incrementally
+                                        updateMessageContent(contentWrapper, accumulatedContent, true);
+                                        scrollToBottom(); // Keep scrolled down
+                                    }
+                                    // Check for finish reason (optional)
+                                    if (data.choices[0].finish_reason) {
+                                         logEvent('info', `Stream finished with reason: ${data.choices[0].finish_reason}`);
+                                         // You might want to break or handle based on the reason
+                                    }
+                                }
+                            } catch (e) {
+                                logEvent('error', `Error parsing stream data JSON: ${e.message}`, dataJson);
+                            }
+                        } else {
+                             logEvent('warn', `Unexpected stream line format: ${line}`);
+                        }
+                    }
+                     // Check if aborted during processing chunks
+                     if (currentAbortController?.signal.aborted) {
+                         throw new Error('AbortError'); // Propagate abort
+                     }
+                }
+            } finally {
+                 // Ensure decoder flush is called if needed (though usually handled by stream end)
+                 // buffer += decoder.decode(); // Flush any remaining bytes (might be needed in some edge cases)
+                 // Process final buffer content if any (less common with SSE)
+
+                reader.releaseLock(); // Release the lock on the stream
+            }
+
+
+            // Stream finished, save the complete message to history
+            if (accumulatedContent || assistantMessageElement) { // Save even if content is empty, to represent the turn
+                 const finalContent = accumulatedContent || "*AI 未返回任何内容*";
+                 // Update the final rendered content one last time
+                 updateMessageContent(contentWrapper, finalContent, true);
+
+                 const assistantMessage = { role: 'assistant', content: finalContent };
+                 chatHistory.push(assistantMessage);
+                 saveChatHistory();
+            } else {
+                 // If no element was created and no content received, maybe log a warning
+                 logEvent('warn', 'Stream ended without producing any content or message element.');
+            }
+        }
+
+
+        // 停止生成 (用于流式响应)
+        function stopGeneration() {
+            if (currentAbortController) {
+                currentAbortController.abort();
+                logEvent('info', 'Stop generation requested by user.');
+                // setLoading(false) will be called in the finally block of sendMessage
+            }
+        }
+
+        // 清空聊天记录
+        function clearChat() {
+            if (confirm('确定要清空所有对话记录吗？此操作不可恢复。')) {
+                chatHistory = [];
+                chatBox.innerHTML = '';
+                addMessageToChat('assistant', '对话已清空。');
+                saveChatHistory();
+                logEvent('info', 'Chat history cleared.');
+            }
+        }
+
+        // --- 设置 Modal 相关 ---
+
+        function openSettingsModal() {
+            updateSettingsUI();
+            settingsModal.style.display = 'block';
+        }
+
+        function closeSettingsModal() {
+            settingsModal.style.display = 'none';
+        }
+
+        function updateSettingsUI() {
+            // 1. 填充配置列表
+            configListDiv.innerHTML = '';
+            if (apiConfigs.length === 0) {
+                configListDiv.innerHTML = '<div style="text-align: center; color: #6c757d;">无可用配置</div>';
+            } else {
+                apiConfigs.forEach((config, index) => {
+                    const div = document.createElement('div');
+                    div.dataset.index = index;
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = config.name || `配置 ${index + 1}`;
+                    div.appendChild(nameSpan);
+
+                    // Add stream indicator
+                    if (config.stream) {
+                        const streamIndicator = document.createElement('span');
+                        streamIndicator.classList.add('config-stream-indicator');
+                        streamIndicator.innerHTML = '<i class="fas fa-stream"></i> 流式';
+                        streamIndicator.title = '流式响应已启用';
+                        div.appendChild(streamIndicator);
+                    }
+
+                    if (index === currentConfigIndex) {
+                        div.classList.add('selected');
+                    }
+                    configListDiv.appendChild(div);
+                });
+            }
+
+            // 2. 填充表单
+            if (currentConfigIndex >= 0 && apiConfigs[currentConfigIndex]) {
+                const config = apiConfigs[currentConfigIndex];
+                configNameInput.value = config.name || '';
+                apiUrlInput.value = config.endpoint || '';
+                apiKeyInput.value = config.key || '';
+                modelNameInput.value = config.model || '';
+                maxTokensInput.value = config.maxTokens ?? '';
+                temperatureInput.value = config.temperature ?? '';
+                contextCountInput.value = config.contextCount ?? '';
+                streamResponseCheckbox.checked = config.stream ?? DEFAULT_STREAM;
+                systemPromptInput.value = config.systemPrompt || '';
+                removeConfigButton.disabled = false;
+                saveConfigButton.textContent = "保存更改";
+            } else {
+                clearConfigFields(false); // 清空表单，不取消选择
+                removeConfigButton.disabled = true;
+                saveConfigButton.textContent = "新增配置";
+            }
+        }
+
+        function handleConfigSelection(event) {
+            const targetDiv = event.target.closest('div[data-index]');
+            if (targetDiv) {
+                const index = parseInt(targetDiv.dataset.index, 10);
+                if (index >= 0 && index < apiConfigs.length) {
+                    currentConfigIndex = index;
+                    saveCurrentConfigIndex();
+                    updateSettingsUI();
+                    updateActiveConfigDisplay(); // 更新顶部显示
+                }
+            }
+        }
+
+        function saveOrAddConfig() {
+            const name = configNameInput.value.trim();
+            const endpoint = apiUrlInput.value.trim();
+            const key = apiKeyInput.value;
+            const model = modelNameInput.value.trim();
+            const systemPrompt = systemPromptInput.value.trim();
+            const stream = streamResponseCheckbox.checked;
+
+            const maxTokensRaw = maxTokensInput.value.trim();
+            const maxTokens = maxTokensRaw ? parseInt(maxTokensRaw, 10) : null;
+
+            const temperatureRaw = temperatureInput.value.trim();
+            const temperature = temperatureRaw ? parseFloat(temperatureRaw) : null;
+
+            const contextCountRaw = contextCountInput.value.trim();
+            let contextCount = contextCountRaw ? parseInt(contextCountRaw, 10) : null;
+            if (contextCount !== null && (isNaN(contextCount) || contextCount < 0)) contextCount = null;
+
+            if (!name || !endpoint || !model) { alert('配置名称、API 端点 URL 和模型名称是必填项。'); return; }
+            if (maxTokens !== null && (isNaN(maxTokens) || maxTokens <= 0)) { alert('最大 Token 数必须是大于 0 的有效数字。'); return; }
+            if (temperature !== null && (isNaN(temperature) || temperature < 0 || temperature > 2)) { alert('温度必须是 0 到 2 之间的有效数字。'); return; }
+            if (contextCount !== null && (isNaN(contextCount) || contextCount < 0)) { alert('上下文消息数必须是大于或等于 0 的有效数字。'); return; }
+
+            const newConfig = { name, endpoint, key, model, maxTokens, temperature, contextCount, stream, systemPrompt };
+
+            if (currentConfigIndex >= 0 && apiConfigs[currentConfigIndex]) {
+                apiConfigs[currentConfigIndex] = newConfig;
+                logEvent('info', `Configuration updated: ${name}`);
+            } else {
+                apiConfigs.push(newConfig);
+                currentConfigIndex = apiConfigs.length - 1;
+                logEvent('info', `Configuration added: ${name}`);
+            }
+
+            saveConfigs();
+            saveCurrentConfigIndex();
+            updateSettingsUI();
+            updateActiveConfigDisplay(); // 更新顶部显示
+            alert('配置已保存！');
+        }
+
+        function removeSelectedConfig() {
+            if (currentConfigIndex >= 0 && currentConfigIndex < apiConfigs.length) {
+                const configNameToRemove = apiConfigs[currentConfigIndex].name || `配置 ${currentConfigIndex + 1}`;
+                if (confirm(`确定要删除配置 "${configNameToRemove}" 吗？`)) {
+                    apiConfigs.splice(currentConfigIndex, 1);
+                    logEvent('info', `Configuration removed: ${configNameToRemove}`);
+                    currentConfigIndex = apiConfigs.length > 0 ? 0 : -1;
+                    saveConfigs();
+                    saveCurrentConfigIndex();
+                    updateSettingsUI();
+                    updateActiveConfigDisplay(); // 更新顶部显示
+                }
+            } else {
+                alert('没有选中的配置可删除。');
+            }
+        }
+
+        function clearConfigFields(deselect = true) {
+            configNameInput.value = '';
+            apiUrlInput.value = '';
+            apiKeyInput.value = '';
+            modelNameInput.value = '';
+            maxTokensInput.value = '';
+            temperatureInput.value = '';
+            contextCountInput.value = '';
+            streamResponseCheckbox.checked = DEFAULT_STREAM;
+            systemPromptInput.value = '';
+            if (deselect) {
+                currentConfigIndex = -1;
+                saveCurrentConfigIndex();
+                updateSettingsUI();
+                updateActiveConfigDisplay(); // 更新顶部显示
+            } else {
+                 saveConfigButton.textContent = "新增配置";
+                 removeConfigButton.disabled = true;
+            }
+        }
+
+        // 更新顶部活动配置显示
+        function updateActiveConfigDisplay() {
+            if (currentConfigIndex >= 0 && apiConfigs[currentConfigIndex]) {
+                const config = apiConfigs[currentConfigIndex];
+                activeConfigDisplay.textContent = config.name || `配置 ${currentConfigIndex + 1}`;
+                activeConfigDisplay.title = `当前配置: ${config.name || `配置 ${currentConfigIndex + 1}`}\n模型: ${config.model}\n端点: ${config.endpoint}`;
+                activeConfigDisplay.classList.remove('none');
+            } else {
+                activeConfigDisplay.textContent = '无配置';
+                activeConfigDisplay.title = '请在设置中选择或添加一个 API 配置';
+                activeConfigDisplay.classList.add('none');
+            }
+        }
+
+        // --- 日志 Modal 相关 ---
+
+        function openLogModal() {
+            renderLogs();
+            logModal.style.display = 'block';
+        }
+
+        function closeLogModal() {
+            logModal.style.display = 'none';
+        }
+
+        function renderLogs() {
+            logContainer.innerHTML = ''; // 清空现有日志
+            if (logs.length === 0) {
+                logContainer.innerHTML = '<div style="text-align: center; color: #6c757d;">暂无日志记录</div>';
+                return;
+            }
+
+            // 显示最新日志在前面
+            [...logs].reverse().forEach(log => {
+                const entryDiv = document.createElement('div');
+                entryDiv.classList.add('log-entry', `log-type-${log.type}`);
+
+                const metaDiv = document.createElement('div');
+                metaDiv.classList.add('log-meta');
+                metaDiv.textContent = `${new Date(log.timestamp).toLocaleString()} - [${log.type.toUpperCase()}]`;
+                entryDiv.appendChild(metaDiv);
+
+                const dataPre = document.createElement('pre');
+                try {
+                    // 尝试格式化 JSON，否则显示原始数据
+                    dataPre.textContent = typeof log.data === 'string' ? log.data : JSON.stringify(log.data, null, 2);
+                } catch (e) {
+                    dataPre.textContent = String(log.data); // Fallback to string conversion
+                }
+                entryDiv.appendChild(dataPre);
+
+                logContainer.appendChild(entryDiv);
+            });
+        }
+
+        function clearLogs() {
+            if (confirm('确定要清空所有日志记录吗？')) {
+                logs = [];
+                saveLogs();
+                renderLogs(); // 更新显示
+            }
+        }
+
+        // --- 字体大小调节 ---
+        function increaseFontSize() {
+            currentFontSize += 1;
+            applyFontSize();
+            saveFontSize();
+        }
+
+        function decreaseFontSize() {
+            currentFontSize = Math.max(MIN_FONT_SIZE, currentFontSize - 1);
+            applyFontSize();
+            saveFontSize();
+        }
+
+        function applyFontSize() {
+            document.documentElement.style.setProperty('--base-font-size', `${currentFontSize}px`);
+        }
+
+        // --- 持久化 (localStorage) ---
+
+        // 日志记录
+        function logEvent(type, data, optionalMessage = '') {
+            const timestamp = Date.now();
+            const logEntry = { timestamp, type, data: data || optionalMessage }; // Store data or message
+            logs.push(logEntry);
+
+            // 限制日志数量
+            if (logs.length > MAX_LOG_ENTRIES) {
+                logs.shift(); // 移除最旧的日志
+            }
+            saveLogs(); // 保存到 localStorage
+
+            // 同时输出到控制台方便调试
+            switch(type) {
+                case 'error': console.error(`[LOG ${type.toUpperCase()}]`, data); break;
+                case 'warn': console.warn(`[LOG ${type.toUpperCase()}]`, data); break;
+                default: console.log(`[LOG ${type.toUpperCase()}]`, data);
+            }
+        }
+        function saveLogs() { try { localStorage.setItem('aiChat_logs', JSON.stringify(logs)); } catch (e) { console.error("无法保存日志:", e); } }
+        function loadLogs() { try { const stored = localStorage.getItem('aiChat_logs'); if (stored) logs = JSON.parse(stored); } catch (e) { console.error("无法加载日志:", e); logs = []; localStorage.removeItem('aiChat_logs'); } }
+
+        // API 配置
+        function saveConfigs() { try { localStorage.setItem('aiChat_apiConfigs_v3', JSON.stringify(apiConfigs)); } catch (e) { console.error("无法保存 API 配置:", e); alert("保存配置时出错。"); } }
+        function loadConfigs() {
+            try {
+                // Try loading v3 first
+                let storedConfigs = localStorage.getItem('aiChat_apiConfigs_v3');
+                if (storedConfigs) {
+                    apiConfigs = JSON.parse(storedConfigs);
+                } else {
+                    // Try migrating from v2
+                    storedConfigs = localStorage.getItem('aiChat_apiConfigs_v2');
+                    if (storedConfigs) {
+                        logEvent('info', "Migrating API configs from v2 to v3");
+                        apiConfigs = JSON.parse(storedConfigs).map(cfg => ({
+                            ...cfg,
+                            stream: cfg.stream ?? DEFAULT_STREAM // Add stream default if missing
+                        }));
+                        saveConfigs(); // Save in new v3 format
+                        localStorage.removeItem('aiChat_apiConfigs_v2'); // Remove old v2
+                    } else {
+                         // Try migrating from v1 (original)
+                         storedConfigs = localStorage.getItem('aiChat_apiConfigs');
+                         if (storedConfigs) {
+                             logEvent('info', "Migrating API configs from v1 to v3");
+                             apiConfigs = JSON.parse(storedConfigs).map(cfg => ({
+                                 name: cfg.name || 'Unnamed Config',
+                                 endpoint: cfg.endpoint || '',
+                                 key: cfg.key || '',
+                                 model: cfg.model || '',
+                                 maxTokens: null,
+                                 temperature: null,
+                                 contextCount: null,
+                                 stream: DEFAULT_STREAM, // Add new fields
+                                 systemPrompt: cfg.systemPrompt || ''
+                             }));
+                             saveConfigs(); // Save in new v3 format
+                             localStorage.removeItem('aiChat_apiConfigs'); // Remove old v1
+                         }
+                    }
+                }
+
+                // Load selected index
+                const storedIndex = localStorage.getItem('aiChat_currentConfigIndex');
+                if (storedIndex !== null) {
+                    const index = parseInt(storedIndex, 10);
+                    currentConfigIndex = (index >= 0 && index < apiConfigs.length) ? index : (apiConfigs.length > 0 ? 0 : -1);
+                } else {
+                    currentConfigIndex = apiConfigs.length > 0 ? 0 : -1;
+                }
+                saveCurrentConfigIndex(); // Save potentially corrected index
+
+            } catch (e) {
+                logEvent('error', "无法加载或迁移 API 配置:", e);
+                apiConfigs = []; currentConfigIndex = -1;
+                // Clear potentially corrupted keys
+                localStorage.removeItem('aiChat_apiConfigs_v3');
+                localStorage.removeItem('aiChat_apiConfigs_v2');
+                localStorage.removeItem('aiChat_apiConfigs');
+                localStorage.removeItem('aiChat_currentConfigIndex');
+            }
+        }
+        function saveCurrentConfigIndex() { try { localStorage.setItem('aiChat_currentConfigIndex', currentConfigIndex.toString()); } catch (e) { console.error("无法保存当前配置索引:", e); } }
+
+        // 聊天记录
+        function saveChatHistory() { try { const historyToSave = chatHistory.slice(-50); localStorage.setItem('aiChat_chatHistory', JSON.stringify(historyToSave)); } catch (e) { logEvent('error', "无法保存聊天记录:", e); } }
+        function loadChatHistory() { try { const stored = localStorage.getItem('aiChat_chatHistory'); if (stored) chatHistory = JSON.parse(stored); } catch (e) { logEvent('error', "无法加载聊天记录:", e); chatHistory = []; localStorage.removeItem('aiChat_chatHistory'); } }
+
+        // 字体大小
+        function saveFontSize() { try { localStorage.setItem('aiChat_fontSize', currentFontSize.toString()); } catch (e) { console.error("无法保存字体大小:", e); } }
+        function loadFontSize() { try { const stored = localStorage.getItem('aiChat_fontSize'); if (stored) currentFontSize = Math.max(MIN_FONT_SIZE, parseInt(stored, 10)); } catch (e) { console.error("无法加载字体大小:", e); currentFontSize = 16; } }
+
+    </script>
+
 </body>
 </html>
