@@ -3,1651 +3,1567 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>高级 AI 对话（含自定义参数）</title>
-    <!-- Marked library for Markdown rendering -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <!-- highlight.js for code syntax highlighting (Light Theme) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <!-- Icon library -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
+    <title>自定义 AI 聊天代理</title>
+    <!-- KaTeX CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1tBCsfMNzfHWquKxdCXCavCFZBhz" crossorigin="anonymous">
+    <!-- Highlight.js CSS (Default theme) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
     <style>
+        /* --- Base Styles & Reset --- */
         :root {
-            /* Base Colors */
-            --bg-color: #f8f9fa;
-            --text-color: #212529;
+            --bg-color: #f0f2f5;
+            --text-color: #333;
             --primary-color: #007bff;
-            --secondary-color: #ffffff;
-            --border-color: #dee2e6;
-            --input-bg: #ffffff;
+            --primary-hover-color: #0056b3;
+            --secondary-bg-color: #ffffff;
+            --border-color: #e0e0e0;
+            --user-msg-bg: #d1e7ff;
+            --ai-msg-bg: #f8f9fa;
+            --code-bg: #282c34; /* Darker background for code */
+            --code-text: #abb2bf;
             --error-color: #dc3545;
+            --timestamp-color: #6c757d;
+            --panel-bg: #ffffff;
+            --panel-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            --font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+            --font-size: 16px;
+        }
 
-            /* Chat Specific */
-            --user-msg-bg: #e7f5ff;
-            --user-msg-text: #004085;
-            --assistant-msg-bg: #f1f3f5;
-            --assistant-msg-text: var(--text-color);
+        [data-theme="dark"] {
+             :root {
+                --bg-color: #1a1a1a;
+                --text-color: #e0e0e0;
+                --primary-color: #0d6efd;
+                --primary-hover-color: #0a58ca;
+                --secondary-bg-color: #2a2a2a;
+                --border-color: #444;
+                --user-msg-bg: #0d6efd; /* Adjust user message bg for dark */
+                --ai-msg-bg: #3a3a3a;
+                --code-bg: #282c34; /* Keep dark for code */
+                --code-text: #abb2bf;
+                --error-color: #ff6b6b;
+                --timestamp-color: #888;
+                --panel-bg: #252525;
+                --panel-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+             }
+             /* Adjust highlightjs theme for dark mode if needed */
+             .hljs { background: var(--code-bg); color: var(--code-text); }
+        }
 
-            /* Buttons */
-            --button-bg: var(--primary-color);
-            --button-text: #ffffff;
-            --button-hover-bg: #0056b3;
-            --button-secondary-bg: #6c757d;
-            --button-secondary-hover-bg: #5a6268;
-            --button-danger-bg: var(--error-color);
-            --button-danger-hover-bg: #c82333;
 
-            /* Other */
-            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            --border-radius: 8px;
-            --base-font-size: 16px; /* Default font size, controlled by JS */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         html, body {
             height: 100%;
-            margin: 0;
-            font-family: var(--font-family);
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-size: var(--base-font-size);
-            line-height: 1.6;
+            overflow: hidden; /* Prevent body scroll when panels are open */
         }
 
+        body {
+            font-family: var(--font-family);
+            font-size: var(--font-size);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* --- Main Layout --- */
         .chat-container {
             display: flex;
             flex-direction: column;
-            height: 100vh;
-            max-width: 900px;
-            margin: 0 auto;
-            background-color: var(--secondary-color);
-            box-shadow: var(--box-shadow);
-            border-radius: var(--border-radius);
-            overflow: hidden;
+            height: 100vh; /* Full viewport height */
+            width: 100%;
+            max-width: 1200px; /* Max width for desktop */
+            margin: 0 auto; /* Center */
+            position: relative; /* For positioning panels */
+            overflow: hidden; /* Contain panels */
         }
 
-        /* Header */
-        .chat-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 20px;
-            background-color: var(--secondary-color);
-            border-bottom: 1px solid var(--border-color);
-            flex-shrink: 0;
-            gap: 10px;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .chat-header h1 {
-            margin: 0;
-            font-size: 1.4em;
-            font-weight: 600;
-            color: var(--primary-color);
-            white-space: nowrap;
-        }
-
-        .active-config-display {
-            font-size: 0.8em;
-            color: #6c757d;
-            background-color: #e9ecef;
-            padding: 3px 8px;
-            border-radius: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 150px;
-            cursor: default;
-            transition: max-width 0.3s ease;
-        }
-        .active-config-display:hover {
-            max-width: 300px;
-        }
-        .active-config-display.none {
-            color: var(--error-color);
-            background-color: rgba(220, 53, 69, 0.1);
-        }
-
-        .header-buttons {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .header-buttons button, .font-controls button {
-            padding: 6px 12px;
-            background-color: var(--button-secondary-bg);
-            color: var(--button-text);
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9em;
-            transition: background-color 0.2s ease, box-shadow 0.2s ease;
-            white-space: nowrap;
-        }
-        .header-buttons button:hover, .font-controls button:hover {
-            background-color: var(--button-secondary-hover-bg);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-        .header-buttons button#settingsButton {
-            background-color: var(--button-bg);
-        }
-        .header-buttons button#settingsButton:hover {
-            background-color: var(--button-hover-bg);
-        }
-        .header-buttons button#clearChatButton {
-            background-color: var(--button-danger-bg);
-        }
-        .header-buttons button#clearChatButton:hover {
-            background-color: var(--button-danger-hover-bg);
-        }
-
-        .font-controls {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            border-left: 1px solid var(--border-color);
-            padding-left: 8px;
-        }
-        .font-controls span {
-            font-size: 0.85em;
-            color: #6c757d;
-            margin-right: 3px;
-        }
-        .font-controls button {
-            width: 28px;
-            height: 28px;
-            padding: 0;
-            line-height: 28px;
-            text-align: center;
-        }
-
-        /* Modals */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0; top: 0;
-            width: 100%; height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.5);
-            animation: fadeIn 0.3s ease;
-        }
-        .modal-content {
-            background-color: var(--bg-color);
-            margin: 5% auto;
-            padding: 25px 30px;
-            border: 1px solid var(--border-color);
-            width: 90%; max-width: 750px;
-            border-radius: var(--border-radius);
-            position: relative;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        #logModal .modal-content { max-width: 900px; }
-
-        .close-button {
-            color: #aaa;
-            position: absolute;
-            top: 15px; right: 25px;
-            font-size: 32px; font-weight: bold;
-            cursor: pointer;
-            line-height: 1;
-        }
-        .close-button:hover, .close-button:focus { color: var(--text-color); }
-
-        .modal h2 {
-            margin-top: 0;
-            color: var(--primary-color);
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 15px;
-            margin-bottom: 25px;
-            font-weight: 600;
-        }
-
-        /* Settings Modal Specifics */
-        #settingsModal label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #495057;
-        }
-        #settingsModal input[type="text"],
-        #settingsModal input[type="password"],
-        #settingsModal input[type="number"],
-        #settingsModal select,
-        #settingsModal textarea {
-            width: calc(100% - 24px);
-            padding: 10px 12px;
-            margin-bottom: 18px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background-color: var(--input-bg);
-            color: var(--text-color);
-            font-size: 1em;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-        #settingsModal input:focus, #settingsModal select:focus, #settingsModal textarea:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-            outline: none;
-        }
-        #settingsModal textarea { min-height: 80px; resize: vertical; }
-        #settingsModal button {
-            padding: 10px 22px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.2s ease, box-shadow 0.2s ease;
-            margin-right: 10px;
-            margin-top: 10px;
-        }
-        #settingsModal button#saveConfigButton {
-            background-color: var(--button-bg);
-            color: var(--button-text);
-        }
-        #settingsModal button#saveConfigButton:hover {
-            background-color: var(--button-hover-bg);
-        }
-        #settingsModal button.danger {
-            background-color: var(--button-danger-bg);
-            color: var(--button-text);
-        }
-        #settingsModal button.danger:hover {
-            background-color: var(--button-danger-hover-bg);
-        }
-        #settingsModal button.secondary {
-            background-color: var(--button-secondary-bg);
-            color: var(--button-text);
-        }
-        #settingsModal button.secondary:hover {
-            background-color: var(--button-secondary-hover-bg);
-        }
-
-        .config-section {
-            border: 1px solid var(--border-color);
-            background-color: var(--secondary-color);
-            padding: 20px;
-            margin-bottom: 25px;
-            border-radius: var(--border-radius);
-        }
-        .config-section h3 {
-            margin-top: 0;
-            margin-bottom: 15px;
-            font-weight: 600;
-            color: #343a40;
-        }
-        #configList {
-            max-height: 180px;
-            overflow-y: auto;
-            margin-bottom: 15px;
-            border: 1px solid var(--border-color);
-            padding: 8px;
-            border-radius: 6px;
-            background-color: var(--bg-color);
-        }
-        #configList div {
-            padding: 8px 12px;
-            cursor: pointer;
-            border-bottom: 1px solid #e9ecef;
-            transition: background-color 0.15s ease;
-            border-radius: 4px;
-            margin-bottom: 4px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        #configList div:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-        }
-        #configList div:hover { background-color: #e9ecef; }
-        #configList div.selected {
-            background-color: var(--primary-color);
-            color: var(--button-text);
-            font-weight: 500;
-        }
-        #configList div.selected:hover { background-color: var(--primary-color); }
-        #configList div .config-stream-indicator {
-            font-size: 0.8em;
-            opacity: 0.7;
-            margin-left: 10px;
-        }
-
-        .form-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 18px;
-        }
-        .form-row > div {
-            flex: 1;
-            min-width: 150px;
-        }
-        .form-row label { margin-bottom: 5px; }
-        .form-row input { margin-bottom: 0; width: calc(100% - 24px); }
-
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            margin-bottom: 18px;
-        }
-        .checkbox-group input[type="checkbox"] {
-            margin-right: 10px;
-            width: 16px; height: 16px;
-            cursor: pointer;
-        }
-        .checkbox-group label {
-            margin-bottom: 0;
-            cursor: pointer;
-            font-weight: normal;
-            color: var(--text-color);
-        }
-
-        /* 新增：自定义参数行样式 */
-        .param-row {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 8px;
-        }
-        .param-row input {
-            flex: 1;
-            padding: 6px 8px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 0.9em;
-        }
-        .param-row button {
-            flex: 0 0 auto;
-            background-color: var(--button-danger-bg);
-            color: var(--button-text);
-            border: none;
-            border-radius: 4px;
-            padding: 0 8px;
-            cursor: pointer;
-        }
-        .param-row button:hover {
-            background-color: var(--button-danger-hover-bg);
-        }
-
-        /* Log Modal Specifics */
-        #logContainer {
-            max-height: 60vh;
-            overflow-y: auto;
-            background-color: var(--secondary-color);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 15px;
-            margin-bottom: 20px;
-            font-size: 0.9em;
-        }
-        .log-entry {
-            border-bottom: 1px dashed var(--border-color);
-            padding: 10px 0;
-            margin-bottom: 10px;
-        }
-        .log-entry:last-child { border-bottom: none; margin-bottom: 0; }
-        .log-entry strong { display: block; margin-bottom: 5px; color: var(--primary-color); }
-        .log-entry pre {
-            background-color: #e9ecef;
-            padding: 10px;
-            border-radius: 4px;
-            white-space: pre-wrap;
-            word-break: break-all;
-            margin: 0;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        .log-entry .log-meta {
-            font-size: 0.85em;
-            color: #6c757d;
-            margin-bottom: 5px;
-        }
-        .log-entry .log-type-request strong { color: #17a2b8; }
-        .log-entry .log-type-response strong { color: #28a745; }
-        .log-entry .log-type-error strong { color: var(--error-color); }
-        .log-entry .log-type-info strong { color: #ffc107; }
-
-        #logModal button {
-            padding: 10px 22px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.2s ease;
-            margin-right: 10px;
-            background-color: var(--button-danger-bg);
-            color: var(--button-text);
-        }
-        #logModal button:hover { background-color: var(--button-danger-hover-bg); }
-
-        /* Chat Box */
-        .chat-box {
+        .chat-interface {
             flex-grow: 1;
-            overflow-y: auto;
-            padding: 25px;
             display: flex;
             flex-direction: column;
-            gap: 18px;
-            background-color: var(--bg-color);
+            overflow: hidden; /* Prevent internal overflow issues */
+            background-color: var(--secondary-bg-color);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-radius: 8px;
+            margin: 10px; /* Add some margin */
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+
+        header h1 {
+            font-size: 1.2em;
+            margin: 0;
+        }
+
+        .header-buttons button {
+            background: none;
+            border: 1px solid white;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .header-buttons button:hover {
+            background-color: white;
+            color: var(--primary-color);
+        }
+
+        /* --- Chatbox Area --- */
+        #chatbox {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* Space between messages */
         }
 
         .message {
-            padding: 12px 18px;
-            border-radius: 18px;
-            max-width: 85%;
-            word-wrap: break-word;
-            position: relative;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            line-height: 1.5;
-        }
-        .message:hover .copy-message-button {
-            opacity: 1;
-        }
-
-        .message.user {
-            background-color: var(--user-msg-bg);
-            color: var(--user-msg-text);
-            align-self: flex-end;
-            border-bottom-right-radius: 6px;
-        }
-        .message.assistant {
-            background-color: var(--assistant-msg-bg);
-            color: var(--assistant-msg-text);
-            align-self: flex-start;
-            border-bottom-left-radius: 6px;
-        }
-        .message.error {
-            background-color: rgba(220, 53, 69, 0.1);
-            color: var(--error-color);
-            border: 1px solid rgba(220, 53, 69, 0.3);
-            align-self: stretch;
-            max-width: 100%;
-            text-align: center;
-            border-radius: 6px;
             padding: 10px 15px;
+            border-radius: 12px;
+            max-width: 80%;
+            word-wrap: break-word; /* Break long words */
+            display: flex;
+            flex-direction: column; /* Stack content and timestamp */
+            position: relative; /* For copy button */
         }
 
-        .message strong.role-indicator {
-            display: block;
-            font-size: 0.85em;
-            margin-bottom: 6px;
-            color: var(--primary-color);
-            font-weight: 600;
-            text-transform: capitalize;
+        .message-content {
+             margin-bottom: 5px; /* Space before timestamp */
         }
-        .message.user strong.role-indicator { color: #0056b3; }
-        .message.error strong { color: var(--error-color); font-weight: 600; }
-
-        .copy-message-button {
-            position: absolute;
-            top: 5px; right: 8px;
-            background: rgba(0,0,0,0.1);
-            border: none;
-            color: rgba(0,0,0,0.5);
+        .message-content img {
+            max-width: 100%;
+            height: auto;
             border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8em;
-            padding: 3px 6px;
-            opacity: 0;
-            transition: opacity 0.2s ease, background-color 0.2s ease;
-            z-index: 10;
+            margin-top: 10px;
         }
-        .message.user .copy-message-button { right: 8px; }
-        .message.assistant .copy-message-button { right: 8px; }
-        .copy-message-button:hover {
-            background: rgba(0,0,0,0.2);
-            color: rgba(0,0,0,0.8);
-        }
-        .copy-message-button i { pointer-events: none; }
 
-        .message .content-wrapper { margin-top: 4px; }
-        .message pre {
-            background-color: #e9ecef;
-            border: 1px solid #ced4da;
-            padding: 12px;
-            border-radius: 6px;
-            overflow-x: auto;
-            margin: 12px 0;
-            font-size: 0.9em;
-            position: relative;
+        .user-message {
+            background-color: var(--user-msg-bg);
+            color: var(--text-color); /* Adjust if needed based on bg */
+            align-self: flex-end;
+            border-bottom-right-radius: 0;
+            margin-left: auto; /* Push to right */
         }
-        .message pre:hover .copy-code-button { opacity: 1; }
+         /* Ensure user text is readable on dark theme */
+        [data-theme="dark"] .user-message {
+             color: #ffffff;
+        }
 
-        .message code:not(pre code) {
-            background-color: rgba(0, 123, 255, 0.1);
-            color: #0056b3;
-            padding: 0.2em 0.5em;
-            border-radius: 4px;
-            font-size: 0.9em;
+
+        .ai-message {
+            background-color: var(--ai-msg-bg);
+            color: var(--text-color);
+            align-self: flex-start;
+            border-bottom-left-radius: 0;
+            margin-right: auto; /* Push to left */
         }
-        .message pre code { background: none; padding: 0; border: none; color: inherit; }
-        .message blockquote {
-            border-left: 4px solid var(--primary-color);
-            padding-left: 15px;
-            margin-left: 0;
-            color: #6c757d;
-            background-color: #f8f9fa;
-            padding-top: 5px; padding-bottom: 5px;
+
+        .message-timestamp {
+            font-size: 0.75em;
+            color: var(--timestamp-color);
+            text-align: right; /* Align timestamp to the right */
+            margin-top: 5px;
         }
-        .message table {
-            border-collapse: collapse;
-            margin: 15px 0;
-            width: auto;
-            border: 1px solid var(--border-color);
+
+        .ai-message .message-timestamp {
+            text-align: left; /* Align AI timestamp left */
         }
-        .message th, .message td {
-            border: 1px solid var(--border-color);
-            padding: 8px 12px;
-            text-align: left;
-        }
-        .message th { background-color: #e9ecef; font-weight: 600; }
-        .message ul, .message ol { padding-left: 25px; margin-top: 8px; margin-bottom: 8px; }
-        .message p { margin-top: 0; margin-bottom: 0.8em; }
-        .message p:last-child { margin-bottom: 0; }
 
         .copy-code-button {
             position: absolute;
-            top: 8px; right: 8px;
-            background: rgba(0,0,0,0.4);
+            top: 5px;
+            right: 5px;
+            background-color: rgba(255, 255, 255, 0.7);
+            color: #333;
             border: none;
-            color: white;
+            padding: 3px 6px;
+            font-size: 0.8em;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 0.8em;
-            padding: 4px 8px;
-            opacity: 0;
-            transition: opacity 0.2s ease, background-color 0.2s ease;
-            z-index: 10;
+            opacity: 0; /* Hidden by default */
+            transition: opacity 0.2s;
         }
-        .copy-code-button:hover { background: rgba(0,0,0,0.6); }
-        .copy-code-button.copied { background-color: #28a745; }
-        .copy-code-button i { margin-right: 4px; }
 
+        .ai-message pre:hover .copy-code-button {
+            opacity: 1; /* Show on hover */
+        }
+
+        /* --- Input Area --- */
         .input-area {
             display: flex;
-            align-items: flex-end;
-            padding: 15px 20px;
+            align-items: flex-end; /* Align items to bottom */
+            padding: 10px 15px;
             border-top: 1px solid var(--border-color);
-            background-color: var(--secondary-color);
-            flex-shrink: 0;
+            background-color: var(--secondary-bg-color);
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
         }
 
         #userInput {
             flex-grow: 1;
-            padding: 12px 15px;
+            padding: 10px;
             border: 1px solid var(--border-color);
             border-radius: 6px;
-            background-color: var(--input-bg);
-            color: var(--text-color);
-            resize: none;
-            min-height: 48px;
-            max-height: 250px;
-            overflow-y: auto;
-            font-size: 1em;
-            line-height: 1.5;
-            margin-right: 12px;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-        #userInput:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-            outline: none;
+            resize: none; /* Disable manual resize */
+            min-height: 40px; /* Minimum height */
+            max-height: 150px; /* Maximum height before scroll */
+            overflow-y: auto; /* Scroll if needed */
+            font-family: inherit;
+            font-size: inherit;
+            line-height: 1.4;
+            margin-right: 10px;
         }
 
-        #sendButton, #stopButton {
-            padding: 0 28px;
-            height: 48px;
+        .input-buttons {
+             display: flex;
+             gap: 10px;
+             align-items: center; /* Align buttons vertically */
+        }
+
+        .input-buttons button {
+            padding: 10px 15px;
+            background-color: var(--primary-color);
+            color: white;
             border: none;
             border-radius: 6px;
             cursor: pointer;
+            transition: background-color 0.2s;
             font-size: 1em;
-            font-weight: 500;
-            transition: background-color 0.2s ease, box-shadow 0.2s ease;
-            white-space: nowrap;
-            align-self: flex-end;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        #sendButton {
-            background-color: var(--button-bg);
-            color: var(--button-text);
+
+        .input-buttons button:hover {
+            background-color: var(--primary-hover-color);
         }
-        #sendButton:hover:not(:disabled) {
-            background-color: var(--button-hover-bg);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-        #sendButton:disabled {
-            background-color: #adb5bd;
+
+        .input-buttons button:disabled {
+            background-color: #cccccc;
             cursor: not-allowed;
-            box-shadow: none;
         }
 
-        #stopButton {
-            display: none;
-            background-color: var(--button-danger-bg);
-            color: var(--button-text);
+        #uploadImageBtn {
+            padding: 8px; /* Smaller padding for icon button */
+            font-size: 1.2em; /* Larger icon */
         }
-        #stopButton:hover { background-color: var(--button-danger-hover-bg); }
 
-        .loading-indicator {
-            display: none;
-            margin-left: 15px;
-            align-self: center;
+        /* Image Preview */
+        #image-preview-area {
+            display: none; /* Hidden by default */
+            padding: 10px 15px 0; /* Only top padding */
+            border-top: 1px dashed var(--border-color);
+            margin-top: -10px; /* Connect visually with input area */
+            position: relative;
         }
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--primary-color);
+        #image-preview-area img {
+            max-height: 80px;
+            max-width: 100px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+        #removeImageBtn {
+            position: absolute;
+            top: 12px; /* Adjust position relative to preview area padding */
+            left: 110px; /* Position next to image */
+            background: var(--error-color);
+            color: white;
+            border: none;
             border-radius: 50%;
-            width: 24px; height: 24px;
-            animation: spin 1s linear infinite;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            line-height: 18px; /* Center the 'X' */
+            text-align: center;
+            cursor: pointer;
+            padding: 0;
         }
 
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes fadeIn { from {opacity: 0;} to {opacity: 1;} }
 
-        /* Responsive */
+        /* --- Side Panels (Settings & Logs) --- */
+        .side-panel {
+            position: fixed;
+            top: 0;
+            right: -100%; /* Start off-screen */
+            width: 90%; /* Responsive width */
+            max-width: 450px; /* Max width on desktop */
+            height: 100%;
+            background-color: var(--panel-bg);
+            box-shadow: var(--panel-shadow);
+            z-index: 1000;
+            transition: right 0.4s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Prevent content spill */
+        }
+
+        .side-panel.open {
+            right: 0;
+        }
+
+        .panel-header {
+            padding: 15px;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0; /* Prevent header shrinking */
+        }
+        .panel-header h2 { margin: 0; font-size: 1.1em;}
+        .close-panel-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.8em;
+            cursor: pointer;
+            line-height: 1; /* Adjust line height for better alignment */
+        }
+
+        .panel-content {
+            padding: 20px;
+            overflow-y: auto; /* Make content scrollable */
+            flex-grow: 1; /* Allow content to take available space */
+        }
+
+        /* Panel Form Styles */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: var(--text-color);
+        }
+        .form-group input[type="text"],
+        .form-group input[type="password"],
+        .form-group input[type="number"],
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.95em;
+            background-color: var(--secondary-bg-color);
+            color: var(--text-color);
+        }
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        .form-group input[type="range"] {
+            width: 100%;
+        }
+        .range-value {
+            display: inline-block;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        .form-group input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        .form-group button {
+            padding: 8px 12px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 5px;
+            margin-right: 5px;
+        }
+        .form-group button:hover {
+            background-color: var(--primary-hover-color);
+        }
+         .form-group button.remove-btn {
+             background-color: var(--error-color);
+         }
+         .form-group button.remove-btn:hover {
+             background-color: #a71d2a;
+         }
+
+        .model-entry, .param-entry {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .model-entry input, .param-entry input {
+            flex-grow: 1;
+        }
+
+        .panel-actions {
+            padding: 15px;
+            border-top: 1px solid var(--border-color);
+            background-color: var(--panel-bg);
+            text-align: right;
+            flex-shrink: 0; /* Prevent footer shrinking */
+        }
+        .panel-actions button {
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .panel-actions button:hover {
+            background-color: var(--primary-hover-color);
+        }
+
+        /* --- Log Panel Specifics --- */
+        #log-entries {
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        .log-entry {
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--ai-msg-bg); /* Use AI msg bg for contrast */
+        }
+        .log-entry summary {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-weight: bold;
+            background-color: rgba(0,0,0,0.03); /* Slightly different bg for header */
+            border-bottom: 1px solid var(--border-color);
+            display: flex; /* Use flexbox for alignment */
+            justify-content: space-between; /* Space out title and timestamp */
+            align-items: center;
+        }
+         .log-entry summary::-webkit-details-marker { display: none; } /* Hide default marker */
+         .log-entry summary::before { content: '▶ '; font-size: 0.8em; margin-right: 5px; } /* Custom marker */
+         .log-entry[open] summary::before { content: '▼ '; }
+
+        .log-timestamp {
+            font-size: 0.8em;
+            font-weight: normal;
+            color: var(--timestamp-color);
+        }
+        .log-content {
+            padding: 10px 15px;
+            max-height: 300px; /* Limit height */
+            overflow: auto; /* Scroll if needed */
+            white-space: pre-wrap; /* Preserve whitespace and wrap */
+            word-wrap: break-word;
+            background-color: var(--secondary-bg-color); /* Slightly lighter bg for content */
+            color: var(--text-color); /* Ensure text color */
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+        }
+         /* Ensure log content bg/color is correct in dark mode */
+        [data-theme="dark"] .log-entry { background-color: var(--ai-msg-bg); }
+        [data-theme="dark"] .log-entry summary { background-color: rgba(255, 255, 255, 0.05); }
+        [data-theme="dark"] .log-content { background-color: var(--secondary-bg-color); color: var(--text-color); }
+
+
+        /* --- Rich Content Rendering --- */
+        /* Code Blocks (highlight.js) */
+        pre {
+            position: relative; /* Needed for copy button positioning */
+            background-color: var(--code-bg);
+            color: var(--code-text);
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto; /* Horizontal scroll for long lines */
+            margin: 10px 0; /* Add some vertical space */
+        }
+        code.hljs {
+            font-family: 'Fira Code', 'Consolas', monospace; /* Monospaced font */
+            font-size: 0.9em;
+            line-height: 1.5;
+            padding: 0 !important; /* Remove default padding from hljs */
+            background: none !important; /* Override hljs background */
+        }
+        /* Inline code */
+        :not(pre) > code {
+            background-color: rgba(175, 184, 193, 0.2); /* Subtle background */
+             color: var(--text-color); /* Ensure readable color */
+            padding: 0.2em 0.4em;
+            margin: 0;
+            font-size: 85%;
+            border-radius: 3px;
+            font-family: 'Fira Code', 'Consolas', monospace;
+        }
+        [data-theme="dark"] :not(pre) > code {
+             background-color: rgba(175, 184, 193, 0.3); /* Slightly adjusted for dark */
+        }
+
+
+        /* Math Formulas (KaTeX) */
+        .katex-display { /* Block math */
+            overflow-x: auto;
+            overflow-y: hidden; /* Prevent vertical scroll */
+            padding: 5px 0;
+        }
+        .message-content .katex {
+            font-size: 1.1em; /* Slightly larger math */
+        }
+
+        /* --- Utility Classes --- */
+        .hidden {
+            display: none !important;
+        }
+
+        /* --- Animations & Transitions --- */
+        /* Add subtle fade-in for messages */
+        .message {
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Responsiveness --- */
         @media (max-width: 768px) {
-            .chat-container { max-width: 100%; height: 100%; border-radius: 0; box-shadow: none; }
-            .chat-header { padding: 8px 15px; flex-wrap: wrap; }
-            .header-left { flex-basis: 100%; justify-content: space-between; margin-bottom: 5px; }
-            .chat-header h1 { font-size: 1.2em; }
-            .active-config-display { max-width: 100px; }
-            .header-buttons { flex-grow: 1; justify-content: flex-end; }
-            .header-buttons button, .font-controls button { padding: 5px 10px; font-size: 0.85em; }
-            .font-controls button { width: 24px; height: 24px; line-height: 24px; }
-            .chat-box { padding: 15px; gap: 15px; }
-            .message { max-width: 90%; padding: 10px 15px; }
-            .input-area { padding: 10px 15px; }
-            #userInput { padding: 10px 12px; margin-right: 8px; min-height: 44px; }
-            #sendButton, #stopButton { padding: 0 20px; height: 44px; }
-            .modal-content { width: 95%; margin: 5% auto; padding: 20px; }
-            #logModal .modal-content { max-width: 95%; }
-            .form-row { flex-direction: column; gap: 0; margin-bottom: 0; }
-            .form-row > div { margin-bottom: 18px; min-width: unset; }
-            .form-row input { margin-bottom: 0; }
-            .form-row > div:last-child { margin-bottom: 0; }
+            body {
+                font-size: 15px; /* Slightly smaller base font */
+            }
+            .chat-container {
+                margin: 0; /* No margin on small screens */
+                border-radius: 0;
+            }
+             .chat-interface {
+                 margin: 0;
+                 border-radius: 0;
+             }
+
+            header h1 { font-size: 1.1em; }
+            .header-buttons button { padding: 4px 8px; font-size: 0.9em; }
+
+            #chatbox { padding: 10px; gap: 10px; }
+            .message { max-width: 90%; }
+
+            .input-area { padding: 8px 10px; flex-wrap: wrap; /* Allow wrapping */ }
+            #userInput { margin-right: 0; margin-bottom: 8px; /* Space below textarea */ width: 100%; /* Full width */ }
+            .input-buttons { width: 100%; justify-content: flex-end; /* Align buttons right */ }
+            #uploadImageBtn { font-size: 1.1em; padding: 7px; }
+            .input-buttons button { padding: 8px 12px; font-size: 0.95em;}
+
+            .side-panel {
+                width: 100%; /* Full width on mobile */
+                max-width: 100%;
+                right: -100%; /* Ensure it's fully off-screen */
+            }
+             .side-panel.open {
+                 right: 0;
+             }
+            .panel-content { padding: 15px; }
         }
+
     </style>
 </head>
-<body>
+<body data-theme="light"> <!-- Default theme, can be toggled -->
 
     <div class="chat-container">
-        <div class="chat-header">
-            <div class="header-left">
-                <h1>高级 AI 对话</h1>
-                <div id="activeConfigDisplay" class="active-config-display" title="当前使用的配置">无配置</div>
-            </div>
-            <div class="header-buttons">
-                <div class="font-controls">
-                    <span>字体:</span>
-                    <button id="decreaseFontButton" title="减小字号">-</button>
-                    <button id="increaseFontButton" title="增大字号">+</button>
+        <div class="chat-interface">
+            <header>
+                <h1>AI 聊天</h1>
+                <div class="header-buttons">
+                    <button id="toggleThemeBtn">🌙</button> <!-- Theme Toggle -->
+                    <button id="toggleLogsBtn">日志</button>
+                    <button id="toggleSettingsBtn">设置</button>
                 </div>
-                <button id="logButton" title="查看日志"><i class="fas fa-file-alt"></i> 日志</button>
-                <button id="settingsButton" title="API 设置"><i class="fas fa-cog"></i> 设置</button>
-                <button id="clearChatButton" title="清空对话"><i class="fas fa-trash-alt"></i> 清空</button>
+            </header>
+
+            <div id="chatbox">
+                <!-- Messages will be appended here -->
+                 <div class="message ai-message">
+                    <div class="message-content">你好！请先在“设置”中配置您的 API 信息。</div>
+                    <div class="message-timestamp">...</div>
+                </div>
+            </div>
+
+             <!-- Image Preview Area -->
+            <div id="image-preview-area">
+                <img id="previewImage" src="#" alt="Image preview"/>
+                <button id="removeImageBtn">X</button>
+            </div>
+
+
+            <div class="input-area">
+                <textarea id="userInput" rows="1" placeholder="输入消息... (Shift+Enter 换行)"></textarea>
+                <div class="input-buttons">
+                     <button id="uploadImageBtn" title="上传图片 (需要模型支持)">🖼️</button>
+                     <input type="file" id="imageInput" accept="image/*" class="hidden">
+                    <button id="sendBtn">发送</button>
+                </div>
             </div>
         </div>
 
-        <div class="chat-box" id="chatBox">
-            <!-- 消息将在这里添加 -->
+        <!-- Settings Panel -->
+        <div id="settings-panel" class="side-panel">
+            <div class="panel-header">
+                <h2>设置</h2>
+                <button class="close-panel-btn" id="closeSettingsBtn">&times;</button>
+            </div>
+            <div class="panel-content">
+                <div class="form-group">
+                    <label for="apiUrl">API Endpoint URL:</label>
+                    <input type="text" id="apiUrl" placeholder="例如: https://api.openai.com/v1/chat/completions">
+                </div>
+                <div class="form-group">
+                    <label for="apiKey">API Key:</label>
+                    <input type="password" id="apiKey" placeholder="输入您的 API Key">
+                </div>
+
+                <div class="form-group">
+                    <label>AI 模型管理:</label>
+                    <div id="modelList">
+                        <!-- Model entries will be added here -->
+                    </div>
+                     <input type="text" id="newModelInput" placeholder="输入模型名称 (例如 gpt-4)" style="width: calc(100% - 100px); margin-right: 10px; display: inline-block;">
+                    <button id="addModelBtn">添加模型</button>
+                </div>
+                 <div class="form-group">
+                    <label for="selectedModel">当前选用模型:</label>
+                    <select id="selectedModel">
+                         <!-- Options populated by JS -->
+                         <option value="">请先添加模型</option>
+                    </select>
+                 </div>
+
+
+                <hr style="margin: 20px 0; border-color: var(--border-color);">
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="streamResponse"> 启用流式响应 (Streaming)
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="enableImageSupport"> 启用图片理解 (全局)
+                    </label>
+                    <small style="display: block; color: var(--timestamp-color);">如果启用，将允许上传一张图片随文本发送 (需要模型支持)。</small>
+                </div>
+
+                 <hr style="margin: 20px 0; border-color: var(--border-color);">
+
+                <div class="form-group">
+                    <label for="temperature">Temperature: <span class="range-value" id="temperatureValue">1.0</span></label>
+                    <input type="range" id="temperature" min="0" max="2" step="0.1" value="1.0">
+                </div>
+                <div class="form-group">
+                    <label for="maxTokens">Max Tokens: <span class="range-value" id="maxTokensValue">1024</span></label>
+                    <input type="range" id="maxTokens" min="1" max="4096" step="1" value="1024">
+                </div>
+                <div class="form-group">
+                    <label for="historyLength">上下文消息数量: <span class="range-value" id="historyLengthValue">10</span></label>
+                    <input type="range" id="historyLength" min="0" max="50" step="1" value="10">
+                     <small style="display: block; color: var(--timestamp-color);">包括用户和AI的消息，0表示不发送历史。</small>
+                </div>
+
+                 <hr style="margin: 20px 0; border-color: var(--border-color);">
+
+                 <div class="form-group">
+                    <label>自定义请求体参数:</label>
+                    <div id="customParamsList">
+                        <!-- Custom param entries will be added here -->
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                         <input type="text" id="newParamKey" placeholder="参数 Key" style="flex: 1;">
+                         <input type="text" id="newParamValue" placeholder="参数 Value (JSON)" style="flex: 1;">
+                    </div>
+                    <button id="addParamBtn" style="margin-top: 10px;">添加参数</button>
+                     <small style="display: block; color: var(--timestamp-color);">Value 可以是字符串 (加引号) 或数字/布尔值。</small>
+                </div>
+
+
+                <hr style="margin: 20px 0; border-color: var(--border-color);">
+
+                <div class="form-group">
+                    <label for="fontFamily">字体:</label>
+                    <select id="fontFamily">
+                        <option value="'Noto Sans SC', 'Microsoft YaHei', sans-serif">Noto Sans SC / Microsoft YaHei</option>
+                        <option value="'Arial', sans-serif">Arial</option>
+                        <option value="'Verdana', sans-serif">Verdana</option>
+                        <option value="'Times New Roman', serif">Times New Roman</option>
+                        <option value="'Courier New', monospace">Courier New (Monospace)</option>
+                         <option value="'Fira Code', 'Consolas', monospace">Fira Code (Monospace)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="fontSize">字体大小: <span class="range-value" id="fontSizeValue">16px</span></label>
+                    <input type="range" id="fontSize" min="12" max="24" step="1" value="16">
+                </div>
+
+            </div>
+            <div class="panel-actions">
+                <button id="saveSettingsBtn">保存设置</button>
+            </div>
         </div>
 
-        <div class="input-area">
-            <textarea id="userInput" placeholder="在此输入消息... (Shift+Enter 换行)" rows="1"></textarea>
-            <button id="sendButton">发送</button>
-            <button id="stopButton">停止</button>
-            <div class="loading-indicator" id="loadingIndicator">
-                <div class="spinner"></div>
+        <!-- Log Panel -->
+        <div id="log-panel" class="side-panel">
+            <div class="panel-header">
+                <h2>日志记录</h2>
+                <button class="close-panel-btn" id="closeLogsBtn">&times;</button>
+            </div>
+            <div class="panel-content">
+                <div id="log-entries">
+                    <!-- Log entries will be appended here -->
+                </div>
+            </div>
+             <div class="panel-actions">
+                 <button id="clearLogsBtn">清除日志</button>
             </div>
         </div>
     </div>
 
-    <!-- 设置 Modal -->
-    <div id="settingsModal" class="modal">
-        <div class="modal-content">
-            <span class="close-button" id="closeSettingsModalButton">&times;</span>
-            <h2>API 设置</h2>
+    <!-- External JS Libraries -->
+    <!-- KaTeX -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+    <!-- Highlight.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Marked.js -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-            <div class="config-section">
-                <h3>管理配置</h3>
-                <label for="configSelector">选择配置:</label>
-                <div id="configList"></div>
-                <button id="removeConfigButton" class="danger">删除选中配置</button>
-            </div>
-
-            <div class="config-section">
-                <h3>编辑 / 新增配置</h3>
-                <label for="configName">配置名称:</label>
-                <input type="text" id="configName" placeholder="例如：我的本地模型">
-
-                <label for="apiUrl">API 端点 URL:</label>
-                <input type="text" id="apiUrl" placeholder="例如：http://localhost:11434/v1/chat/completions">
-
-                <label for="apiKey">API 密钥 (可选):</label>
-                <input type="password" id="apiKey" placeholder="输入你的 API Key">
-
-                <label for="modelName">模型名称:</label>
-                <input type="text" id="modelName" placeholder="例如：llama3, gpt-4o-mini">
-
-                <div class="form-row">
-                    <div>
-                        <label for="maxTokens">最大 Token 数:</label>
-                        <input type="number" id="maxTokens" placeholder="默认值由API决定" min="1">
-                    </div>
-                    <div>
-                        <label for="temperature">温度 (0-2):</label>
-                        <input type="number" id="temperature" placeholder="例如: 0.7" min="0" max="2" step="0.1">
-                    </div>
-                    <div>
-                        <label for="contextCount">上下文消息数:</label>
-                        <input type="number" id="contextCount" placeholder="例如: 10" min="0">
-                    </div>
-                </div>
-
-                <div class="checkbox-group">
-                    <input type="checkbox" id="streamResponse">
-                    <label for="streamResponse">启用流式响应 (实时显示)</label>
-                </div>
-
-                <label for="systemPrompt">系统提示 (可选):</label>
-                <textarea id="systemPrompt" placeholder="例如：你是一个乐于助人的助手。"></textarea>
-
-                <!-- 新增：自定义请求参数区块 -->
-                <h4>自定义请求参数 (可留空)</h4>
-                <div id="customParamsContainer"></div>
-                <button id="addParamButton" class="secondary">+ 添加参数</button>
-                <!-- /自定义请求参数 -->
-
-                <button id="saveConfigButton">保存/新增配置</button>
-                <button id="newConfigButton" class="secondary">清空表单以新增</button>
-            </div>
-
-            <p style="font-size: 0.85em; color: #6c757d; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
-                <strong>⚠️ 安全警告:</strong> API 密钥存储在您的浏览器本地存储 (localStorage) 中。请谨慎使用敏感密钥。API 端点必须启用 CORS 才能从浏览器访问。
-            </p>
-        </div>
-    </div>
-
-    <!-- 日志 Modal -->
-    <div id="logModal" class="modal">
-        <div class="modal-content">
-            <span class="close-button" id="closeLogModalButton">&times;</span>
-            <h2>详细日志</h2>
-            <div id="logContainer">
-                <div style="text-align: center; color: #6c757d;">暂无日志记录</div>
-            </div>
-            <button id="clearLogsButton">清空日志</button>
-        </div>
-    </div>
-
+    <!-- Main Application JavaScript -->
     <script>
-        // --- DOM 元素获取 ---
-        const chatBox = document.getElementById('chatBox');
-        const userInput = document.getElementById('userInput');
-        const sendButton = document.getElementById('sendButton');
-        const stopButton = document.getElementById('stopButton');
-        const clearChatButton = document.getElementById('clearChatButton');
-        const settingsButton = document.getElementById('settingsButton');
-        const logButton = document.getElementById('logButton');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const activeConfigDisplay = document.getElementById('activeConfigDisplay');
-        const decreaseFontButton = document.getElementById('decreaseFontButton');
-        const increaseFontButton = document.getElementById('increaseFontButton');
-
-        // --- 设置 Modal 元素 ---
-        const settingsModal = document.getElementById('settingsModal');
-        const closeSettingsModalButton = document.getElementById('closeSettingsModalButton');
-        const configListDiv = document.getElementById('configList');
-        const removeConfigButton = document.getElementById('removeConfigButton');
-        const configNameInput = document.getElementById('configName');
-        const apiUrlInput = document.getElementById('apiUrl');
-        const apiKeyInput = document.getElementById('apiKey');
-        const modelNameInput = document.getElementById('modelName');
-        const maxTokensInput = document.getElementById('maxTokens');
-        const temperatureInput = document.getElementById('temperature');
-        const contextCountInput = document.getElementById('contextCount');
-        const streamResponseCheckbox = document.getElementById('streamResponse');
-        const systemPromptInput = document.getElementById('systemPrompt');
-        const saveConfigButton = document.getElementById('saveConfigButton');
-        const newConfigButton = document.getElementById('newConfigButton');
-
-        // --- 自定义参数区块 DOM ---
-        const customParamsContainer = document.getElementById('customParamsContainer');
-        const addParamButton = document.getElementById('addParamButton');
-
-        // --- 日志 Modal 元素 ---
-        const logModal = document.getElementById('logModal');
-        const closeLogModalButton = document.getElementById('closeLogModalButton');
-        const logContainer = document.getElementById('logContainer');
-        const clearLogsButton = document.getElementById('clearLogsButton');
-
-        // --- 状态变量 ---
-        let chatHistory = []; 
-        let apiConfigs = [];
-        let currentConfigIndex = -1;
-        let isLoading = false;
-        let currentAbortController = null; 
-        let logs = [];
-        let currentFontSize = 16; 
-        const MIN_FONT_SIZE = 8;
-        const MAX_LOG_ENTRIES = 100;
-
-        // --- 默认值 ---
-        const DEFAULT_CONTEXT_COUNT = 10;
-        const DEFAULT_TEMPERATURE = null;
-        const DEFAULT_MAX_TOKENS = null;
-        const DEFAULT_STREAM = false;
-
-        // --- 初始化 ---
         document.addEventListener('DOMContentLoaded', () => {
-            loadFontSize();
-            applyFontSize();
-            loadLogs();
-            loadConfigs();
-            loadChatHistory();
-            renderChatHistory();
-            updateSettingsUI();
-            updateActiveConfigDisplay();
-            setupEventListeners();
-            adjustTextareaHeight();
-            configureMarked();
-        });
+            // --- DOM Elements ---
+            const chatbox = document.getElementById('chatbox');
+            const userInput = document.getElementById('userInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const settingsPanel = document.getElementById('settings-panel');
+            const logsPanel = document.getElementById('log-panel');
+            const toggleSettingsBtn = document.getElementById('toggleSettingsBtn');
+            const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+            const toggleLogsBtn = document.getElementById('toggleLogsBtn');
+            const closeLogsBtn = document.getElementById('closeLogsBtn');
+            const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+            const logEntries = document.getElementById('log-entries');
+            const clearLogsBtn = document.getElementById('clearLogsBtn');
+            const toggleThemeBtn = document.getElementById('toggleThemeBtn');
 
-        // --- 配置 Marked ---
-        function configureMarked() {
-            marked.setOptions({
-                highlight: function(code, lang) {
-                    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-                    try {
-                        return hljs.highlight(code, { language, ignoreIllegals: true }).value;
-                    } catch (e) {
-                        logEvent('error', `Highlighting error for lang ${lang}: ${e.message}`);
-                        return hljs.highlightAuto(code).value;
-                    }
-                },
-                langPrefix: 'hljs language-',
-                gfm: true,
-                breaks: true,
+            // Settings Elements
+            const apiUrlInput = document.getElementById('apiUrl');
+            const apiKeyInput = document.getElementById('apiKey');
+            const modelListDiv = document.getElementById('modelList');
+            const newModelInput = document.getElementById('newModelInput');
+            const addModelBtn = document.getElementById('addModelBtn');
+            const selectedModelSelect = document.getElementById('selectedModel');
+            const streamResponseCheckbox = document.getElementById('streamResponse');
+            const enableImageSupportCheckbox = document.getElementById('enableImageSupport');
+            const temperatureSlider = document.getElementById('temperature');
+            const temperatureValueSpan = document.getElementById('temperatureValue');
+            const maxTokensSlider = document.getElementById('maxTokens');
+            const maxTokensValueSpan = document.getElementById('maxTokensValue');
+            const historyLengthSlider = document.getElementById('historyLength');
+            const historyLengthValueSpan = document.getElementById('historyLengthValue');
+            const customParamsListDiv = document.getElementById('customParamsList');
+            const newParamKeyInput = document.getElementById('newParamKey');
+            const newParamValueInput = document.getElementById('newParamValue');
+            const addParamBtn = document.getElementById('addParamBtn');
+            const fontFamilySelect = document.getElementById('fontFamily');
+            const fontSizeSlider = document.getElementById('fontSize');
+            const fontSizeValueSpan = document.getElementById('fontSizeValue');
+
+            // Image Upload Elements
+            const uploadImageBtn = document.getElementById('uploadImageBtn');
+            const imageInput = document.getElementById('imageInput');
+            const imagePreviewArea = document.getElementById('image-preview-area');
+            const previewImage = document.getElementById('previewImage');
+            const removeImageBtn = document.getElementById('removeImageBtn');
+
+
+            // --- State Variables ---
+            let settings = {
+                apiUrl: '',
+                apiKey: '',
+                models: [], // Array of model name strings
+                selectedModel: '',
+                stream: false,
+                enableImageSupport: false,
+                temperature: 1.0,
+                maxTokens: 1024,
+                historyLength: 10,
+                customParams: {}, // Key-value pairs
+                fontFamily: "'Noto Sans SC', 'Microsoft YaHei', sans-serif",
+                fontSize: 16,
+                theme: 'light' // 'light' or 'dark'
+            };
+            let chatHistory = []; // Stores message objects { role: 'user'/'assistant', content: '...' }
+            let currentAIMessageElement = null; // For streaming updates
+            let currentAIContent = ''; // Accumulator for streaming content
+            let abortController = null; // To cancel fetch requests
+            let uploadedImageBase64 = null; // Store uploaded image data
+
+
+            // --- Initialization ---
+            loadSettings();
+            applySettings();
+            updateModelsUI();
+            updateCustomParamsUI();
+            updateSelectedModelOptions(); // Populate dropdown initially
+            hljs.highlightAll(); // Initial highlight if there's pre-rendered code
+            adjustTextareaHeight(); // Adjust textarea height initially
+
+            // --- Event Listeners ---
+
+            // Panel Toggles
+            toggleSettingsBtn.addEventListener('click', () => settingsPanel.classList.add('open'));
+            closeSettingsBtn.addEventListener('click', () => settingsPanel.classList.remove('open'));
+            toggleLogsBtn.addEventListener('click', () => logsPanel.classList.add('open'));
+            closeLogsBtn.addEventListener('click', () => logsPanel.classList.remove('open'));
+
+            // Settings Interactions
+            saveSettingsBtn.addEventListener('click', () => {
+                saveSettings();
+                applySettings();
+                settingsPanel.classList.remove('open');
+                addLog('Info', 'Settings saved and applied.');
+                alert('设置已保存！');
             });
-        }
 
-        // --- 事件监听器设置 ---
-        function setupEventListeners() {
-            sendButton.addEventListener('click', sendMessage);
-            stopButton.addEventListener('click', stopGeneration);
-            userInput.addEventListener('keydown', handleInputKeydown);
-            userInput.addEventListener('input', adjustTextareaHeight);
-            clearChatButton.addEventListener('click', clearChat);
+            addModelBtn.addEventListener('click', addModel);
+            modelListDiv.addEventListener('click', handleModelListActions); // Event delegation
 
-            settingsButton.addEventListener('click', openSettingsModal);
-            closeSettingsModalButton.addEventListener('click', closeSettingsModal);
-            logButton.addEventListener('click', openLogModal);
-            closeLogModalButton.addEventListener('click', closeLogModal);
-            window.addEventListener('click', (event) => {
-                if (event.target == settingsModal) closeSettingsModal();
-                if (event.target == logModal) closeLogModal();
+            addParamBtn.addEventListener('click', addCustomParam);
+            customParamsListDiv.addEventListener('click', handleCustomParamListActions); // Event delegation
+
+            temperatureSlider.addEventListener('input', () => {
+                temperatureValueSpan.textContent = parseFloat(temperatureSlider.value).toFixed(1);
+                settings.temperature = parseFloat(temperatureSlider.value);
+            });
+            maxTokensSlider.addEventListener('input', () => {
+                maxTokensValueSpan.textContent = maxTokensSlider.value;
+                settings.maxTokens = parseInt(maxTokensSlider.value, 10);
+            });
+            historyLengthSlider.addEventListener('input', () => {
+                historyLengthValueSpan.textContent = historyLengthSlider.value;
+                settings.historyLength = parseInt(historyLengthSlider.value, 10);
+             });
+            streamResponseCheckbox.addEventListener('change', () => {
+                 settings.stream = streamResponseCheckbox.checked;
+            });
+             enableImageSupportCheckbox.addEventListener('change', () => {
+                 settings.enableImageSupport = enableImageSupportCheckbox.checked;
+                 // Optionally show/hide upload button based on this?
+                 uploadImageBtn.style.display = settings.enableImageSupport ? 'flex' : 'none';
+            });
+            selectedModelSelect.addEventListener('change', () => {
+                 settings.selectedModel = selectedModelSelect.value;
             });
 
-            saveConfigButton.addEventListener('click', saveOrAddConfig);
-            removeConfigButton.addEventListener('click', removeSelectedConfig);
-            newConfigButton.addEventListener('click', clearConfigFields);
-            configListDiv.addEventListener('click', handleConfigSelection);
-
-            clearLogsButton.addEventListener('click', clearLogs);
-
-            increaseFontButton.addEventListener('click', increaseFontSize);
-            decreaseFontButton.addEventListener('click', decreaseFontSize);
-
-            chatBox.addEventListener('click', handleChatBoxClick);
-
-            // 自定义参数
-            addParamButton.addEventListener('click', () => {
-                addCustomParamRow();
+            fontFamilySelect.addEventListener('input', () => {
+                settings.fontFamily = fontFamilySelect.value;
+                applyAppearanceSettings(); // Apply immediately
             });
-        }
-
-        // --- 自定义参数相关函数 ---
-        // 渲染已有自定义参数
-        function renderCustomParamsUI(params = {}) {
-            customParamsContainer.innerHTML = '';
-            Object.entries(params).forEach(([key, val]) => {
-                addCustomParamRow(key, typeof val === 'string' ? JSON.stringify(val) : JSON.stringify(val));
+            fontSizeSlider.addEventListener('input', () => {
+                settings.fontSize = parseInt(fontSizeSlider.value, 10);
+                fontSizeValueSpan.textContent = `${settings.fontSize}px`;
+                applyAppearanceSettings(); // Apply immediately
             });
-        }
-        // 新增一行参数输入
-        function addCustomParamRow(key = '', value = '') {
-            const row = document.createElement('div');
-            row.classList.add('param-row');
-            const keyInput = document.createElement('input');
-            keyInput.placeholder = '参数名 (如 top_p)';
-            keyInput.value = key;
-            const valInput = document.createElement('input');
-            valInput.placeholder = '参数值 (如 0.8 或 "high")';
-            valInput.value = value;
-            const removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.textContent = '✕';
-            removeBtn.title = '删除此参数';
-            removeBtn.addEventListener('click', () => row.remove());
-            row.appendChild(keyInput);
-            row.appendChild(valInput);
-            row.appendChild(removeBtn);
-            customParamsContainer.appendChild(row);
-        }
 
-        // --- 核心聊天功能 ---
-        function adjustTextareaHeight() {
-            userInput.style.height = 'auto';
-            const newHeight = Math.max(userInput.scrollHeight, 48);
-            userInput.style.height = newHeight + 'px';
-        }
-        function handleInputKeydown(event) {
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                sendMessage();
-            }
-        }
-        function handleChatBoxClick(event) {
-            const target = event.target;
-            if (target.classList.contains('copy-message-button') || target.closest('.copy-message-button')) {
-                const button = target.closest('.copy-message-button');
-                const messageElement = button.closest('.message');
-                const contentWrapper = messageElement.querySelector('.content-wrapper');
-                if (contentWrapper) {
-                    copyToClipboard(contentWrapper.textContent || contentWrapper.innerText, button);
+            // Chat Input & Sending
+            sendBtn.addEventListener('click', sendMessage);
+            userInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault(); // Prevent newline
+                    sendMessage();
                 }
-                return;
-            }
-            if (target.classList.contains('copy-code-button') || target.closest('.copy-code-button')) {
-                const button = target.closest('.copy-code-button');
-                const pre = button.closest('pre');
-                const codeEl = pre?.querySelector('code');
-                if (codeEl) copyToClipboard(codeEl.textContent, button);
-                return;
-            }
-        }
-        function copyToClipboard(text, button = null) {
-            navigator.clipboard.writeText(text).then(() => {
-                logEvent('info', '内容已复制到剪贴板');
-                if (button) {
-                    const orig = button.innerHTML;
-                    button.innerHTML = '<i class="fas fa-check"></i> 已复制';
-                    button.classList.add('copied');
-                    setTimeout(() => {
-                        button.innerHTML = orig;
-                        button.classList.remove('copied');
-                    }, 1500);
-                }
-            }).catch(err => {
-                logEvent('error', `复制失败: ${err}`);
-                alert('复制失败: ' + err);
             });
-        }
+             userInput.addEventListener('input', adjustTextareaHeight); // Auto-resize textarea
 
-        function addMessageToChat(role, content, isError = false, messageId = null) {
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('message', role);
-            if (messageId) messageElement.dataset.messageId = messageId;
-            const roleIndicator = document.createElement('strong');
-            roleIndicator.classList.add('role-indicator');
-            const contentWrapper = document.createElement('div');
-            contentWrapper.classList.add('content-wrapper');
-
-            if (!isError) {
-                const copyButton = document.createElement('button');
-                copyButton.classList.add('copy-message-button');
-                copyButton.title = '复制消息内容';
-                copyButton.innerHTML = '<i class="fas fa-copy"></i>';
-                messageElement.appendChild(copyButton);
-            }
-
-            if (isError) {
-                messageElement.classList.add('error');
-                roleIndicator.textContent = '错误';
-                contentWrapper.textContent = content;
-            } else {
-                roleIndicator.textContent = role === 'user' ? '你' : '助手';
-                updateMessageContent(contentWrapper, content, role === 'assistant');
-            }
-
-            messageElement.appendChild(roleIndicator);
-            messageElement.appendChild(contentWrapper);
-            chatBox.appendChild(messageElement);
-            scrollToBottom();
-            return messageElement;
-        }
-
-        function updateMessageContent(contentWrapper, content, isAssistant) {
-            if (isAssistant) {
-                contentWrapper.innerHTML = marked.parse(content || "*思考中...*");
-                contentWrapper.querySelectorAll('pre').forEach(pre => {
-                    if (pre.querySelector('.copy-code-button')) return;
-                    const copyBtn = document.createElement('button');
-                    copyBtn.classList.add('copy-code-button');
-                    copyBtn.innerHTML = '<i class="fas fa-copy"></i> 复制';
-                    copyBtn.title = '复制代码';
-                    pre.appendChild(copyBtn);
-                });
-            } else {
-                contentWrapper.textContent = content;
-            }
-        }
-
-        function renderChatHistory() {
-            chatBox.innerHTML = '';
-            if (chatHistory.length === 0) {
-                addMessageToChat('assistant', '你好！请在“设置”中配置你的 API 信息，然后开始对话吧。');
-            } else {
-                chatHistory.forEach((msg, idx) => {
-                    addMessageToChat(msg.role, msg.content, false, `msg-${idx}`);
-                });
-            }
-            scrollToBottom();
-        }
-        function scrollToBottom() {
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        function setLoading(loading, isStreaming = false) {
-            isLoading = loading;
-            userInput.disabled = loading;
-            userInput.placeholder = loading ? "等待 AI 响应..." : "在此输入消息... (Shift+Enter 换行)";
-            if (loading) {
-                sendButton.style.display = 'none';
-                if (isStreaming) {
-                    stopButton.style.display = 'inline-block';
-                    loadingIndicator.style.display = 'none';
+             // Image Upload
+            uploadImageBtn.addEventListener('click', () => {
+                if (settings.enableImageSupport) {
+                    imageInput.click();
                 } else {
-                    stopButton.style.display = 'none';
-                    loadingIndicator.style.display = 'flex';
+                    alert('请先在设置中启用图片理解功能。');
                 }
-            } else {
-                sendButton.style.display = 'inline-block';
-                stopButton.style.display = 'none';
-                loadingIndicator.style.display = 'none';
-                sendButton.disabled = false;
-            }
-        }
+            });
+            imageInput.addEventListener('change', handleImageUpload);
+            removeImageBtn.addEventListener('click', removeImage);
 
-        async function sendMessage() {
-            const userText = userInput.value.trim();
-            if (!userText || isLoading) return;
-            if (currentConfigIndex < 0 || !apiConfigs[currentConfigIndex]) {
-                addMessageToChat('error', '请先在“设置”中选择或添加一个有效的 API 配置。', true);
-                return;
-            }
-            const cfg = apiConfigs[currentConfigIndex];
-            if (!cfg.endpoint || !cfg.model) {
-                addMessageToChat('error', '当前选择的 API 配置不完整（缺少端点 URL 或模型名称）。', true);
-                return;
-            }
-
-            // 用户消息
-            const userMsg = { role: 'user', content: userText };
-            chatHistory.push(userMsg);
-            addMessageToChat('user', userText, false, `msg-${chatHistory.length - 1}`);
-            userInput.value = ''; adjustTextareaHeight(); saveChatHistory();
-
-            // 准备请求
-            const messagesForApi = prepareMessagesForApi(cfg);
-            const requestBody = buildRequestBody(cfg, messagesForApi);
-            const useStreaming = cfg.stream ?? DEFAULT_STREAM;
-
-            setLoading(true, useStreaming);
-            currentAbortController = new AbortController();
-
-            logEvent('request', {
-                url: cfg.endpoint,
-                headers: { ...(cfg.key ? { 'Authorization': 'Bearer ***' } : {}), 'Content-Type': 'application/json' },
-                body: requestBody
+            // Log Panel
+            clearLogsBtn.addEventListener('click', () => {
+                logEntries.innerHTML = '';
+                addLog('Info', 'Logs cleared.');
             });
 
-            try {
-                const resp = await fetch(cfg.endpoint, {
+            // Theme Toggle
+            toggleThemeBtn.addEventListener('click', toggleTheme);
+
+
+            // --- Core Functions ---
+
+            function adjustTextareaHeight() {
+                userInput.style.height = 'auto'; // Reset height
+                userInput.style.height = userInput.scrollHeight + 'px'; // Set to scroll height
+            }
+
+            function handleImageUpload(event) {
+                const file = event.target.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        uploadedImageBase64 = reader.result; // Store Base64 string
+                        previewImage.src = uploadedImageBase64;
+                        imagePreviewArea.style.display = 'block';
+                        // Optionally clear file input value to allow re-uploading the same file
+                        imageInput.value = '';
+                    }
+                    reader.readAsDataURL(file);
+                } else {
+                    removeImage(); // Clear if invalid file selected
+                    alert('请选择一个图片文件。');
+                }
+            }
+
+            function removeImage() {
+                uploadedImageBase64 = null;
+                previewImage.src = '#';
+                imagePreviewArea.style.display = 'none';
+                imageInput.value = ''; // Clear file input
+            }
+
+            function sendMessage() {
+                const userText = userInput.value.trim();
+
+                if (!userText && !uploadedImageBase64) {
+                    return; // Don't send empty messages without an image
+                }
+                 if (uploadedImageBase64 && !settings.enableImageSupport) {
+                     alert('图片已选择，但未在设置中启用图片理解。请启用或移除图片。');
+                     return;
+                 }
+                 if (!settings.apiUrl || !settings.apiKey) {
+                     alert('请先在设置中配置 API URL 和 API Key！');
+                     return;
+                 }
+                 if (!settings.selectedModel) {
+                     alert('请先在设置中添加并选择一个模型！');
+                     return;
+                 }
+
+
+                // --- Prepare User Message Content ---
+                let userMessageContent = [];
+                if (userText) {
+                    userMessageContent.push({ type: "text", text: userText });
+                }
+                if (uploadedImageBase64 && settings.enableImageSupport) {
+                     // Check if model supports vision (basic check, real APIs might vary)
+                     // For OpenAI's standard, images are sent in the content array
+                     userMessageContent.push({
+                         type: "image_url",
+                         image_url: {
+                             url: uploadedImageBase64 // Send Base64 Data URI
+                             // OpenAI also supports 'detail': 'low'/'high'/'auto'
+                         }
+                     });
+                }
+
+                // If only image is sent, add a placeholder text for display if needed
+                const displayUserText = userText || (uploadedImageBase64 ? "[用户发送了一张图片]" : "");
+
+                displayMessage(displayUserText, 'user', uploadedImageBase64); // Display user message with image if present
+                chatHistory.push({ role: 'user', content: userMessageContent }); // Add structured content to history
+
+                // Clear input and image preview
+                userInput.value = '';
+                adjustTextareaHeight();
+                removeImage();
+
+                // Disable input while waiting
+                sendBtn.disabled = true;
+                userInput.disabled = true;
+                uploadImageBtn.disabled = true;
+
+                // Prepare API request
+                const requestBody = {
+                    model: settings.selectedModel,
+                    messages: getHistoryContext(),
+                    temperature: settings.temperature,
+                    max_tokens: settings.maxTokens,
+                    stream: settings.stream,
+                    // Add other custom parameters from settings
+                     ...settings.customParams
+                };
+
+                 // Filter out null/empty custom parameters just in case
+                 for (const key in requestBody) {
+                     if (requestBody[key] === null || requestBody[key] === undefined || requestBody[key] === '') {
+                        // Be careful not to delete essential keys like stream: false
+                        if (!['stream', 'temperature'].includes(key) || requestBody[key] !== false && requestBody[key] !== 0) {
+                             delete requestBody[key];
+                        }
+                     }
+                 }
+
+
+                addLog('Request', requestBody);
+
+                // Create a new AbortController for this request
+                abortController = new AbortController();
+                const signal = abortController.signal;
+
+                // --- Make API Call ---
+                fetch(settings.apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        ...(cfg.key ? { 'Authorization': `Bearer ${cfg.key}` } : {})
+                        'Authorization': `Bearer ${settings.apiKey}`
                     },
                     body: JSON.stringify(requestBody),
-                    signal: currentAbortController.signal
-                });
-                if (!resp.ok) {
-                    let errMsg = `API 错误: ${resp.status} ${resp.statusText}`;
-                    try {
-                        const errData = await resp.json();
-                        errMsg += ` - ${errData.error?.message || JSON.stringify(errData)}`;
-                        logEvent('error', `API Error Response: ${JSON.stringify(errData)}`);
-                    } catch (e) {
-                        const textErr = await resp.text();
-                        errMsg += ` - ${textErr}`;
-                        logEvent('error', `API Error Response (non-JSON): ${textErr}`);
+                    signal: signal // Pass the signal to fetch
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        // Try to read error body for more details
+                        return response.json().then(err => {
+                            throw new Error(`HTTP error! status: ${response.status}, message: ${err.error?.message || JSON.stringify(err)}`);
+                        }).catch(() => {
+                             // If error body is not JSON or empty
+                             throw new Error(`HTTP error! status: ${response.status}`);
+                        });
                     }
-                    throw new Error(errMsg);
-                }
-                if (useStreaming && resp.body) {
-                    await handleStreamingResponse(resp.body);
-                } else {
-                    const data = await resp.json();
-                    logEvent('response', data);
-                    handleNonStreamingResponse(data);
-                }
-            } catch (error) {
-                if (error.name === 'AbortError') {
-                    logEvent('info', '请求被用户中止');
-                    const last = chatBox.lastElementChild;
-                    if (last && last.classList.contains('assistant')) {
-                        const cw = last.querySelector('.content-wrapper');
-                        if (cw && cw.innerHTML.includes("思考中")) {
-                            cw.innerHTML += "<br><small>(已停止)</small>";
-                        } else if (cw) {
-                            cw.innerHTML += "... <small>(已停止)</small>";
-                        }
-                        const lh = chatHistory[chatHistory.length - 1];
-                        if (lh && lh.role === 'assistant') {
-                            lh.content = cw.innerHTML || lh.content + "... (已停止)";
-                            saveChatHistory();
-                        }
+
+                    if (settings.stream && response.body) {
+                        // Handle streaming response
+                        handleStreamResponse(response.body);
                     } else {
-                        addMessageToChat('assistant', '*生成已停止*', false);
-                    }
-                } else {
-                    logEvent('error', `请求失败: ${error.message}`);
-                    addMessageToChat('error', `请求失败: ${error.message}`, true);
-                    const lh = chatHistory[chatHistory.length - 1];
-                    if (lh && lh.role === 'assistant' && lh.content.includes("思考中")) {
-                        chatHistory.pop();
-                    }
-                }
-            } finally {
-                setLoading(false);
-                currentAbortController = null;
-            }
-        }
-
-        function prepareMessagesForApi(config) {
-            const msgs = [];
-            if (config.systemPrompt) {
-                msgs.push({ role: 'system', content: config.systemPrompt });
-            }
-            const cnt = config.contextCount ?? DEFAULT_CONTEXT_COUNT;
-            const start = Math.max(0, chatHistory.length - cnt);
-            msgs.push(...chatHistory.slice(start));
-            return msgs;
-        }
-
-        function buildRequestBody(config, messages) {
-            const body = {
-                model: config.model,
-                messages,
-                stream: config.stream ?? DEFAULT_STREAM
-            };
-            if (config.maxTokens) body.max_tokens = config.maxTokens;
-            if (config.temperature !== null) body.temperature = config.temperature;
-            // 合并自定义参数
-            if (config.customParams) {
-                Object.assign(body, config.customParams);
-            }
-            return body;
-        }
-
-        function handleNonStreamingResponse(data) {
-            if (data.choices?.length && data.choices[0].message) {
-                const content = data.choices[0].message.content?.trim() || "*AI 未返回有效内容*";
-                chatHistory.push({ role: 'assistant', content });
-                addMessageToChat('assistant', content, false, `msg-${chatHistory.length - 1}`);
-                saveChatHistory();
-            } else {
-                logEvent('warn', "API 响应格式不符合预期 (非流式)", data);
-                throw new Error('API 响应中未找到有效的消息内容。');
-            }
-        }
-
-        async function handleStreamingResponse(stream) {
-            const reader = stream.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-            let accumulated = '';
-            let assistantEl = addMessageToChat('assistant', '', false, `msg-${chatHistory.length}`);
-            const cw = assistantEl.querySelector('.content-wrapper');
-
-            try {
-                while (true) {
-                    const { value, done } = await reader.read();
-                    if (done) break;
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop() || '';
-                    for (const line of lines) {
-                        if (!line.trim() || line.startsWith(':')) continue;
-                        if (line.startsWith('data: ')) {
-                            const jsonStr = line.slice(6).trim();
-                            if (jsonStr === '[DONE]') break;
-                            try {
-                                const data = JSON.parse(jsonStr);
-                                logEvent('response', data);
-                                const delta = data.choices?.[0].delta;
-                                if (delta?.content) {
-                                    accumulated += delta.content;
-                                    updateMessageContent(cw, accumulated, true);
-                                    scrollToBottom();
-                                }
-                                if (data.choices[0].finish_reason) {
-                                    logEvent('info', `Stream finished with reason: ${data.choices[0].finish_reason}`);
-                                }
-                            } catch (e) {
-                                logEvent('error', `Error parsing stream JSON: ${e.message}`, jsonStr);
+                        // Handle non-streaming response
+                        return response.json().then(data => {
+                            addLog('Response (Full)', data);
+                            const aiContent = data.choices && data.choices[0]?.message?.content;
+                            if (aiContent) {
+                                displayMessage(aiContent, 'assistant');
+                                chatHistory.push({ role: 'assistant', content: aiContent });
+                            } else {
+                                throw new Error('Invalid response format from API.');
                             }
-                        } else {
-                            logEvent('warn', `Unexpected stream line: ${line}`);
-                        }
+                            resetUIAfterResponse();
+                        });
                     }
-                    if (currentAbortController?.signal.aborted) {
-                        throw new Error('AbortError');
+                })
+                .catch(error => {
+                    if (error.name === 'AbortError') {
+                        addLog('Info', 'API request cancelled by user.');
+                        displayMessage('请求已取消。', 'error');
+                    } else {
+                         console.error('API Error:', error);
+                         addLog('Error', { message: error.message, stack: error.stack });
+                         displayMessage(`错误: ${error.message}`, 'error');
                     }
-                }
-            } finally {
-                reader.releaseLock();
-            }
-
-            const finalContent = accumulated || "*AI 未返回任何内容*";
-            updateMessageContent(cw, finalContent, true);
-            chatHistory.push({ role: 'assistant', content: finalContent });
-            saveChatHistory();
-        }
-
-        function stopGeneration() {
-            if (currentAbortController) {
-                currentAbortController.abort();
-                logEvent('info', 'Stop generation requested by user.');
-            }
-        }
-
-        function clearChat() {
-            if (confirm('确定要清空所有对话记录吗？此操作不可恢复。')) {
-                chatHistory = [];
-                chatBox.innerHTML = '';
-                addMessageToChat('assistant', '对话已清空。');
-                saveChatHistory();
-                logEvent('info', 'Chat history cleared.');
-            }
-        }
-
-        // --- 设置 Modal 相关 ---
-        function openSettingsModal() {
-            updateSettingsUI();
-            settingsModal.style.display = 'block';
-        }
-        function closeSettingsModal() {
-            settingsModal.style.display = 'none';
-        }
-        function updateSettingsUI() {
-            // 填充配置列表
-            configListDiv.innerHTML = '';
-            if (!apiConfigs.length) {
-                configListDiv.innerHTML = '<div style="text-align:center;color:#6c757d;">无可用配置</div>';
-            } else {
-                apiConfigs.forEach((cfg, idx) => {
-                    const div = document.createElement('div');
-                    div.dataset.index = idx;
-                    const span = document.createElement('span');
-                    span.textContent = cfg.name || `配置 ${idx+1}`;
-                    div.appendChild(span);
-                    if (cfg.stream) {
-                        const indi = document.createElement('span');
-                        indi.classList.add('config-stream-indicator');
-                        indi.innerHTML = '<i class="fas fa-stream"></i> 流式';
-                        indi.title = '流式响应已启用';
-                        div.appendChild(indi);
-                    }
-                    if (idx === currentConfigIndex) div.classList.add('selected');
-                    configListDiv.appendChild(div);
+                    resetUIAfterResponse(); // Always re-enable UI on error/abort
                 });
             }
 
-            // 填充表单
-            if (currentConfigIndex >= 0 && apiConfigs[currentConfigIndex]) {
-                const cfg = apiConfigs[currentConfigIndex];
-                configNameInput.value = cfg.name || '';
-                apiUrlInput.value = cfg.endpoint || '';
-                apiKeyInput.value = cfg.key || '';
-                modelNameInput.value = cfg.model || '';
-                maxTokensInput.value = cfg.maxTokens ?? '';
-                temperatureInput.value = cfg.temperature ?? '';
-                contextCountInput.value = cfg.contextCount ?? '';
-                streamResponseCheckbox.checked = cfg.stream ?? DEFAULT_STREAM;
-                systemPromptInput.value = cfg.systemPrompt || '';
-                renderCustomParamsUI(cfg.customParams || {});
-                removeConfigButton.disabled = false;
-                saveConfigButton.textContent = '保存更改';
-            } else {
-                clearConfigFields(false);
-                renderCustomParamsUI({});
-                removeConfigButton.disabled = true;
-                saveConfigButton.textContent = '新增配置';
-            }
-        }
+            function handleStreamResponse(responseBody) {
+                // Create placeholder message element for AI response
+                currentAIMessageElement = createMessageElement('', 'assistant');
+                chatbox.appendChild(currentAIMessageElement);
+                scrollToBottom();
+                currentAIContent = ''; // Reset content accumulator
 
-        function handleConfigSelection(event) {
-            const d = event.target.closest('div[data-index]');
-            if (!d) return;
-            const idx = parseInt(d.dataset.index, 10);
-            if (idx >= 0 && idx < apiConfigs.length) {
-                currentConfigIndex = idx;
-                saveCurrentConfigIndex();
-                updateSettingsUI();
-                updateActiveConfigDisplay();
-            }
-        }
+                const reader = responseBody.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
 
-        function saveOrAddConfig() {
-            const name = configNameInput.value.trim();
-            const endpoint = apiUrlInput.value.trim();
-            const key = apiKeyInput.value.trim();
-            const model = modelNameInput.value.trim();
-            const systemPrompt = systemPromptInput.value.trim();
-            const stream = streamResponseCheckbox.checked;
-
-            const maxRaw = maxTokensInput.value.trim();
-            const maxTokens = maxRaw ? parseInt(maxRaw, 10) : null;
-            const tmpRaw = temperatureInput.value.trim();
-            const temperature = tmpRaw ? parseFloat(tmpRaw) : null;
-            const cntRaw = contextCountInput.value.trim();
-            const contextCount = cntRaw ? parseInt(cntRaw, 10) : null;
-
-            if (!name || !endpoint || !model) {
-                alert('配置名称、API 端点 URL 和模型名称是必填项。');
-                return;
-            }
-            if (maxTokens !== null && (isNaN(maxTokens) || maxTokens <= 0)) {
-                alert('最大 Token 数必须是大于 0 的有效数字。');
-                return;
-            }
-            if (temperature !== null && (isNaN(temperature) || temperature < 0 || temperature > 2)) {
-                alert('温度必须是 0 到 2 之间的有效数字。');
-                return;
-            }
-            if (contextCount !== null && (isNaN(contextCount) || contextCount < 0)) {
-                alert('上下文消息数必须是大于或等于 0 的有效数字。');
-                return;
-            }
-
-            // 读取自定义参数
-            const customParams = {};
-            customParamsContainer.querySelectorAll('.param-row').forEach(row => {
-                const [kIn, vIn] = row.querySelectorAll('input');
-                const k = kIn.value.trim();
-                let v = vIn.value.trim();
-                if (!k) return;
-                try {
-                    v = JSON.parse(v);
-                } catch {
-                    // 保留原字符串
-                }
-                customParams[k] = v;
-            });
-
-            const newCfg = {
-                name,
-                endpoint,
-                key,
-                model,
-                maxTokens,
-                temperature,
-                contextCount,
-                stream,
-                systemPrompt,
-                customParams
-            };
-
-            if (currentConfigIndex >= 0 && apiConfigs[currentConfigIndex]) {
-                apiConfigs[currentConfigIndex] = newCfg;
-                logEvent('info', `Configuration updated: ${name}`);
-            } else {
-                apiConfigs.push(newCfg);
-                currentConfigIndex = apiConfigs.length - 1;
-                logEvent('info', `Configuration added: ${name}`);
-            }
-            saveConfigs();
-            saveCurrentConfigIndex();
-            updateSettingsUI();
-            updateActiveConfigDisplay();
-            alert('配置已保存！');
-        }
-
-        function removeSelectedConfig() {
-            if (currentConfigIndex < 0 || currentConfigIndex >= apiConfigs.length) {
-                alert('没有选中的配置可删除。');
-                return;
-            }
-            const toRemove = apiConfigs[currentConfigIndex].name || `配置 ${currentConfigIndex+1}`;
-            if (!confirm(`确定要删除配置 "${toRemove}" 吗？`)) return;
-            apiConfigs.splice(currentConfigIndex, 1);
-            logEvent('info', `Configuration removed: ${toRemove}`);
-            currentConfigIndex = apiConfigs.length>0?0:-1;
-            saveConfigs();
-            saveCurrentConfigIndex();
-            updateSettingsUI();
-            updateActiveConfigDisplay();
-        }
-
-        function clearConfigFields(deselect = true) {
-            configNameInput.value = '';
-            apiUrlInput.value = '';
-            apiKeyInput.value = '';
-            modelNameInput.value = '';
-            maxTokensInput.value = '';
-            temperatureInput.value = '';
-            contextCountInput.value = '';
-            streamResponseCheckbox.checked = DEFAULT_STREAM;
-            systemPromptInput.value = '';
-            renderCustomParamsUI({});
-            if (deselect) {
-                currentConfigIndex = -1;
-                saveCurrentConfigIndex();
-                updateSettingsUI();
-                updateActiveConfigDisplay();
-            }
-        }
-
-        function updateActiveConfigDisplay() {
-            if (currentConfigIndex >= 0 && apiConfigs[currentConfigIndex]) {
-                const cfg = apiConfigs[currentConfigIndex];
-                activeConfigDisplay.textContent = cfg.name || `配置 ${currentConfigIndex+1}`;
-                activeConfigDisplay.title = `当前配置: ${cfg.name}\n模型: ${cfg.model}\n端点: ${cfg.endpoint}`;
-                activeConfigDisplay.classList.remove('none');
-            } else {
-                activeConfigDisplay.textContent = '无配置';
-                activeConfigDisplay.title = '请在设置中选择或添加一个 API 配置';
-                activeConfigDisplay.classList.add('none');
-            }
-        }
-
-        // --- 日志 Modal 相关 ---
-        function openLogModal() {
-            renderLogs();
-            logModal.style.display = 'block';
-        }
-        function closeLogModal() {
-            logModal.style.display = 'none';
-        }
-        function renderLogs() {
-            logContainer.innerHTML = '';
-            if (!logs.length) {
-                logContainer.innerHTML = '<div style="text-align:center;color:#6c757d;">暂无日志记录</div>';
-                return;
-            }
-            [...logs].reverse().forEach(log => {
-                const entry = document.createElement('div');
-                entry.classList.add('log-entry', `log-type-${log.type}`);
-                const meta = document.createElement('div');
-                meta.classList.add('log-meta');
-                meta.textContent = `${new Date(log.timestamp).toLocaleString()} - [${log.type.toUpperCase()}]`;
-                entry.appendChild(meta);
-                const pre = document.createElement('pre');
-                try {
-                    pre.textContent = typeof log.data==='string'?log.data:JSON.stringify(log.data,null,2);
-                } catch {
-                    pre.textContent = String(log.data);
-                }
-                entry.appendChild(pre);
-                logContainer.appendChild(entry);
-            });
-        }
-        function clearLogs() {
-            if (confirm('确定要清空所有日志记录吗？')) {
-                logs = [];
-                saveLogs();
-                renderLogs();
-            }
-        }
-
-        // --- 字体大小调节 ---
-        function increaseFontSize() {
-            currentFontSize++;
-            applyFontSize();
-            saveFontSize();
-        }
-        function decreaseFontSize() {
-            currentFontSize = Math.max(MIN_FONT_SIZE, currentFontSize - 1);
-            applyFontSize();
-            saveFontSize();
-        }
-        function applyFontSize() {
-            document.documentElement.style.setProperty('--base-font-size', `${currentFontSize}px`);
-        }
-
-        // --- 持久化 (localStorage) ---
-        function logEvent(type, data) {
-            const ts = Date.now();
-            const entry = { timestamp: ts, type, data };
-            logs.push(entry);
-            if (logs.length > MAX_LOG_ENTRIES) logs.shift();
-            saveLogs();
-            switch(type) {
-                case 'error': console.error(`[LOG ${type.toUpperCase()}]`, data); break;
-                case 'warn': console.warn(`[LOG ${type.toUpperCase()}]`, data); break;
-                default: console.log(`[LOG ${type.toUpperCase()}]`, data);
-            }
-        }
-        function saveLogs() {
-            try { localStorage.setItem('aiChat_logs', JSON.stringify(logs)); }
-            catch(e){ console.error("无法保存日志:", e); }
-        }
-        function loadLogs() {
-            try {
-                const s = localStorage.getItem('aiChat_logs');
-                if (s) logs = JSON.parse(s);
-            } catch(e){
-                console.error("无法加载日志:", e);
-                logs = [];
-                localStorage.removeItem('aiChat_logs');
-            }
-        }
-
-        function saveConfigs() {
-            try { localStorage.setItem('aiChat_apiConfigs_v3', JSON.stringify(apiConfigs)); }
-            catch(e){ console.error("无法保存 API 配置:", e); alert("保存配置时出错。"); }
-        }
-        function loadConfigs() {
-            try {
-                let stored = localStorage.getItem('aiChat_apiConfigs_v3');
-                if (stored) {
-                    apiConfigs = JSON.parse(stored);
-                } else {
-                    // 迁移旧版 v2 / v1 略（同原逻辑）
-                    const old2 = localStorage.getItem('aiChat_apiConfigs_v2');
-                    if (old2) {
-                        apiConfigs = JSON.parse(old2).map(cfg => ({
-                            ...cfg,
-                            stream: cfg.stream ?? DEFAULT_STREAM
-                        }));
-                        saveConfigs();
-                        localStorage.removeItem('aiChat_apiConfigs_v2');
-                    } else {
-                        const old1 = localStorage.getItem('aiChat_apiConfigs');
-                        if (old1) {
-                            apiConfigs = JSON.parse(old1).map(cfg => ({
-                                name: cfg.name || '',
-                                endpoint: cfg.endpoint || '',
-                                key: cfg.key || '',
-                                model: cfg.model || '',
-                                maxTokens: null,
-                                temperature: null,
-                                contextCount: null,
-                                stream: DEFAULT_STREAM,
-                                systemPrompt: cfg.systemPrompt || '',
-                                customParams: {}
-                            }));
-                            saveConfigs();
-                            localStorage.removeItem('aiChat_apiConfigs');
+                function processStream() {
+                    reader.read().then(({ done, value }) => {
+                        if (done) {
+                            addLog('Response (Stream End)', { fullContent: currentAIContent });
+                            finalizeStream();
+                            return;
                         }
+
+                        buffer += decoder.decode(value, { stream: true });
+                        // Process Server-Sent Events (SSE)
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop(); // Keep the last (potentially incomplete) line
+
+                        lines.forEach(line => {
+                            if (line.startsWith('data: ')) {
+                                const dataContent = line.substring(6).trim();
+                                if (dataContent === '[DONE]') {
+                                    // Stream finished signal from OpenAI
+                                    // We wait for the reader.read() done signal instead
+                                    return;
+                                }
+                                try {
+                                    const chunk = JSON.parse(dataContent);
+                                    const delta = chunk.choices && chunk.choices[0]?.delta?.content;
+                                    if (delta) {
+                                        currentAIContent += delta;
+                                        // Update the message content progressively
+                                         updateAIMessageContent(currentAIContent);
+                                    }
+                                } catch (e) {
+                                    console.warn('Failed to parse stream chunk:', dataContent, e);
+                                     addLog('Warning', `Stream parse error: ${e.message} on data: ${dataContent}`);
+                                }
+                            }
+                        });
+                         scrollToBottom(); // Scroll as content arrives
+                        processStream(); // Continue reading
+                    }).catch(error => {
+                         if (error.name === 'AbortError') {
+                            addLog('Info', 'Stream reading cancelled.');
+                            // Message was already added, finalize might add partial content
+                         } else {
+                             console.error('Stream reading error:', error);
+                             addLog('Error', `Stream read error: ${error.message}`);
+                             displayMessage(`流式读取错误: ${error.message}`, 'error');
+                         }
+                        finalizeStream(); // Finalize even on error to save what we have
+                    });
+                }
+                processStream();
+            }
+
+             function updateAIMessageContent(content) {
+                 if (currentAIMessageElement) {
+                     const contentDiv = currentAIMessageElement.querySelector('.message-content');
+                     // Use marked to parse Markdown, then set innerHTML
+                     // Be cautious with innerHTML from external sources. Marked sanitizes by default.
+                     contentDiv.innerHTML = marked.parse(content);
+                     // Re-apply syntax highlighting and KaTeX rendering after update
+                     renderRichContent(contentDiv);
+                 }
+             }
+
+            function finalizeStream() {
+                if (currentAIContent) {
+                     chatHistory.push({ role: 'assistant', content: currentAIContent });
+                }
+                 // Ensure final rendering pass on the completed message
+                 if (currentAIMessageElement) {
+                     renderRichContent(currentAIMessageElement.querySelector('.message-content'));
+                 }
+                currentAIMessageElement = null;
+                currentAIContent = '';
+                resetUIAfterResponse();
+                scrollToBottom();
+                 // Clean up abort controller
+                 abortController = null;
+            }
+
+
+            function resetUIAfterResponse() {
+                sendBtn.disabled = false;
+                userInput.disabled = false;
+                uploadImageBtn.disabled = false; // Re-enable based on settings
+                 uploadImageBtn.style.display = settings.enableImageSupport ? 'flex' : 'none';
+                 abortController = null; // Reset abort controller
+            }
+
+            function getHistoryContext() {
+                 // Include the system message if defined? (Not implemented here, but could be added)
+                 const history = chatHistory.slice(-settings.historyLength); // Get last N messages
+                 // Need to handle the complex content format for images
+                 return history.map(msg => {
+                     if (Array.isArray(msg.content)) { // Image + text message format
+                         return { role: msg.role, content: msg.content };
+                     } else { // Standard text message
+                         return { role: msg.role, content: msg.content };
+                     }
+                 });
+            }
+
+             function displayMessage(text, role, imageBase64 = null) {
+                 const messageElement = createMessageElement(text, role, imageBase64);
+                 chatbox.appendChild(messageElement);
+                 // Render content AFTER appending to DOM
+                 renderRichContent(messageElement.querySelector('.message-content'));
+                 scrollToBottom();
+             }
+
+            function createMessageElement(text, role, imageBase64 = null) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message', `${role}-message`);
+
+                const contentDiv = document.createElement('div');
+                contentDiv.classList.add('message-content');
+
+                 // Use Marked.js to parse Markdown content safely
+                 // Note: Marked sanitizes HTML by default.
+                 contentDiv.innerHTML = marked.parse(text || ""); // Handle potential null/empty text
+
+                // Add image if provided
+                if (imageBase64 && role === 'user') { // Show image only for user messages for now
+                    const img = document.createElement('img');
+                    img.src = imageBase64;
+                    img.alt = "User uploaded image";
+                    contentDiv.appendChild(img); // Append image after text content
+                }
+
+
+                const timestampDiv = document.createElement('div');
+                timestampDiv.classList.add('message-timestamp');
+                timestampDiv.textContent = new Date().toLocaleTimeString();
+
+                messageDiv.appendChild(contentDiv);
+                messageDiv.appendChild(timestampDiv);
+
+                return messageDiv;
+            }
+
+             function renderRichContent(element) {
+                 if (!element) return;
+
+                 // Render LaTeX Math using KaTeX
+                 // Need to find delimiters like $$...$$ and $...$
+                 // This basic replacement is fragile; a more robust parser might be needed.
+                 const mathBlocks = element.querySelectorAll('.language-math'); // Assuming marked uses this for $$ blocks
+                 mathBlocks.forEach(block => {
+                     try {
+                         katex.render(block.textContent, block, { throwOnError: false, displayMode: true });
+                     } catch (e) {
+                         console.error("KaTeX block rendering error:", e);
+                         block.textContent = `Math Error: ${e.message}`;
+                     }
+                 });
+
+                 // Basic inline math (needs careful implementation to avoid conflicts)
+                 // This regex approach is simple but might catch unintended '$' signs.
+                 element.innerHTML = element.innerHTML.replace(/\$(.+?)\$/g, (match, capture) => {
+                     try {
+                         return katex.renderToString(capture, { throwOnError: false, displayMode: false });
+                     } catch (e) {
+                         console.error("KaTeX inline rendering error:", e);
+                         return `[Math Error: ${e.message}]`; // Return error text instead
+                     }
+                 });
+
+
+                 // Apply Syntax Highlighting using highlight.js
+                 element.querySelectorAll('pre code').forEach((block) => {
+                     // Add copy button dynamically
+                     if (!block.parentNode.querySelector('.copy-code-button')) {
+                         const copyButton = document.createElement('button');
+                         copyButton.className = 'copy-code-button';
+                         copyButton.textContent = 'Copy';
+                         copyButton.onclick = () => {
+                             navigator.clipboard.writeText(block.textContent)
+                                 .then(() => {
+                                     copyButton.textContent = 'Copied!';
+                                     setTimeout(() => copyButton.textContent = 'Copy', 2000);
+                                 })
+                                 .catch(err => console.error('Failed to copy code:', err));
+                         };
+                         // Insert button inside the <pre> tag, before <code>
+                         block.parentNode.insertBefore(copyButton, block);
+                         block.parentNode.style.position = 'relative'; // Ensure pre is positioned
+                     }
+
+                      // Check if already highlighted
+                     if (!block.classList.contains('hljs-highlighted')) {
+                         try {
+                             hljs.highlightElement(block);
+                             block.classList.add('hljs-highlighted'); // Mark as highlighted
+                         } catch (e) {
+                             console.error("Highlight.js error:", e);
+                         }
+                     }
+                 });
+             }
+
+
+            function scrollToBottom() {
+                chatbox.scrollTop = chatbox.scrollHeight;
+            }
+
+            function addLog(type, data) {
+                const entry = document.createElement('details');
+                entry.className = 'log-entry';
+
+                const summary = document.createElement('summary');
+                 const titleSpan = document.createElement('span');
+                 titleSpan.textContent = `${type} Log`;
+                 const timeSpan = document.createElement('span');
+                 timeSpan.className = 'log-timestamp';
+                 timeSpan.textContent = new Date().toLocaleString();
+                 summary.appendChild(titleSpan);
+                 summary.appendChild(timeSpan);
+
+
+                const content = document.createElement('div');
+                content.className = 'log-content';
+                try {
+                     content.textContent = JSON.stringify(data, null, 2); // Pretty print JSON
+                } catch (e) {
+                     content.textContent = String(data); // Fallback for non-JSON data
+                }
+
+
+                entry.appendChild(summary);
+                entry.appendChild(content);
+
+                logEntries.prepend(entry); // Add newest logs to the top
+            }
+
+            // --- Settings Management ---
+
+            function loadSettings() {
+                const savedSettings = localStorage.getItem('aiChatProxySettings');
+                if (savedSettings) {
+                    try {
+                         const parsedSettings = JSON.parse(savedSettings);
+                         // Merge saved settings with defaults to handle missing keys
+                         settings = { ...settings, ...parsedSettings };
+                         // Ensure nested objects/arrays are correctly handled (deep merge might be better if complex)
+                         settings.models = Array.isArray(parsedSettings.models) ? parsedSettings.models : [];
+                         settings.customParams = typeof parsedSettings.customParams === 'object' && parsedSettings.customParams !== null ? parsedSettings.customParams : {};
+
+                    } catch (e) {
+                        console.error("Failed to parse saved settings:", e);
+                        addLog('Error', 'Failed to load settings from localStorage.');
                     }
                 }
-                // 确保每个配置都有 customParams 字段
-                apiConfigs = apiConfigs.map(cfg => ({ customParams: {}, ...cfg, customParams: cfg.customParams||{} }));
+                 // Ensure essential defaults if loading fails or first time
+                 settings.models = settings.models || [];
+                 settings.customParams = settings.customParams || {};
 
-                const idx = localStorage.getItem('aiChat_currentConfigIndex');
-                if (idx !== null) {
-                    const i = parseInt(idx,10);
-                    currentConfigIndex = (i>=0&&i<apiConfigs.length)?i:(apiConfigs.length>0?0:-1);
-                } else {
-                    currentConfigIndex = apiConfigs.length>0?0:-1;
+                 // Update UI elements with loaded values
+                apiUrlInput.value = settings.apiUrl || '';
+                apiKeyInput.value = settings.apiKey || '';
+                streamResponseCheckbox.checked = settings.stream || false;
+                enableImageSupportCheckbox.checked = settings.enableImageSupport || false;
+                 uploadImageBtn.style.display = settings.enableImageSupport ? 'flex' : 'none'; // Update button visibility
+                temperatureSlider.value = settings.temperature || 1.0;
+                temperatureValueSpan.textContent = parseFloat(temperatureSlider.value).toFixed(1);
+                maxTokensSlider.value = settings.maxTokens || 1024;
+                maxTokensValueSpan.textContent = maxTokensSlider.value;
+                historyLengthSlider.value = settings.historyLength || 10;
+                historyLengthValueSpan.textContent = historyLengthSlider.value;
+                fontFamilySelect.value = settings.fontFamily || "'Noto Sans SC', 'Microsoft YaHei', sans-serif";
+                fontSizeSlider.value = settings.fontSize || 16;
+                fontSizeValueSpan.textContent = `${fontSizeSlider.value}px`;
+                 // Update theme based on loaded settings
+                 document.body.setAttribute('data-theme', settings.theme || 'light');
+                 toggleThemeBtn.textContent = settings.theme === 'dark' ? '☀️' : '🌙';
+            }
+
+            function saveSettings() {
+                // Update settings object from UI just before saving
+                settings.apiUrl = apiUrlInput.value.trim();
+                settings.apiKey = apiKeyInput.value.trim();
+                settings.stream = streamResponseCheckbox.checked;
+                settings.enableImageSupport = enableImageSupportCheckbox.checked;
+                settings.temperature = parseFloat(temperatureSlider.value);
+                settings.maxTokens = parseInt(maxTokensSlider.value, 10);
+                settings.historyLength = parseInt(historyLengthSlider.value, 10);
+                settings.selectedModel = selectedModelSelect.value; // Ensure selected model is saved
+                settings.fontFamily = fontFamilySelect.value;
+                settings.fontSize = parseInt(fontSizeSlider.value, 10);
+                 settings.theme = document.body.getAttribute('data-theme'); // Save current theme
+
+                // Models and Custom Params are updated dynamically via their functions
+
+                try {
+                    localStorage.setItem('aiChatProxySettings', JSON.stringify(settings));
+                } catch (e) {
+                     console.error("Failed to save settings:", e);
+                     addLog('Error', 'Failed to save settings to localStorage. Storage might be full.');
+                     alert('无法保存设置。本地存储可能已满。');
                 }
-                saveCurrentConfigIndex();
-            } catch(e) {
-                logEvent('error', "无法加载或迁移 API 配置:", e);
-                apiConfigs = [];
-                currentConfigIndex = -1;
-                localStorage.removeItem('aiChat_apiConfigs_v3');
-                localStorage.removeItem('aiChat_apiConfigs_v2');
-                localStorage.removeItem('aiChat_apiConfigs');
-                localStorage.removeItem('aiChat_currentConfigIndex');
             }
-        }
-        function saveCurrentConfigIndex() {
-            try { localStorage.setItem('aiChat_currentConfigIndex', currentConfigIndex.toString()); }
-            catch(e){ console.error("无法保存当前配置索引:", e); }
-        }
 
-        function saveChatHistory() {
-            try {
-                const slice = chatHistory.slice(-50);
-                localStorage.setItem('aiChat_chatHistory', JSON.stringify(slice));
-            } catch(e) {
-                logEvent('error', "无法保存聊天记录:", e);
-            }
-        }
-        function loadChatHistory() {
-            try {
-                const s = localStorage.getItem('aiChat_chatHistory');
-                if (s) chatHistory = JSON.parse(s);
-            } catch(e) {
-                logEvent('error', "无法加载聊天记录:", e);
-                chatHistory = [];
-                localStorage.removeItem('aiChat_chatHistory');
-            }
-        }
+             function applySettings() {
+                 // Apply appearance settings immediately
+                 applyAppearanceSettings();
+                 // Other settings (like API key, URL) are used directly when making requests
+                 // Update button visibility based on image support setting
+                 uploadImageBtn.style.display = settings.enableImageSupport ? 'flex' : 'none';
+             }
 
-        function saveFontSize() {
-            try { localStorage.setItem('aiChat_fontSize', currentFontSize.toString()); }
-            catch(e){ console.error("无法保存字体大小:", e); }
-        }
-        function loadFontSize() {
-            try {
-                const s = localStorage.getItem('aiChat_fontSize');
-                if (s) currentFontSize = Math.max(MIN_FONT_SIZE, parseInt(s,10));
-            } catch(e) {
-                console.error("无法加载字体大小:", e);
-                currentFontSize = 16;
+            function applyAppearanceSettings() {
+                 document.body.style.fontFamily = settings.fontFamily;
+                 document.body.style.fontSize = `${settings.fontSize}px`;
+                 // Apply theme
+                 document.body.setAttribute('data-theme', settings.theme);
+                 toggleThemeBtn.textContent = settings.theme === 'dark' ? '☀️' : '🌙';
             }
-        }
+
+            // --- Model Management ---
+            function addModel() {
+                const modelName = newModelInput.value.trim();
+                if (modelName && !settings.models.includes(modelName)) {
+                    settings.models.push(modelName);
+                    newModelInput.value = '';
+                    updateModelsUI();
+                    updateSelectedModelOptions();
+                     // Auto-select if it's the first model added
+                     if (settings.models.length === 1) {
+                         selectedModelSelect.value = modelName;
+                         settings.selectedModel = modelName;
+                     }
+                } else if (!modelName) {
+                     alert('请输入模型名称。');
+                } else {
+                    alert('该模型名称已存在。');
+                }
+            }
+
+            function removeModel(modelName) {
+                settings.models = settings.models.filter(m => m !== modelName);
+                updateModelsUI();
+                updateSelectedModelOptions();
+                 // If the removed model was the selected one, clear selection or select first available
+                 if (settings.selectedModel === modelName) {
+                     settings.selectedModel = settings.models.length > 0 ? settings.models[0] : '';
+                     selectedModelSelect.value = settings.selectedModel;
+                 }
+            }
+
+            function updateModelsUI() {
+                modelListDiv.innerHTML = ''; // Clear current list
+                settings.models.forEach(model => {
+                    const div = document.createElement('div');
+                    div.className = 'model-entry';
+                    div.innerHTML = `
+                        <input type="text" value="${model}" readonly style="flex-grow: 1; background-color: var(--ai-msg-bg);">
+                        <button class="remove-btn" data-model="${model}">移除</button>
+                    `;
+                    modelListDiv.appendChild(div);
+                });
+            }
+
+            function updateSelectedModelOptions() {
+                const currentSelected = selectedModelSelect.value;
+                selectedModelSelect.innerHTML = ''; // Clear existing options
+
+                if (settings.models.length === 0) {
+                     selectedModelSelect.innerHTML = '<option value="">请先添加模型</option>';
+                     selectedModelSelect.disabled = true;
+                } else {
+                    settings.models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model;
+                        option.textContent = model;
+                        selectedModelSelect.appendChild(option);
+                    });
+                     selectedModelSelect.disabled = false;
+                     // Try to re-select the previous model, or the current setting, or the first one
+                     if (settings.models.includes(currentSelected)) {
+                         selectedModelSelect.value = currentSelected;
+                     } else if (settings.models.includes(settings.selectedModel)) {
+                         selectedModelSelect.value = settings.selectedModel;
+                     } else {
+                         selectedModelSelect.value = settings.models[0]; // Default to first
+                         settings.selectedModel = selectedModelSelect.value; // Update setting state
+                     }
+                }
+            }
+
+             function handleModelListActions(event) {
+                 if (event.target.classList.contains('remove-btn')) {
+                     const modelToRemove = event.target.dataset.model;
+                     if (modelToRemove) {
+                         removeModel(modelToRemove);
+                     }
+                 }
+             }
+
+
+            // --- Custom Parameter Management ---
+            function addCustomParam() {
+                const key = newParamKeyInput.value.trim();
+                const valueStr = newParamValueInput.value.trim();
+                if (!key) {
+                     alert('请输入参数 Key。');
+                     return;
+                 }
+                 if (settings.customParams.hasOwnProperty(key)) {
+                     alert(`参数 Key "${key}" 已存在。`);
+                     return;
+                 }
+
+                let value;
+                try {
+                     // Attempt to parse value as JSON (allows numbers, booleans, strings with quotes)
+                     value = JSON.parse(valueStr);
+                } catch (e) {
+                     // If JSON parsing fails, treat it as a plain string
+                     // Note: For OpenAI, most extra params expect specific types (e.g., top_p as number)
+                     // So, encouraging JSON format might be better.
+                     // For simplicity here, we'll allow plain strings too, but warn user maybe.
+                     // Let's enforce JSON-like input for better compatibility
+                     alert('参数 Value 格式无效。请输入有效的 JSON 值（例如 "字符串", 123, true, false, null）。');
+                     // value = valueStr; // Fallback to string if JSON parse fails - might cause issues
+                     return; // Exit if value is not valid JSON
+                }
+
+                 settings.customParams[key] = value;
+                 newParamKeyInput.value = '';
+                 newParamValueInput.value = '';
+                 updateCustomParamsUI();
+            }
+
+            function removeCustomParam(key) {
+                delete settings.customParams[key];
+                updateCustomParamsUI();
+            }
+
+            function updateCustomParamsUI() {
+                customParamsListDiv.innerHTML = '';
+                for (const key in settings.customParams) {
+                     if (settings.customParams.hasOwnProperty(key)) {
+                         const div = document.createElement('div');
+                         div.className = 'param-entry';
+                         div.innerHTML = `
+                             <input type="text" value="${key}" readonly style="flex: 1; background-color: var(--ai-msg-bg);">
+                             <input type="text" value='${JSON.stringify(settings.customParams[key])}' readonly style="flex: 2; background-color: var(--ai-msg-bg);">
+                             <button class="remove-btn" data-paramkey="${key}">移除</button>
+                         `;
+                         customParamsListDiv.appendChild(div);
+                     }
+                }
+            }
+
+             function handleCustomParamListActions(event) {
+                 if (event.target.classList.contains('remove-btn')) {
+                     const keyToRemove = event.target.dataset.paramkey;
+                     if (keyToRemove) {
+                         removeCustomParam(keyToRemove);
+                     }
+                 }
+             }
+
+             // --- Theme Toggling ---
+            function toggleTheme() {
+                const currentTheme = document.body.getAttribute('data-theme');
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                settings.theme = newTheme; // Update settings state
+                applyAppearanceSettings(); // Apply the new theme
+                // Don't auto-save on theme toggle, let user save explicitly
+                // saveSettings(); // Optionally save immediately
+            }
+
+        }); // End DOMContentLoaded
     </script>
+
 </body>
 </html>
