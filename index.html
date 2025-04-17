@@ -7,7 +7,7 @@
     <!-- KaTeX CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1tBCsfMNzfHWquKxdCXCavCFZBhz" crossorigin="anonymous">
     <!-- Highlight.js CSS (Default theme) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"> <!-- Using a specific theme -->
     <style>
         /* --- Base Styles & Reset --- */
         :root {
@@ -22,33 +22,41 @@
             --code-bg: #282c34; /* Darker background for code */
             --code-text: #abb2bf;
             --error-color: #dc3545;
+            --success-color: #198754;
             --timestamp-color: #6c757d;
             --panel-bg: #ffffff;
             --panel-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            --icon-color: #6c757d;
+            --icon-hover-color: #333;
             --font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
             --font-size: 16px;
+            --copy-btn-bg: rgba(255, 255, 255, 0.7);
+            --copy-btn-text: #333;
         }
 
         [data-theme="dark"] {
-             :root {
-                --bg-color: #1a1a1a;
-                --text-color: #e0e0e0;
-                --primary-color: #0d6efd;
-                --primary-hover-color: #0a58ca;
-                --secondary-bg-color: #2a2a2a;
-                --border-color: #444;
-                --user-msg-bg: #0d6efd; /* Adjust user message bg for dark */
-                --ai-msg-bg: #3a3a3a;
-                --code-bg: #282c34; /* Keep dark for code */
-                --code-text: #abb2bf;
-                --error-color: #ff6b6b;
-                --timestamp-color: #888;
-                --panel-bg: #252525;
-                --panel-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
-             }
-             /* Adjust highlightjs theme for dark mode if needed */
-             .hljs { background: var(--code-bg); color: var(--code-text); }
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --primary-color: #0d6efd;
+            --primary-hover-color: #0a58ca;
+            --secondary-bg-color: #2a2a2a;
+            --border-color: #444;
+            --user-msg-bg: #0d6efd; /* Adjust user message bg for dark */
+            --ai-msg-bg: #3a3a3a;
+            --code-bg: #282c34; /* Keep dark for code */
+            --code-text: #abb2bf;
+            --error-color: #ff6b6b;
+            --success-color: #20c997;
+            --timestamp-color: #888;
+            --panel-bg: #252525;
+            --panel-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+            --icon-color: #aaa;
+            --icon-hover-color: #eee;
+             --copy-btn-bg: rgba(0, 0, 0, 0.5);
+             --copy-btn-text: #eee;
         }
+        /* Adjust highlightjs theme for dark mode if needed */
+        [data-theme="dark"] .hljs { background: var(--code-bg); color: var(--code-text); }
 
 
         * {
@@ -105,6 +113,7 @@
             align-items: center;
             border-top-left-radius: 8px;
             border-top-right-radius: 8px;
+            flex-shrink: 0;
         }
 
         header h1 {
@@ -121,12 +130,21 @@
             cursor: pointer;
             margin-left: 10px;
             transition: background-color 0.2s, color 0.2s;
+            font-size: 0.9em;
         }
 
         .header-buttons button:hover {
             background-color: white;
             color: var(--primary-color);
         }
+        .header-buttons button#clearChatBtn {
+            border-color: #ffc107;
+            color: #ffc107;
+        }
+         .header-buttons button#clearChatBtn:hover {
+             background-color: #ffc107;
+             color: #333;
+         }
 
         /* --- Chatbox Area --- */
         #chatbox {
@@ -141,21 +159,49 @@
         .message {
             padding: 10px 15px;
             border-radius: 12px;
-            max-width: 80%;
+            max-width: 85%; /* Slightly wider max-width */
             word-wrap: break-word; /* Break long words */
             display: flex;
             flex-direction: column; /* Stack content and timestamp */
             position: relative; /* For copy button */
+            transition: background-color 0.3s;
+        }
+
+        .message:hover .message-copy-button {
+             opacity: 1;
         }
 
         .message-content {
              margin-bottom: 5px; /* Space before timestamp */
+             position: relative; /* Context for image grid if needed */
         }
+
         .message-content img {
-            max-width: 100%;
+            max-width: 100%; /* Ensure images fit within content */
             height: auto;
             border-radius: 4px;
             margin-top: 10px;
+            display: block; /* Prevent extra space below */
+        }
+        /* Style for multiple images in user message */
+        .user-image-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .user-image-grid img {
+             max-width: 100px; /* Smaller thumbnails */
+             max-height: 100px;
+             object-fit: cover;
+             border: 1px solid var(--border-color);
+             margin-top: 0; /* Remove top margin */
+             display: inline-block; /* Align properly */
+             cursor: pointer; /* Indicate they can be clicked (optional) */
+             transition: transform 0.2s;
+        }
+        .user-image-grid img:hover {
+            transform: scale(1.05);
         }
 
         .user-message {
@@ -190,34 +236,118 @@
             text-align: left; /* Align AI timestamp left */
         }
 
+        /* General Message Copy Button */
+        .message-copy-button {
+             position: absolute;
+             top: 5px;
+             right: 5px;
+             background-color: var(--copy-btn-bg);
+             color: var(--copy-btn-text);
+             border: none;
+             padding: 3px 6px;
+             font-size: 0.9em;
+             border-radius: 4px;
+             cursor: pointer;
+             opacity: 0; /* Hidden by default, shown on hover */
+             transition: opacity 0.2s, background-color 0.2s, color 0.2s;
+             z-index: 10; /* Ensure it's above content */
+        }
+        .message-copy-button:hover {
+             background-color: var(--primary-color);
+             color: white;
+        }
+         .message-copy-button.copied {
+             background-color: var(--success-color);
+             color: white;
+         }
+
+
+        /* Code Block Specific Copy Button */
         .copy-code-button {
             position: absolute;
-            top: 5px;
-            right: 5px;
-            background-color: rgba(255, 255, 255, 0.7);
-            color: #333;
+            top: 8px; /* Adjusted position */
+            right: 8px;
+            background-color: var(--copy-btn-bg);
+            color: var(--copy-btn-text);
             border: none;
-            padding: 3px 6px;
+            padding: 4px 8px; /* Slightly larger */
             font-size: 0.8em;
             border-radius: 4px;
             cursor: pointer;
             opacity: 0; /* Hidden by default */
-            transition: opacity 0.2s;
+            transition: opacity 0.2s, background-color 0.2s, color 0.2s;
+            z-index: 5; /* Above code, below general copy if overlapping */
         }
-
         .ai-message pre:hover .copy-code-button {
-            opacity: 1; /* Show on hover */
+            opacity: 1; /* Show on hover of the pre element */
         }
+         .copy-code-button:hover {
+             background-color: var(--primary-hover-color);
+             color: white;
+         }
+        .copy-code-button.copied {
+             background-color: var(--success-color);
+             color: white;
+         }
+
 
         /* --- Input Area --- */
-        .input-area {
-            display: flex;
-            align-items: flex-end; /* Align items to bottom */
-            padding: 10px 15px;
+        .input-area-container {
+            flex-shrink: 0; /* Prevent shrinking */
             border-top: 1px solid var(--border-color);
             background-color: var(--secondary-bg-color);
             border-bottom-left-radius: 8px;
             border-bottom-right-radius: 8px;
+        }
+
+        /* Image Preview Area for Multiple Images */
+        #image-preview-area {
+            display: none; /* Hidden by default */
+            padding: 10px 15px 5px; /* Padding around previews */
+            border-bottom: 1px dashed var(--border-color); /* Separator */
+            background-color: var(--ai-msg-bg); /* Slightly different bg */
+            max-height: 120px; /* Limit height */
+            overflow-y: auto; /* Scroll if many images */
+        }
+        #image-preview-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .preview-image-container {
+            position: relative;
+            display: inline-block; /* Fit content */
+        }
+        .preview-image-container img {
+            max-height: 60px; /* Smaller previews */
+            max-width: 80px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            display: block; /* Prevent extra space */
+        }
+        .remove-preview-btn {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--error-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 11px;
+            line-height: 16px; /* Adjust for centering 'X' */
+            text-align: center;
+            cursor: pointer;
+            padding: 0;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+        }
+
+
+        .input-area {
+            display: flex;
+            align-items: flex-end; /* Align items to bottom */
+            padding: 10px 15px;
         }
 
         #userInput {
@@ -233,12 +363,14 @@
             font-size: inherit;
             line-height: 1.4;
             margin-right: 10px;
+            background-color: var(--secondary-bg-color); /* Ensure bg matches */
+            color: var(--text-color); /* Ensure text color matches */
         }
 
         .input-buttons {
              display: flex;
              gap: 10px;
-             align-items: center; /* Align buttons vertically */
+             align-items: flex-end; /* Align with bottom of textarea */
         }
 
         .input-buttons button {
@@ -253,6 +385,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            height: 40px; /* Match min-height of textarea */
         }
 
         .input-buttons button:hover {
@@ -267,37 +400,6 @@
         #uploadImageBtn {
             padding: 8px; /* Smaller padding for icon button */
             font-size: 1.2em; /* Larger icon */
-        }
-
-        /* Image Preview */
-        #image-preview-area {
-            display: none; /* Hidden by default */
-            padding: 10px 15px 0; /* Only top padding */
-            border-top: 1px dashed var(--border-color);
-            margin-top: -10px; /* Connect visually with input area */
-            position: relative;
-        }
-        #image-preview-area img {
-            max-height: 80px;
-            max-width: 100px;
-            border-radius: 4px;
-            border: 1px solid var(--border-color);
-        }
-        #removeImageBtn {
-            position: absolute;
-            top: 12px; /* Adjust position relative to preview area padding */
-            left: 110px; /* Position next to image */
-            background: var(--error-color);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            font-size: 12px;
-            line-height: 18px; /* Center the 'X' */
-            text-align: center;
-            cursor: pointer;
-            padding: 0;
         }
 
 
@@ -376,15 +478,42 @@
         }
         .form-group input[type="range"] {
             width: 100%;
+            vertical-align: middle; /* Align slider better */
         }
+         .form-group input[type="range"]:disabled {
+             opacity: 0.5;
+             cursor: not-allowed;
+         }
         .range-value {
             display: inline-block;
             margin-left: 10px;
             font-weight: bold;
+            min-width: 40px; /* Ensure space */
+            text-align: right;
         }
         .form-group input[type="checkbox"] {
             margin-right: 8px;
+            vertical-align: middle;
         }
+         .form-group .checkbox-label {
+             display: inline-flex; /* Align checkbox and label */
+             align-items: center;
+             margin-bottom: 8px;
+         }
+        .form-group .slider-container {
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+        .form-group .slider-container.disabled {
+            opacity: 0.5;
+            pointer-events: none; /* Prevent interaction */
+        }
+         .form-group .slider-container.disabled label,
+         .form-group .slider-container.disabled span {
+             color: var(--timestamp-color); /* Dim text */
+         }
+
+
         .form-group button {
             padding: 8px 12px;
             background-color: var(--primary-color);
@@ -524,6 +653,7 @@
         }
         .message-content .katex {
             font-size: 1.1em; /* Slightly larger math */
+            color: inherit; /* Inherit text color */
         }
 
         /* --- Utility Classes --- */
@@ -556,16 +686,24 @@
              }
 
             header h1 { font-size: 1.1em; }
-            .header-buttons button { padding: 4px 8px; font-size: 0.9em; }
+            .header-buttons button { padding: 4px 8px; font-size: 0.85em; margin-left: 5px; }
 
             #chatbox { padding: 10px; gap: 10px; }
-            .message { max-width: 90%; }
+            .message { max-width: 92%; } /* Slightly more width */
+             .message-copy-button { font-size: 0.8em; padding: 2px 4px; }
+             .copy-code-button { font-size: 0.75em; padding: 3px 6px; }
 
+            .input-area-container { border-radius: 0; }
             .input-area { padding: 8px 10px; flex-wrap: wrap; /* Allow wrapping */ }
             #userInput { margin-right: 0; margin-bottom: 8px; /* Space below textarea */ width: 100%; /* Full width */ }
             .input-buttons { width: 100%; justify-content: flex-end; /* Align buttons right */ }
             #uploadImageBtn { font-size: 1.1em; padding: 7px; }
-            .input-buttons button { padding: 8px 12px; font-size: 0.95em;}
+            .input-buttons button { padding: 8px 12px; font-size: 0.95em; height: 38px;}
+
+             #image-preview-area { padding: 8px 10px 4px; max-height: 100px; }
+             .preview-image-container img { max-height: 50px; }
+             .remove-preview-btn { width: 16px; height: 16px; font-size: 10px; line-height: 14px; }
+
 
             .side-panel {
                 width: 100%; /* Full width on mobile */
@@ -587,6 +725,7 @@
             <header>
                 <h1>AI 聊天</h1>
                 <div class="header-buttons">
+                    <button id="clearChatBtn" title="清除当前会话记录">清除会话</button>
                     <button id="toggleThemeBtn">🌙</button> <!-- Theme Toggle -->
                     <button id="toggleLogsBtn">日志</button>
                     <button id="toggleSettingsBtn">设置</button>
@@ -596,24 +735,26 @@
             <div id="chatbox">
                 <!-- Messages will be appended here -->
                  <div class="message ai-message">
-                    <div class="message-content">你好！请先在“设置”中配置您的 API 信息。</div>
+                    <div class="message-content">你好！请先在“设置”中配置您的 API 信息。如果需要发送图片，请确保模型支持 Vision 功能。</div>
                     <div class="message-timestamp">...</div>
                 </div>
             </div>
 
-             <!-- Image Preview Area -->
-            <div id="image-preview-area">
-                <img id="previewImage" src="#" alt="Image preview"/>
-                <button id="removeImageBtn">X</button>
-            </div>
+            <div class="input-area-container">
+                 <!-- Image Preview Area -->
+                <div id="image-preview-area">
+                    <div id="image-preview-list">
+                        <!-- Image previews will be added here -->
+                    </div>
+                </div>
 
-
-            <div class="input-area">
-                <textarea id="userInput" rows="1" placeholder="输入消息... (Shift+Enter 换行)"></textarea>
-                <div class="input-buttons">
-                     <button id="uploadImageBtn" title="上传图片 (需要模型支持)">🖼️</button>
-                     <input type="file" id="imageInput" accept="image/*" class="hidden">
-                    <button id="sendBtn">发送</button>
+                <div class="input-area">
+                    <textarea id="userInput" rows="1" placeholder="输入消息... (Shift+Enter 换行)"></textarea>
+                    <div class="input-buttons">
+                         <button id="uploadImageBtn" title="上传图片 (需要模型支持, 可多选)">🖼️</button>
+                         <input type="file" id="imageInput" accept="image/*" multiple class="hidden"> <!-- Added multiple -->
+                        <button id="sendBtn">发送</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -639,7 +780,7 @@
                     <div id="modelList">
                         <!-- Model entries will be added here -->
                     </div>
-                     <input type="text" id="newModelInput" placeholder="输入模型名称 (例如 gpt-4)" style="width: calc(100% - 100px); margin-right: 10px; display: inline-block;">
+                     <input type="text" id="newModelInput" placeholder="输入模型名称 (例如 gpt-4-vision-preview)" style="width: calc(100% - 100px); margin-right: 10px; display: inline-block;">
                     <button id="addModelBtn">添加模型</button>
                 </div>
                  <div class="form-group">
@@ -654,27 +795,43 @@
                 <hr style="margin: 20px 0; border-color: var(--border-color);">
 
                 <div class="form-group">
-                    <label>
+                    <label class="checkbox-label">
                         <input type="checkbox" id="streamResponse"> 启用流式响应 (Streaming)
                     </label>
                 </div>
                 <div class="form-group">
-                    <label>
+                    <label class="checkbox-label">
                         <input type="checkbox" id="enableImageSupport"> 启用图片理解 (全局)
                     </label>
-                    <small style="display: block; color: var(--timestamp-color);">如果启用，将允许上传一张图片随文本发送 (需要模型支持)。</small>
+                    <small style="display: block; color: var(--timestamp-color);">如果启用，将允许上传图片随文本发送 (需要模型支持 Vision)。</small>
                 </div>
 
                  <hr style="margin: 20px 0; border-color: var(--border-color);">
 
+                 <!-- Temperature Setting -->
                 <div class="form-group">
-                    <label for="temperature">Temperature: <span class="range-value" id="temperatureValue">1.0</span></label>
-                    <input type="range" id="temperature" min="0" max="2" step="0.1" value="1.0">
+                     <label class="checkbox-label">
+                         <input type="checkbox" id="enableTemperature"> 使用自定义 Temperature
+                     </label>
+                     <div class="slider-container" id="temperatureContainer">
+                        <label for="temperature">Temperature: <span class="range-value" id="temperatureValue">1.0</span></label>
+                        <input type="range" id="temperature" min="0" max="2" step="0.1" value="1.0">
+                        <small style="display: block; color: var(--timestamp-color);">控制随机性，值越高越随机。禁用则使用 API 默认值。</small>
+                     </div>
                 </div>
+
+                 <!-- Max Tokens Setting -->
                 <div class="form-group">
-                    <label for="maxTokens">Max Tokens: <span class="range-value" id="maxTokensValue">1024</span></label>
-                    <input type="range" id="maxTokens" min="0" max="100000" step="1" value="10000">
+                     <label class="checkbox-label">
+                         <input type="checkbox" id="enableMaxTokens"> 使用自定义 Max Tokens
+                     </label>
+                    <div class="slider-container" id="maxTokensContainer">
+                        <label for="maxTokens">Max Tokens: <span class="range-value" id="maxTokensValue">4096</span></label>
+                        <input type="range" id="maxTokens" min="1" max="100000" step="1" value="4096">
+                         <small style="display: block; color: var(--timestamp-color);">限制单次回复的最大长度。禁用则使用 API 默认值。</small>
+                    </div>
                 </div>
+
                 <div class="form-group">
                     <label for="historyLength">上下文消息数量: <span class="range-value" id="historyLengthValue">10</span></label>
                     <input type="range" id="historyLength" min="0" max="50" step="1" value="10">
@@ -693,7 +850,7 @@
                          <input type="text" id="newParamValue" placeholder="参数 Value (JSON)" style="flex: 1;">
                     </div>
                     <button id="addParamBtn" style="margin-top: 10px;">添加参数</button>
-                     <small style="display: block; color: var(--timestamp-color);">Value 可以是字符串 (加引号) 或数字/布尔值。</small>
+                     <small style="display: block; color: var(--timestamp-color);">Value 必须是有效的 JSON (例如 "string", 123, true)。</small>
                 </div>
 
 
@@ -763,6 +920,7 @@
             const logEntries = document.getElementById('log-entries');
             const clearLogsBtn = document.getElementById('clearLogsBtn');
             const toggleThemeBtn = document.getElementById('toggleThemeBtn');
+            const clearChatBtn = document.getElementById('clearChatBtn'); // Clear Chat Button
 
             // Settings Elements
             const apiUrlInput = document.getElementById('apiUrl');
@@ -773,10 +931,17 @@
             const selectedModelSelect = document.getElementById('selectedModel');
             const streamResponseCheckbox = document.getElementById('streamResponse');
             const enableImageSupportCheckbox = document.getElementById('enableImageSupport');
+
+            // Temperature & Max Tokens Elements
+            const enableTemperatureCheckbox = document.getElementById('enableTemperature');
+            const temperatureContainer = document.getElementById('temperatureContainer');
             const temperatureSlider = document.getElementById('temperature');
             const temperatureValueSpan = document.getElementById('temperatureValue');
+            const enableMaxTokensCheckbox = document.getElementById('enableMaxTokens');
+            const maxTokensContainer = document.getElementById('maxTokensContainer');
             const maxTokensSlider = document.getElementById('maxTokens');
             const maxTokensValueSpan = document.getElementById('maxTokensValue');
+
             const historyLengthSlider = document.getElementById('historyLength');
             const historyLengthValueSpan = document.getElementById('historyLengthValue');
             const customParamsListDiv = document.getElementById('customParamsList');
@@ -791,8 +956,7 @@
             const uploadImageBtn = document.getElementById('uploadImageBtn');
             const imageInput = document.getElementById('imageInput');
             const imagePreviewArea = document.getElementById('image-preview-area');
-            const previewImage = document.getElementById('previewImage');
-            const removeImageBtn = document.getElementById('removeImageBtn');
+            const imagePreviewList = document.getElementById('image-preview-list'); // Container for previews
 
 
             // --- State Variables ---
@@ -801,30 +965,32 @@
                 apiKey: '',
                 models: [], // Array of model name strings
                 selectedModel: '',
-                stream: false,
+                stream: true, // Default stream to true
                 enableImageSupport: false,
+                enableTemperature: false, // Default disabled
                 temperature: 1.0,
-                maxTokens: 1024,
+                enableMaxTokens: false, // Default disabled
+                maxTokens: 4096, // Default value
                 historyLength: 10,
                 customParams: {}, // Key-value pairs
                 fontFamily: "'Noto Sans SC', 'Microsoft YaHei', sans-serif",
                 fontSize: 16,
                 theme: 'light' // 'light' or 'dark'
             };
-            let chatHistory = []; // Stores message objects { role: 'user'/'assistant', content: '...' }
+            let chatHistory = []; // Stores message objects { role: 'user'/'assistant', content: '...' or [{type: 'text', ...}, {type: 'image_url', ...}] }
             let currentAIMessageElement = null; // For streaming updates
             let currentAIContent = ''; // Accumulator for streaming content
             let abortController = null; // To cancel fetch requests
-            let uploadedImageBase64 = null; // Store uploaded image data
+            let uploadedImages = []; // Store uploaded image data as { name: string, base64: string }
 
 
             // --- Initialization ---
             loadSettings();
-            applySettings();
+            applySettings(); // Apply loaded settings to UI (sliders, checkboxes etc.)
             updateModelsUI();
             updateCustomParamsUI();
             updateSelectedModelOptions(); // Populate dropdown initially
-            hljs.highlightAll(); // Initial highlight if there's pre-rendered code
+            renderInitialMessages(); // Render any initial messages if needed
             adjustTextareaHeight(); // Adjust textarea height initially
 
             // --- Event Listeners ---
@@ -838,7 +1004,7 @@
             // Settings Interactions
             saveSettingsBtn.addEventListener('click', () => {
                 saveSettings();
-                applySettings();
+                applySettings(); // Apply immediately after saving
                 settingsPanel.classList.remove('open');
                 addLog('Info', 'Settings saved and applied.');
                 alert('设置已保存！');
@@ -850,38 +1016,46 @@
             addParamBtn.addEventListener('click', addCustomParam);
             customParamsListDiv.addEventListener('click', handleCustomParamListActions); // Event delegation
 
+            // Temperature & Max Tokens Enable/Disable Logic
+            enableTemperatureCheckbox.addEventListener('change', toggleTemperatureControl);
+            enableMaxTokensCheckbox.addEventListener('change', toggleMaxTokensControl);
+
             temperatureSlider.addEventListener('input', () => {
                 temperatureValueSpan.textContent = parseFloat(temperatureSlider.value).toFixed(1);
-                settings.temperature = parseFloat(temperatureSlider.value);
+                // No need to update settings.temperature here, saveSettings does it
             });
             maxTokensSlider.addEventListener('input', () => {
                 maxTokensValueSpan.textContent = maxTokensSlider.value;
-                settings.maxTokens = parseInt(maxTokensSlider.value, 10);
+                // No need to update settings.maxTokens here, saveSettings does it
             });
             historyLengthSlider.addEventListener('input', () => {
                 historyLengthValueSpan.textContent = historyLengthSlider.value;
-                settings.historyLength = parseInt(historyLengthSlider.value, 10);
+                 // No need to update settings.historyLength here, saveSettings does it
              });
             streamResponseCheckbox.addEventListener('change', () => {
-                 settings.stream = streamResponseCheckbox.checked;
+                 // Update immediately for responsiveness? Or just on save? Let's wait for save.
+                 // settings.stream = streamResponseCheckbox.checked;
             });
              enableImageSupportCheckbox.addEventListener('change', () => {
-                 settings.enableImageSupport = enableImageSupportCheckbox.checked;
-                 // Optionally show/hide upload button based on this?
-                 uploadImageBtn.style.display = settings.enableImageSupport ? 'flex' : 'none';
+                 // Update immediately for responsiveness? Or just on save? Let's wait for save.
+                 // settings.enableImageSupport = enableImageSupportCheckbox.checked;
+                 uploadImageBtn.style.display = enableImageSupportCheckbox.checked ? 'flex' : 'none';
+                 if (!enableImageSupportCheckbox.checked) {
+                    clearImagePreviews(); // Clear previews if disabled
+                 }
             });
             selectedModelSelect.addEventListener('change', () => {
-                 settings.selectedModel = selectedModelSelect.value;
+                 // settings.selectedModel = selectedModelSelect.value; // Wait for save
             });
 
             fontFamilySelect.addEventListener('input', () => {
-                settings.fontFamily = fontFamilySelect.value;
-                applyAppearanceSettings(); // Apply immediately
+                settings.fontFamily = fontFamilySelect.value; // Apply font immediately
+                applyAppearanceSettings();
             });
             fontSizeSlider.addEventListener('input', () => {
                 settings.fontSize = parseInt(fontSizeSlider.value, 10);
                 fontSizeValueSpan.textContent = `${settings.fontSize}px`;
-                applyAppearanceSettings(); // Apply immediately
+                applyAppearanceSettings(); // Apply font size immediately
             });
 
             // Chat Input & Sending
@@ -894,7 +1068,7 @@
             });
              userInput.addEventListener('input', adjustTextareaHeight); // Auto-resize textarea
 
-             // Image Upload
+             // Image Upload (Multiple)
             uploadImageBtn.addEventListener('click', () => {
                 if (settings.enableImageSupport) {
                     imageInput.click();
@@ -903,7 +1077,7 @@
                 }
             });
             imageInput.addEventListener('change', handleImageUpload);
-            removeImageBtn.addEventListener('click', removeImage);
+            // Remove button logic handled via event delegation on imagePreviewList
 
             // Log Panel
             clearLogsBtn.addEventListener('click', () => {
@@ -914,46 +1088,145 @@
             // Theme Toggle
             toggleThemeBtn.addEventListener('click', toggleTheme);
 
+            // Clear Chat
+            clearChatBtn.addEventListener('click', clearConversation);
+
+            // Copy Button Event Delegation (for messages)
+            chatbox.addEventListener('click', handleChatboxClick);
 
             // --- Core Functions ---
 
+             function renderInitialMessages() {
+                 // If chatHistory was loaded from somewhere (not implemented here)
+                 // or for the initial welcome message
+                 chatbox.innerHTML = ''; // Clear placeholder
+                 if (chatHistory.length === 0) {
+                     displayMessage("你好！请先在“设置”中配置您的 API 信息。如果需要发送图片，请确保模型支持 Vision 功能。", 'assistant');
+                 } else {
+                     // Render existing history (if loaded)
+                     chatHistory.forEach(msg => {
+                         // Need to handle potential complex content format if loaded
+                         if (typeof msg.content === 'string') {
+                             displayMessage(msg.content, msg.role);
+                         } else if (Array.isArray(msg.content)) {
+                             const textContent = msg.content.find(part => part.type === 'text')?.text || '';
+                             const images = msg.content.filter(part => part.type === 'image_url').map(part => part.image_url.url);
+                             displayMessage(textContent, msg.role, images); // Pass array of base64
+                         }
+                     });
+                 }
+                 hljs.highlightAll(); // Apply highlighting to initial messages if any
+             }
+
+
             function adjustTextareaHeight() {
                 userInput.style.height = 'auto'; // Reset height
-                userInput.style.height = userInput.scrollHeight + 'px'; // Set to scroll height
+                // Use scrollHeight, but add a small buffer or use max function to prevent slight cutoffs
+                const newHeight = Math.max(userInput.scrollHeight, 40); // Ensure min height
+                userInput.style.height = newHeight + 'px';
             }
 
             function handleImageUpload(event) {
-                const file = event.target.files[0];
-                if (file && file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                        uploadedImageBase64 = reader.result; // Store Base64 string
-                        previewImage.src = uploadedImageBase64;
-                        imagePreviewArea.style.display = 'block';
-                        // Optionally clear file input value to allow re-uploading the same file
-                        imageInput.value = '';
+                const files = event.target.files;
+                if (!files || files.length === 0) {
+                    return;
+                }
+
+                const imagePromises = [];
+                const maxImages = 10; // Limit number of images user can upload at once
+
+                for (let i = 0; i < Math.min(files.length, maxImages); i++) {
+                    const file = files[i];
+                    if (file.type.startsWith('image/')) {
+                        imagePromises.push(
+                            new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                    // Check size (optional, e.g., limit to 5MB)
+                                    // if (reader.result.length > 5 * 1024 * 1024) {
+                                    //    reject(`Image ${file.name} is too large.`);
+                                    //    return;
+                                    // }
+                                    resolve({ name: file.name, base64: reader.result });
+                                };
+                                reader.onerror = (error) => reject(error);
+                                reader.readAsDataURL(file);
+                            })
+                        );
                     }
-                    reader.readAsDataURL(file);
+                }
+
+                 if (files.length > maxImages) {
+                     alert(`最多只能同时上传 ${maxImages} 张图片。`);
+                 }
+
+                Promise.all(imagePromises)
+                    .then(newImages => {
+                        uploadedImages = uploadedImages.concat(newImages); // Add new images
+                        renderImagePreviews();
+                        // Clear file input value to allow re-uploading the same file(s)
+                        imageInput.value = '';
+                    })
+                    .catch(error => {
+                        console.error("Error reading images:", error);
+                        alert(`读取图片时出错: ${error}`);
+                        imageInput.value = ''; // Clear input even on error
+                    });
+            }
+
+            function renderImagePreviews() {
+                imagePreviewList.innerHTML = ''; // Clear existing previews
+                if (uploadedImages.length > 0) {
+                    uploadedImages.forEach((imgData, index) => {
+                        const container = document.createElement('div');
+                        container.className = 'preview-image-container';
+
+                        const img = document.createElement('img');
+                        img.src = imgData.base64;
+                        img.alt = `Preview ${index + 1}`;
+                        img.title = imgData.name; // Show filename on hover
+
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'remove-preview-btn';
+                        removeBtn.textContent = 'X';
+                        removeBtn.title = '移除此图片';
+                        removeBtn.dataset.index = index; // Store index to remove
+                        removeBtn.onclick = (e) => {
+                             const indexToRemove = parseInt(e.target.dataset.index, 10);
+                             removePreviewImage(indexToRemove);
+                        };
+
+                        container.appendChild(img);
+                        container.appendChild(removeBtn);
+                        imagePreviewList.appendChild(container);
+                    });
+                    imagePreviewArea.style.display = 'block';
                 } else {
-                    removeImage(); // Clear if invalid file selected
-                    alert('请选择一个图片文件。');
+                    imagePreviewArea.style.display = 'none';
                 }
             }
 
-            function removeImage() {
-                uploadedImageBase64 = null;
-                previewImage.src = '#';
-                imagePreviewArea.style.display = 'none';
-                imageInput.value = ''; // Clear file input
+            function removePreviewImage(index) {
+                if (index >= 0 && index < uploadedImages.length) {
+                    uploadedImages.splice(index, 1); // Remove image from array
+                    renderImagePreviews(); // Re-render the preview list
+                }
             }
+
+            function clearImagePreviews() {
+                 uploadedImages = [];
+                 renderImagePreviews();
+                 imageInput.value = ''; // Clear file input
+            }
+
 
             function sendMessage() {
                 const userText = userInput.value.trim();
 
-                if (!userText && !uploadedImageBase64) {
-                    return; // Don't send empty messages without an image
+                if (!userText && uploadedImages.length === 0) {
+                    return; // Don't send empty messages
                 }
-                 if (uploadedImageBase64 && !settings.enableImageSupport) {
+                 if (uploadedImages.length > 0 && !settings.enableImageSupport) {
                      alert('图片已选择，但未在设置中启用图片理解。请启用或移除图片。');
                      return;
                  }
@@ -967,59 +1240,64 @@
                  }
 
 
-                // --- Prepare User Message Content ---
+                // --- Prepare User Message Content (OpenAI Vision format) ---
                 let userMessageContent = [];
                 if (userText) {
                     userMessageContent.push({ type: "text", text: userText });
                 }
-                if (uploadedImageBase64 && settings.enableImageSupport) {
-                     // Check if model supports vision (basic check, real APIs might vary)
-                     // For OpenAI's standard, images are sent in the content array
-                     userMessageContent.push({
-                         type: "image_url",
-                         image_url: {
-                             url: uploadedImageBase64 // Send Base64 Data URI
-                             // OpenAI also supports 'detail': 'low'/'high'/'auto'
-                         }
+                if (uploadedImages.length > 0 && settings.enableImageSupport) {
+                     uploadedImages.forEach(imgData => {
+                         userMessageContent.push({
+                             type: "image_url",
+                             image_url: {
+                                 // Remove the "data:image/...;base64," prefix if API requires pure base64
+                                 // url: imgData.base64.split(',')[1]
+                                 // Keep Data URI for broader compatibility unless API specifies otherwise
+                                 url: imgData.base64
+                                 // OpenAI also supports 'detail': 'low'/'high'/'auto' (optional)
+                                 // detail: 'auto'
+                             }
+                         });
                      });
                 }
 
-                // If only image is sent, add a placeholder text for display if needed
-                const displayUserText = userText || (uploadedImageBase64 ? "[用户发送了一张图片]" : "");
+                // If only image(s) are sent, add placeholder text for display
+                const displayUserText = userText || (uploadedImages.length > 0 ? `[用户发送了 ${uploadedImages.length} 张图片]` : "");
+                const displayImages = uploadedImages.map(img => img.base64); // Get base64 for display
 
-                displayMessage(displayUserText, 'user', uploadedImageBase64); // Display user message with image if present
+                displayMessage(displayUserText, 'user', displayImages); // Display user message with images
                 chatHistory.push({ role: 'user', content: userMessageContent }); // Add structured content to history
 
-                // Clear input and image preview
+                // Clear input and image previews
                 userInput.value = '';
                 adjustTextareaHeight();
-                removeImage();
+                clearImagePreviews(); // Use the clearing function
 
                 // Disable input while waiting
                 sendBtn.disabled = true;
                 userInput.disabled = true;
                 uploadImageBtn.disabled = true;
 
-                // Prepare API request
+                // Prepare API request body
                 const requestBody = {
                     model: settings.selectedModel,
                     messages: getHistoryContext(),
-                    temperature: settings.temperature,
-                    max_tokens: settings.maxTokens,
                     stream: settings.stream,
                     // Add other custom parameters from settings
                      ...settings.customParams
                 };
 
-                 // Filter out null/empty custom parameters just in case
-                 for (const key in requestBody) {
-                     if (requestBody[key] === null || requestBody[key] === undefined || requestBody[key] === '') {
-                        // Be careful not to delete essential keys like stream: false
-                        if (!['stream', 'temperature'].includes(key) || requestBody[key] !== false && requestBody[key] !== 0) {
-                             delete requestBody[key];
-                        }
-                     }
+                 // Conditionally add temperature and max_tokens
+                 if (settings.enableTemperature) {
+                     requestBody.temperature = settings.temperature;
                  }
+                 if (settings.enableMaxTokens) {
+                     requestBody.max_tokens = settings.maxTokens;
+                 }
+
+
+                 // Filter out null/empty custom parameters just in case (shouldn't happen with JSON validation)
+                 // Already handled by addCustomParam validation
 
 
                 addLog('Request', requestBody);
@@ -1042,10 +1320,13 @@
                     if (!response.ok) {
                         // Try to read error body for more details
                         return response.json().then(err => {
-                            throw new Error(`HTTP error! status: ${response.status}, message: ${err.error?.message || JSON.stringify(err)}`);
-                        }).catch(() => {
-                             // If error body is not JSON or empty
-                             throw new Error(`HTTP error! status: ${response.status}`);
+                            const errorMsg = err.error?.message || JSON.stringify(err);
+                            addLog('Error Response Body', err); // Log the full error
+                            throw new Error(`HTTP error! status: ${response.status}, message: ${errorMsg}`);
+                        }).catch((parseError) => {
+                             // If error body is not JSON or empty, or parsing failed
+                             addLog('Error Response Status', { status: response.status, statusText: response.statusText });
+                             throw new Error(`HTTP error! status: ${response.status} ${response.statusText}. Could not parse error body.`);
                         });
                     }
 
@@ -1056,12 +1337,18 @@
                         // Handle non-streaming response
                         return response.json().then(data => {
                             addLog('Response (Full)', data);
-                            const aiContent = data.choices && data.choices[0]?.message?.content;
+                            // Handle potential variations in response structure
+                            const message = data.choices && data.choices[0]?.message;
+                            const aiContent = message?.content;
+
                             if (aiContent) {
                                 displayMessage(aiContent, 'assistant');
                                 chatHistory.push({ role: 'assistant', content: aiContent });
                             } else {
-                                throw new Error('Invalid response format from API.');
+                                console.warn("No content found in non-streaming response:", data);
+                                addLog('Warning', 'No content found in non-streaming response.');
+                                // Display a generic message or nothing?
+                                // displayMessage("[API returned empty response]", 'error');
                             }
                             resetUIAfterResponse();
                         });
@@ -1070,11 +1357,13 @@
                 .catch(error => {
                     if (error.name === 'AbortError') {
                         addLog('Info', 'API request cancelled by user.');
-                        displayMessage('请求已取消。', 'error');
+                        // Optionally display a message in chat?
+                        // displayMessage('请求已取消。', 'error');
                     } else {
-                         console.error('API Error:', error);
+                         console.error('API Call Error:', error);
                          addLog('Error', { message: error.message, stack: error.stack });
-                         displayMessage(`错误: ${error.message}`, 'error');
+                         // Display a user-friendly error in the chat
+                         displayMessage(`抱歉，请求失败： ${error.message}`, 'error');
                     }
                     resetUIAfterResponse(); // Always re-enable UI on error/abort
                 });
@@ -1100,30 +1389,46 @@
                         }
 
                         buffer += decoder.decode(value, { stream: true });
-                        // Process Server-Sent Events (SSE)
-                        const lines = buffer.split('\n');
-                        buffer = lines.pop(); // Keep the last (potentially incomplete) line
+                        // Process Server-Sent Events (SSE) lines
+                        let lines = buffer.split('\n');
+                        // Keep the last potentially incomplete line in the buffer
+                        buffer = lines.pop() || '';
 
                         lines.forEach(line => {
+                            line = line.trim(); // Trim whitespace
                             if (line.startsWith('data: ')) {
                                 const dataContent = line.substring(6).trim();
                                 if (dataContent === '[DONE]') {
                                     // Stream finished signal from OpenAI
-                                    // We wait for the reader.read() done signal instead
+                                    // We rely on reader.read() done signal primarily
                                     return;
                                 }
                                 try {
                                     const chunk = JSON.parse(dataContent);
+                                    // Look for content delta in various possible locations
                                     const delta = chunk.choices && chunk.choices[0]?.delta?.content;
+                                    // Add other potential delta locations if needed based on API
+                                    // const delta = chunk.delta?.content || chunk.choices?.[0]?.delta?.content;
+
                                     if (delta) {
                                         currentAIContent += delta;
                                         // Update the message content progressively
                                          updateAIMessageContent(currentAIContent);
                                     }
+                                    // Handle potential role changes if needed (usually first chunk)
+                                    // const role = chunk.choices && chunk.choices[0]?.delta?.role;
+                                    // if (role && !chatHistory[chatHistory.length-1]?.role) { /* Set role */}
+
                                 } catch (e) {
-                                    console.warn('Failed to parse stream chunk:', dataContent, e);
-                                     addLog('Warning', `Stream parse error: ${e.message} on data: ${dataContent}`);
+                                    // Ignore empty data lines or lines that are not valid JSON
+                                    if (dataContent && dataContent !== '{}') {
+                                        console.warn('Failed to parse stream chunk:', dataContent, e);
+                                        addLog('Warning', `Stream parse error: ${e.message} on data: ${dataContent}`);
+                                    }
                                 }
+                            } else if (line) {
+                                // Handle non-SSE lines if necessary (e.g., some APIs might send plain text chunks)
+                                // console.log("Received non-SSE line:", line);
                             }
                         });
                          scrollToBottom(); // Scroll as content arrives
@@ -1146,21 +1451,37 @@
              function updateAIMessageContent(content) {
                  if (currentAIMessageElement) {
                      const contentDiv = currentAIMessageElement.querySelector('.message-content');
-                     // Use marked to parse Markdown, then set innerHTML
-                     // Be cautious with innerHTML from external sources. Marked sanitizes by default.
-                     contentDiv.innerHTML = marked.parse(content);
-                     // Re-apply syntax highlighting and KaTeX rendering after update
-                     renderRichContent(contentDiv);
+                     if (contentDiv) {
+                         try {
+                             // Use marked to parse Markdown, then set innerHTML
+                             // Marked sanitizes by default, which is good.
+                             contentDiv.innerHTML = marked.parse(content);
+                             // Re-apply syntax highlighting and KaTeX rendering after update
+                             renderRichContent(contentDiv);
+                         } catch (e) {
+                             console.error("Error updating AI message content:", e);
+                             contentDiv.textContent = content; // Fallback to plain text
+                         }
+                     }
                  }
              }
 
             function finalizeStream() {
                 if (currentAIContent) {
+                     // Add the complete message to history
                      chatHistory.push({ role: 'assistant', content: currentAIContent });
                 }
                  // Ensure final rendering pass on the completed message
                  if (currentAIMessageElement) {
-                     renderRichContent(currentAIMessageElement.querySelector('.message-content'));
+                      const contentDiv = currentAIMessageElement.querySelector('.message-content');
+                      if (contentDiv) {
+                          renderRichContent(contentDiv); // Final render pass
+                          // Ensure the copy button gets the final content
+                          const copyBtn = currentAIMessageElement.querySelector('.message-copy-button');
+                          if (copyBtn) {
+                             copyBtn.dataset.clipboardText = contentDiv.textContent; // Update text for copy
+                          }
+                      }
                  }
                 currentAIMessageElement = null;
                 currentAIContent = '';
@@ -1174,55 +1495,78 @@
             function resetUIAfterResponse() {
                 sendBtn.disabled = false;
                 userInput.disabled = false;
-                uploadImageBtn.disabled = false; // Re-enable based on settings
-                 uploadImageBtn.style.display = settings.enableImageSupport ? 'flex' : 'none';
-                 abortController = null; // Reset abort controller
+                // Re-enable upload button based on settings, not just unconditionally
+                uploadImageBtn.disabled = !settings.enableImageSupport;
+                uploadImageBtn.style.display = settings.enableImageSupport ? 'flex' : 'none';
+                abortController = null; // Reset abort controller
             }
 
             function getHistoryContext() {
-                 // Include the system message if defined? (Not implemented here, but could be added)
                  const history = chatHistory.slice(-settings.historyLength); // Get last N messages
-                 // Need to handle the complex content format for images
-                 return history.map(msg => {
-                     if (Array.isArray(msg.content)) { // Image + text message format
-                         return { role: msg.role, content: msg.content };
-                     } else { // Standard text message
-                         return { role: msg.role, content: msg.content };
-                     }
-                 });
+                 // Map directly, format is already correct for text and vision messages
+                 return history;
             }
 
-             function displayMessage(text, role, imageBase64 = null) {
-                 const messageElement = createMessageElement(text, role, imageBase64);
+             // Modified displayMessage to handle an array of images for user messages
+             function displayMessage(text, role, imagesBase64 = []) {
+                 const messageElement = createMessageElement(text, role, imagesBase64);
                  chatbox.appendChild(messageElement);
                  // Render content AFTER appending to DOM
                  renderRichContent(messageElement.querySelector('.message-content'));
                  scrollToBottom();
              }
 
-            function createMessageElement(text, role, imageBase64 = null) {
+             // Modified createMessageElement to handle an array of images
+            function createMessageElement(text, role, imagesBase64 = []) {
                 const messageDiv = document.createElement('div');
                 messageDiv.classList.add('message', `${role}-message`);
+                 if (role === 'error') { // Add specific class for error styling if needed
+                    messageDiv.classList.add('error-message'); // You might need CSS for .error-message
+                    messageDiv.style.backgroundColor = 'var(--error-color)'; // Basic error styling
+                    messageDiv.style.color = '#fff';
+                 }
+
 
                 const contentDiv = document.createElement('div');
                 contentDiv.classList.add('message-content');
 
-                 // Use Marked.js to parse Markdown content safely
-                 // Note: Marked sanitizes HTML by default.
-                 contentDiv.innerHTML = marked.parse(text || ""); // Handle potential null/empty text
+                // Add copy button for the entire message (user or AI)
+                const copyButton = document.createElement('button');
+                copyButton.className = 'message-copy-button';
+                copyButton.innerHTML = '&#x1F4CB;'; // Clipboard icon
+                copyButton.title = '复制消息文本';
+                // Store text content directly for reliable copying
+                copyButton.dataset.clipboardText = text || "";
+                messageDiv.appendChild(copyButton);
 
-                // Add image if provided
-                if (imageBase64 && role === 'user') { // Show image only for user messages for now
-                    const img = document.createElement('img');
-                    img.src = imageBase64;
-                    img.alt = "User uploaded image";
-                    contentDiv.appendChild(img); // Append image after text content
+
+                 try {
+                     // Use Marked.js to parse Markdown content safely
+                     contentDiv.innerHTML = marked.parse(text || ""); // Handle potential null/empty text
+                 } catch (e) {
+                     console.error("Marked parsing error:", e);
+                     contentDiv.textContent = text || ""; // Fallback to plain text
+                 }
+
+
+                // Add images if provided (mainly for user messages)
+                if (Array.isArray(imagesBase64) && imagesBase64.length > 0 && role === 'user') {
+                    const grid = document.createElement('div');
+                    grid.className = 'user-image-grid';
+                    imagesBase64.forEach(base64 => {
+                        const img = document.createElement('img');
+                        img.src = base64;
+                        img.alt = "用户上传的图片";
+                        // Optional: Add click to enlarge functionality later
+                        grid.appendChild(img);
+                    });
+                    contentDiv.appendChild(grid); // Append image grid after text content
                 }
 
 
                 const timestampDiv = document.createElement('div');
                 timestampDiv.classList.add('message-timestamp');
-                timestampDiv.textContent = new Date().toLocaleTimeString();
+                timestampDiv.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 messageDiv.appendChild(contentDiv);
                 messageDiv.appendChild(timestampDiv);
@@ -1233,75 +1577,129 @@
              function renderRichContent(element) {
                  if (!element) return;
 
-                 // Render LaTeX Math using KaTeX
-                 // Need to find delimiters like $$...$$ and $...$
-                 // This basic replacement is fragile; a more robust parser might be needed.
-                 const mathBlocks = element.querySelectorAll('.language-math'); // Assuming marked uses this for $$ blocks
-                 mathBlocks.forEach(block => {
+                 // --- Render LaTeX Math using KaTeX ---
+                 // Replace block math first (e.g., $$...$$) - Marked might create divs/pre for this
+                 // A more robust approach might involve custom Marked renderers
+                 element.innerHTML = element.innerHTML.replace(/\$\$([\s\S]*?)\$\$/g, (match, capture) => {
                      try {
-                         katex.render(block.textContent, block, { throwOnError: false, displayMode: true });
+                         return katex.renderToString(capture.trim(), { throwOnError: false, displayMode: true });
                      } catch (e) {
                          console.error("KaTeX block rendering error:", e);
-                         block.textContent = `Math Error: ${e.message}`;
+                         return `<span style="color:var(--error-color);">[Math Error: ${e.message}]</span>`;
                      }
                  });
 
-                 // Basic inline math (needs careful implementation to avoid conflicts)
-                 // This regex approach is simple but might catch unintended '$' signs.
-                 element.innerHTML = element.innerHTML.replace(/\$(.+?)\$/g, (match, capture) => {
+                 // Replace inline math (e.g., $...$) AFTER block math
+                 element.innerHTML = element.innerHTML.replace(/(?<!\$)\$([^$]+?)\$/g, (match, capture) => {
+                     // Avoid matching escaped dollars or already processed math
+                     if (capture.includes('$')) return match; // Basic check for nested/unmatched
                      try {
-                         return katex.renderToString(capture, { throwOnError: false, displayMode: false });
+                         return katex.renderToString(capture.trim(), { throwOnError: false, displayMode: false });
                      } catch (e) {
                          console.error("KaTeX inline rendering error:", e);
-                         return `[Math Error: ${e.message}]`; // Return error text instead
+                          return `<span style="color:var(--error-color); font-family: monospace;">[Math Error]</span>`;
                      }
                  });
 
 
-                 // Apply Syntax Highlighting using highlight.js
+                 // --- Apply Syntax Highlighting using highlight.js ---
                  element.querySelectorAll('pre code').forEach((block) => {
-                     // Add copy button dynamically
-                     if (!block.parentNode.querySelector('.copy-code-button')) {
-                         const copyButton = document.createElement('button');
-                         copyButton.className = 'copy-code-button';
-                         copyButton.textContent = 'Copy';
-                         copyButton.onclick = () => {
-                             navigator.clipboard.writeText(block.textContent)
-                                 .then(() => {
-                                     copyButton.textContent = 'Copied!';
-                                     setTimeout(() => copyButton.textContent = 'Copy', 2000);
-                                 })
-                                 .catch(err => console.error('Failed to copy code:', err));
-                         };
-                         // Insert button inside the <pre> tag, before <code>
-                         block.parentNode.insertBefore(copyButton, block);
-                         block.parentNode.style.position = 'relative'; // Ensure pre is positioned
+                     // Ensure parent <pre> is styled for positioning
+                     const preElement = block.closest('pre');
+                     if (preElement) {
+                         preElement.style.position = 'relative'; // Needed for copy button
+
+                         // Add code block copy button if not already present
+                         if (!preElement.querySelector('.copy-code-button')) {
+                             const copyCodeButton = document.createElement('button');
+                             copyCodeButton.className = 'copy-code-button';
+                             copyCodeButton.textContent = 'Copy';
+                             copyCodeButton.title = '复制代码块';
+                             copyCodeButton.dataset.clipboardText = block.textContent; // Store text
+                             // Insert button inside the <pre> tag, but ideally before <code> for layout
+                             preElement.insertBefore(copyCodeButton, block);
+                         } else {
+                             // Update text content for existing button if content changed
+                             const copyCodeButton = preElement.querySelector('.copy-code-button');
+                             copyCodeButton.dataset.clipboardText = block.textContent;
+                         }
                      }
 
-                      // Check if already highlighted
+                      // Check if already highlighted to avoid re-processing
                      if (!block.classList.contains('hljs-highlighted')) {
                          try {
                              hljs.highlightElement(block);
                              block.classList.add('hljs-highlighted'); // Mark as highlighted
                          } catch (e) {
                              console.error("Highlight.js error:", e);
+                             // Optionally add an error indicator to the block
+                             block.textContent = `Highlighting Error: ${e.message}\n\n${block.textContent}`;
                          }
                      }
                  });
              }
 
+            // Handle clicks within the chatbox for copy buttons
+            function handleChatboxClick(event) {
+                 const target = event.target;
+
+                 // Handle General Message Copy Button
+                 if (target.classList.contains('message-copy-button')) {
+                     const textToCopy = target.dataset.clipboardText;
+                     copyToClipboard(textToCopy, target);
+                 }
+                 // Handle Code Block Copy Button
+                 else if (target.classList.contains('copy-code-button')) {
+                      const textToCopy = target.dataset.clipboardText;
+                      copyToClipboard(textToCopy, target);
+                 }
+             }
+
+            // Helper function for clipboard copying and button feedback
+            function copyToClipboard(text, buttonElement) {
+                if (!text) return; // Nothing to copy
+
+                navigator.clipboard.writeText(text)
+                    .then(() => {
+                        const originalText = buttonElement.classList.contains('copy-code-button') ? 'Copy' : '&#x1F4CB;';
+                         buttonElement.innerHTML = '已复制!'; // Use text for icon button too
+                         buttonElement.classList.add('copied');
+                         buttonElement.disabled = true; // Briefly disable
+
+                        setTimeout(() => {
+                             buttonElement.innerHTML = originalText;
+                             buttonElement.classList.remove('copied');
+                             buttonElement.disabled = false;
+                        }, 1500); // Revert after 1.5 seconds
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy text: ', err);
+                        alert('复制失败: ' + err.message); // Notify user
+                    });
+            }
+
 
             function scrollToBottom() {
-                chatbox.scrollTop = chatbox.scrollHeight;
+                 // Add a small delay to allow rendering engine to catch up, especially with images/rich content
+                 setTimeout(() => {
+                     chatbox.scrollTop = chatbox.scrollHeight;
+                 }, 50);
             }
 
             function addLog(type, data) {
                 const entry = document.createElement('details');
                 entry.className = 'log-entry';
+                 // Keep logs closed by default unless it's an error
+                 if (type === 'Error' || type === 'Warning') {
+                     entry.open = true;
+                 }
 
                 const summary = document.createElement('summary');
                  const titleSpan = document.createElement('span');
                  titleSpan.textContent = `${type} Log`;
+                 if (type === 'Error') titleSpan.style.color = 'var(--error-color)';
+                 if (type === 'Warning') titleSpan.style.color = '#ffc107';
+
                  const timeSpan = document.createElement('span');
                  timeSpan.className = 'log-timestamp';
                  timeSpan.textContent = new Date().toLocaleString();
@@ -1312,9 +1710,25 @@
                 const content = document.createElement('div');
                 content.className = 'log-content';
                 try {
-                     content.textContent = JSON.stringify(data, null, 2); // Pretty print JSON
+                     // Attempt to stringify, handle potential circular references safely
+                     content.textContent = JSON.stringify(data, (key, value) => {
+                         // Basic circular reference check (might not catch all cases)
+                         // A more robust solution would involve tracking visited objects
+                         if (typeof value === 'object' && value !== null) {
+                            // Simple check, might be too aggressive
+                            // if (seen.has(value)) { return '[Circular]'; }
+                            // seen.add(value);
+                         }
+                         // Handle specific types if needed (e.g., Error object)
+                         if (value instanceof Error) {
+                             return { message: value.message, stack: value.stack, name: value.name };
+                         }
+                         return value;
+                     }, 2); // Pretty print JSON
                 } catch (e) {
-                     content.textContent = String(data); // Fallback for non-JSON data
+                     // Fallback for non-JSON data or stringify errors
+                     content.textContent = String(data);
+                     console.warn("Could not stringify log data:", data, e);
                 }
 
 
@@ -1322,49 +1736,102 @@
                 entry.appendChild(content);
 
                 logEntries.prepend(entry); // Add newest logs to the top
+
+                 // Limit number of log entries (e.g., keep last 100)
+                 const maxLogs = 100;
+                 while (logEntries.children.length > maxLogs) {
+                     logEntries.removeChild(logEntries.lastChild);
+                 }
             }
+
+             // --- Clear Conversation ---
+             function clearConversation() {
+                 if (confirm('确定要清除当前会话的所有消息记录吗？此操作无法撤销。')) {
+                     chatHistory = []; // Clear the history array
+                     chatbox.innerHTML = ''; // Clear the chatbox UI
+                     // Display the initial welcome message again
+                     displayMessage("会话已清除。你好！", 'assistant');
+                     addLog('Info', 'Chat conversation cleared by user.');
+                 }
+             }
 
             // --- Settings Management ---
 
             function loadSettings() {
-                const savedSettings = localStorage.getItem('aiChatProxySettings');
+                const savedSettings = localStorage.getItem('aiChatSettings_v2'); // Use a new key if format changed significantly
                 if (savedSettings) {
                     try {
                          const parsedSettings = JSON.parse(savedSettings);
-                         // Merge saved settings with defaults to handle missing keys
-                         settings = { ...settings, ...parsedSettings };
-                         // Ensure nested objects/arrays are correctly handled (deep merge might be better if complex)
-                         settings.models = Array.isArray(parsedSettings.models) ? parsedSettings.models : [];
-                         settings.customParams = typeof parsedSettings.customParams === 'object' && parsedSettings.customParams !== null ? parsedSettings.customParams : {};
+                         // Merge saved settings with defaults carefully, ensuring types
+                         settings = {
+                             ...settings, // Start with defaults
+                             ...parsedSettings, // Override with saved values
+                             // Ensure complex types are valid
+                             models: Array.isArray(parsedSettings.models) ? parsedSettings.models : [],
+                             customParams: (typeof parsedSettings.customParams === 'object' && parsedSettings.customParams !== null && !Array.isArray(parsedSettings.customParams)) ? parsedSettings.customParams : {},
+                             // Ensure boolean flags are boolean
+                             stream: typeof parsedSettings.stream === 'boolean' ? parsedSettings.stream : true,
+                             enableImageSupport: typeof parsedSettings.enableImageSupport === 'boolean' ? parsedSettings.enableImageSupport : false,
+                             enableTemperature: typeof parsedSettings.enableTemperature === 'boolean' ? parsedSettings.enableTemperature : false,
+                             enableMaxTokens: typeof parsedSettings.enableMaxTokens === 'boolean' ? parsedSettings.enableMaxTokens : false,
+                             // Ensure numbers are numbers
+                             temperature: typeof parsedSettings.temperature === 'number' ? parsedSettings.temperature : 1.0,
+                             maxTokens: typeof parsedSettings.maxTokens === 'number' ? parsedSettings.maxTokens : 4096,
+                             historyLength: typeof parsedSettings.historyLength === 'number' ? parsedSettings.historyLength : 10,
+                             fontSize: typeof parsedSettings.fontSize === 'number' ? parsedSettings.fontSize : 16,
+                             theme: ['light', 'dark'].includes(parsedSettings.theme) ? parsedSettings.theme : 'light'
+                         };
 
                     } catch (e) {
                         console.error("Failed to parse saved settings:", e);
-                        addLog('Error', 'Failed to load settings from localStorage.');
+                        addLog('Error', 'Failed to load settings from localStorage. Using defaults.');
+                         // Optionally clear corrupted settings: localStorage.removeItem('aiChatSettings_v2');
                     }
                 }
-                 // Ensure essential defaults if loading fails or first time
-                 settings.models = settings.models || [];
-                 settings.customParams = settings.customParams || {};
-
-                 // Update UI elements with loaded values
-                apiUrlInput.value = settings.apiUrl || '';
-                apiKeyInput.value = settings.apiKey || '';
-                streamResponseCheckbox.checked = settings.stream || false;
-                enableImageSupportCheckbox.checked = settings.enableImageSupport || false;
-                 uploadImageBtn.style.display = settings.enableImageSupport ? 'flex' : 'none'; // Update button visibility
-                temperatureSlider.value = settings.temperature || 1.0;
-                temperatureValueSpan.textContent = parseFloat(temperatureSlider.value).toFixed(1);
-                maxTokensSlider.value = settings.maxTokens || 1024;
-                maxTokensValueSpan.textContent = maxTokensSlider.value;
-                historyLengthSlider.value = settings.historyLength || 10;
-                historyLengthValueSpan.textContent = historyLengthSlider.value;
-                fontFamilySelect.value = settings.fontFamily || "'Noto Sans SC', 'Microsoft YaHei', sans-serif";
-                fontSizeSlider.value = settings.fontSize || 16;
-                fontSizeValueSpan.textContent = `${fontSizeSlider.value}px`;
-                 // Update theme based on loaded settings
-                 document.body.setAttribute('data-theme', settings.theme || 'light');
-                 toggleThemeBtn.textContent = settings.theme === 'dark' ? '☀️' : '🌙';
+                 // Apply loaded/default settings to the UI elements
+                 updateSettingsUI();
+                 // Apply appearance right away
+                 applyAppearanceSettings();
             }
+
+             // Updates the settings UI elements based on the current 'settings' object
+             function updateSettingsUI() {
+                 apiUrlInput.value = settings.apiUrl || '';
+                 apiKeyInput.value = settings.apiKey || '';
+                 streamResponseCheckbox.checked = settings.stream;
+                 enableImageSupportCheckbox.checked = settings.enableImageSupport;
+                 uploadImageBtn.style.display = settings.enableImageSupport ? 'flex' : 'none';
+
+                 // Temperature
+                 enableTemperatureCheckbox.checked = settings.enableTemperature;
+                 temperatureSlider.value = settings.temperature;
+                 temperatureValueSpan.textContent = parseFloat(settings.temperature).toFixed(1);
+                 toggleTemperatureControl(); // Apply disabled state based on checkbox
+
+                 // Max Tokens
+                 enableMaxTokensCheckbox.checked = settings.enableMaxTokens;
+                 maxTokensSlider.value = settings.maxTokens;
+                 maxTokensValueSpan.textContent = settings.maxTokens;
+                 toggleMaxTokensControl(); // Apply disabled state based on checkbox
+
+                 historyLengthSlider.value = settings.historyLength;
+                 historyLengthValueSpan.textContent = settings.historyLength;
+
+                 fontFamilySelect.value = settings.fontFamily;
+                 fontSizeSlider.value = settings.fontSize;
+                 fontSizeValueSpan.textContent = `${settings.fontSize}px`;
+
+                 // Theme (handled by applyAppearanceSettings)
+                 document.body.setAttribute('data-theme', settings.theme);
+                 toggleThemeBtn.textContent = settings.theme === 'dark' ? '☀️' : '🌙';
+
+                 // Update models and custom params UI separately as they have dedicated functions
+                 updateModelsUI();
+                 updateCustomParamsUI();
+                 updateSelectedModelOptions(); // Ensure dropdown reflects loaded settings
+                 selectedModelSelect.value = settings.selectedModel || ''; // Set selected model
+             }
+
 
             function saveSettings() {
                 // Update settings object from UI just before saving
@@ -1372,18 +1839,20 @@
                 settings.apiKey = apiKeyInput.value.trim();
                 settings.stream = streamResponseCheckbox.checked;
                 settings.enableImageSupport = enableImageSupportCheckbox.checked;
+                settings.enableTemperature = enableTemperatureCheckbox.checked;
                 settings.temperature = parseFloat(temperatureSlider.value);
+                settings.enableMaxTokens = enableMaxTokensCheckbox.checked;
                 settings.maxTokens = parseInt(maxTokensSlider.value, 10);
                 settings.historyLength = parseInt(historyLengthSlider.value, 10);
-                settings.selectedModel = selectedModelSelect.value; // Ensure selected model is saved
+                settings.selectedModel = selectedModelSelect.value;
                 settings.fontFamily = fontFamilySelect.value;
                 settings.fontSize = parseInt(fontSizeSlider.value, 10);
                  settings.theme = document.body.getAttribute('data-theme'); // Save current theme
 
-                // Models and Custom Params are updated dynamically via their functions
+                // Models and Custom Params are managed directly in the settings object by their functions
 
                 try {
-                    localStorage.setItem('aiChatProxySettings', JSON.stringify(settings));
+                    localStorage.setItem('aiChatSettings_v2', JSON.stringify(settings));
                 } catch (e) {
                      console.error("Failed to save settings:", e);
                      addLog('Error', 'Failed to save settings to localStorage. Storage might be full.');
@@ -1391,12 +1860,17 @@
                 }
             }
 
+             // Applies settings that affect the UI immediately (theme, font, etc.)
+             // Also called after loading settings.
              function applySettings() {
-                 // Apply appearance settings immediately
                  applyAppearanceSettings();
-                 // Other settings (like API key, URL) are used directly when making requests
                  // Update button visibility based on image support setting
                  uploadImageBtn.style.display = settings.enableImageSupport ? 'flex' : 'none';
+                 uploadImageBtn.disabled = !settings.enableImageSupport; // Also disable if not supported
+                 // Apply disabled states for Temp/Tokens sliders
+                 toggleTemperatureControl();
+                 toggleMaxTokensControl();
+                 // Other settings (API key, URL, model) are used directly when making requests
              }
 
             function applyAppearanceSettings() {
@@ -1407,6 +1881,23 @@
                  toggleThemeBtn.textContent = settings.theme === 'dark' ? '☀️' : '🌙';
             }
 
+            // --- Temperature & Max Tokens Control ---
+            function toggleTemperatureControl() {
+                 const enabled = enableTemperatureCheckbox.checked;
+                 temperatureContainer.classList.toggle('disabled', !enabled);
+                 temperatureSlider.disabled = !enabled;
+                 // Optional: Visually indicate default value when disabled
+                 // temperatureValueSpan.textContent = enabled ? parseFloat(temperatureSlider.value).toFixed(1) : 'Default';
+            }
+             function toggleMaxTokensControl() {
+                 const enabled = enableMaxTokensCheckbox.checked;
+                 maxTokensContainer.classList.toggle('disabled', !enabled);
+                 maxTokensSlider.disabled = !enabled;
+                 // Optional: Visually indicate default value when disabled
+                 // maxTokensValueSpan.textContent = enabled ? maxTokensSlider.value : 'Default';
+             }
+
+
             // --- Model Management ---
             function addModel() {
                 const modelName = newModelInput.value.trim();
@@ -1415,10 +1906,10 @@
                     newModelInput.value = '';
                     updateModelsUI();
                     updateSelectedModelOptions();
-                     // Auto-select if it's the first model added
-                     if (settings.models.length === 1) {
+                     // Auto-select if it's the first model added or if none selected
+                     if (settings.models.length === 1 || !settings.selectedModel) {
                          selectedModelSelect.value = modelName;
-                         settings.selectedModel = modelName;
+                         settings.selectedModel = modelName; // Update state immediately for save
                      }
                 } else if (!modelName) {
                      alert('请输入模型名称。');
@@ -1431,10 +1922,10 @@
                 settings.models = settings.models.filter(m => m !== modelName);
                 updateModelsUI();
                 updateSelectedModelOptions();
-                 // If the removed model was the selected one, clear selection or select first available
+                 // If the removed model was the selected one, update selection
                  if (settings.selectedModel === modelName) {
                      settings.selectedModel = settings.models.length > 0 ? settings.models[0] : '';
-                     selectedModelSelect.value = settings.selectedModel;
+                     selectedModelSelect.value = settings.selectedModel; // Update dropdown UI
                  }
             }
 
@@ -1443,21 +1934,24 @@
                 settings.models.forEach(model => {
                     const div = document.createElement('div');
                     div.className = 'model-entry';
+                    // Use html encoding for display if model names could contain special chars
+                    const escapedModel = model.replace(/</g, "&lt;").replace(/>/g, "&gt;");
                     div.innerHTML = `
-                        <input type="text" value="${model}" readonly style="flex-grow: 1; background-color: var(--ai-msg-bg);">
-                        <button class="remove-btn" data-model="${model}">移除</button>
+                        <input type="text" value="${escapedModel}" readonly style="flex-grow: 1; background-color: var(--ai-msg-bg);">
+                        <button class="remove-btn" data-model="${model}">移除</button> <!-- Use original name in data -->
                     `;
                     modelListDiv.appendChild(div);
                 });
             }
 
             function updateSelectedModelOptions() {
-                const currentSelected = selectedModelSelect.value;
+                const currentSelectedInUI = selectedModelSelect.value; // Value currently shown in dropdown
                 selectedModelSelect.innerHTML = ''; // Clear existing options
 
                 if (settings.models.length === 0) {
                      selectedModelSelect.innerHTML = '<option value="">请先添加模型</option>';
                      selectedModelSelect.disabled = true;
+                     settings.selectedModel = ''; // Clear setting state if no models
                 } else {
                     settings.models.forEach(model => {
                         const option = document.createElement('option');
@@ -1466,15 +1960,21 @@
                         selectedModelSelect.appendChild(option);
                     });
                      selectedModelSelect.disabled = false;
-                     // Try to re-select the previous model, or the current setting, or the first one
-                     if (settings.models.includes(currentSelected)) {
-                         selectedModelSelect.value = currentSelected;
-                     } else if (settings.models.includes(settings.selectedModel)) {
-                         selectedModelSelect.value = settings.selectedModel;
+
+                     // Determine the value to select in the dropdown
+                     let valueToSelect = '';
+                     if (settings.models.includes(settings.selectedModel)) {
+                         valueToSelect = settings.selectedModel; // Prefer value from settings state
+                     } else if (settings.models.includes(currentSelectedInUI)) {
+                          valueToSelect = currentSelectedInUI; // Fallback to current UI value if still valid
                      } else {
-                         selectedModelSelect.value = settings.models[0]; // Default to first
-                         settings.selectedModel = selectedModelSelect.value; // Update setting state
+                         valueToSelect = settings.models[0]; // Default to first model if others invalid
                      }
+
+                     selectedModelSelect.value = valueToSelect;
+                     // Ensure settings.selectedModel is synchronised with the final dropdown value
+                     // This is important if saveSettings() hasn't run yet
+                     // settings.selectedModel = valueToSelect; // Let saveSettings handle final state update
                 }
             }
 
@@ -1497,22 +1997,17 @@
                      return;
                  }
                  if (settings.customParams.hasOwnProperty(key)) {
-                     alert(`参数 Key "${key}" 已存在。`);
-                     return;
+                     if (!confirm(`参数 Key "${key}" 已存在。要覆盖它的值吗？`)) {
+                        return;
+                     }
                  }
 
                 let value;
                 try {
-                     // Attempt to parse value as JSON (allows numbers, booleans, strings with quotes)
+                     // Attempt to parse value as JSON (allows numbers, booleans, strings with quotes, arrays, objects)
                      value = JSON.parse(valueStr);
                 } catch (e) {
-                     // If JSON parsing fails, treat it as a plain string
-                     // Note: For OpenAI, most extra params expect specific types (e.g., top_p as number)
-                     // So, encouraging JSON format might be better.
-                     // For simplicity here, we'll allow plain strings too, but warn user maybe.
-                     // Let's enforce JSON-like input for better compatibility
-                     alert('参数 Value 格式无效。请输入有效的 JSON 值（例如 "字符串", 123, true, false, null）。');
-                     // value = valueStr; // Fallback to string if JSON parse fails - might cause issues
+                     alert('参数 Value 格式无效。请输入有效的 JSON 值（例如 "字符串", 123, true, false, null, ["a", 1], {"b": 2}）。无引号的字符串无效。');
                      return; // Exit if value is not valid JSON
                 }
 
@@ -1533,9 +2028,19 @@
                      if (settings.customParams.hasOwnProperty(key)) {
                          const div = document.createElement('div');
                          div.className = 'param-entry';
+                         const escapedKey = key.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                         let valueDisplay = '';
+                         try {
+                            valueDisplay = JSON.stringify(settings.customParams[key]);
+                         } catch {
+                            valueDisplay = '[无法显示的值]'; // Should not happen with JSON validation
+                         }
+                         // Escape value for display in input attribute
+                         const escapedValue = valueDisplay.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+
                          div.innerHTML = `
-                             <input type="text" value="${key}" readonly style="flex: 1; background-color: var(--ai-msg-bg);">
-                             <input type="text" value='${JSON.stringify(settings.customParams[key])}' readonly style="flex: 2; background-color: var(--ai-msg-bg);">
+                             <input type="text" value="${escapedKey}" readonly title="${escapedKey}" style="flex: 1; background-color: var(--ai-msg-bg);">
+                             <input type="text" value='${escapedValue}' readonly title='${escapedValue}' style="flex: 2; background-color: var(--ai-msg-bg);">
                              <button class="remove-btn" data-paramkey="${key}">移除</button>
                          `;
                          customParamsListDiv.appendChild(div);
@@ -1557,9 +2062,8 @@
                 const currentTheme = document.body.getAttribute('data-theme');
                 const newTheme = currentTheme === 'light' ? 'dark' : 'light';
                 settings.theme = newTheme; // Update settings state
-                applyAppearanceSettings(); // Apply the new theme
-                // Don't auto-save on theme toggle, let user save explicitly
-                // saveSettings(); // Optionally save immediately
+                applyAppearanceSettings(); // Apply the new theme immediately
+                // Let user save explicitly via Save Settings button
             }
 
         }); // End DOMContentLoaded
