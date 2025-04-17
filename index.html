@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>自定义 AI 聊天代理</title>
+    <title>自定义 AI </title>
     <!-- KaTeX CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1tBCsfMNzfHWquKxdCXCavCFZBhz" crossorigin="anonymous">
     <!-- Highlight.js CSS (Default theme) -->
@@ -673,7 +673,7 @@
                 </div>
                 <div class="form-group">
                     <label for="maxTokens">Max Tokens: <span class="range-value" id="maxTokensValue">1024</span></label>
-                    <input type="range" id="maxTokens" min="1" max="4096" step="1" value="1024">
+                    <input type="range" id="maxTokens" min="0" max="100000" step="1" value="10000">
                 </div>
                 <div class="form-group">
                     <label for="historyLength">上下文消息数量: <span class="range-value" id="historyLengthValue">10</span></label>
@@ -712,7 +712,7 @@
                 </div>
                 <div class="form-group">
                     <label for="fontSize">字体大小: <span class="range-value" id="fontSizeValue">16px</span></label>
-                    <input type="range" id="fontSize" min="12" max="24" step="1" value="16">
+                    <input type="range" id="fontSize" min="10" max="24" step="1" value="16">
                 </div>
 
             </div>
