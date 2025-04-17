@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>高级 AI 对话</title>
+    <title>高级 AI 对话（含自定义参数）</title>
     <!-- Marked library for Markdown rendering -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- highlight.js for code syntax highlighting (Light Theme) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <!-- Icon library (optional, for copy icons etc.) -->
+    <!-- Icon library -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <style>
@@ -51,7 +51,7 @@
             font-family: var(--font-family);
             background-color: var(--bg-color);
             color: var(--text-color);
-            font-size: var(--base-font-size); /* Use CSS variable */
+            font-size: var(--base-font-size);
             line-height: 1.6;
         }
 
@@ -72,11 +72,11 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 20px; /* Slightly reduced padding */
+            padding: 10px 20px;
             background-color: var(--secondary-color);
             border-bottom: 1px solid var(--border-color);
             flex-shrink: 0;
-            gap: 10px; /* Add gap between elements */
+            gap: 10px;
         }
 
         .header-left {
@@ -102,27 +102,26 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 150px; /* Limit width */
+            max-width: 150px;
             cursor: default;
             transition: max-width 0.3s ease;
         }
         .active-config-display:hover {
-             max-width: 300px; /* Expand on hover */
+            max-width: 300px;
         }
         .active-config-display.none {
             color: var(--error-color);
             background-color: rgba(220, 53, 69, 0.1);
         }
 
-
         .header-buttons {
             display: flex;
             align-items: center;
-            gap: 8px; /* Gap between buttons */
+            gap: 8px;
         }
 
         .header-buttons button, .font-controls button {
-            padding: 6px 12px; /* Smaller buttons */
+            padding: 6px 12px;
             background-color: var(--button-secondary-bg);
             color: var(--button-text);
             border: none;
@@ -137,17 +136,17 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
         .header-buttons button#settingsButton {
-             background-color: var(--button-bg);
+            background-color: var(--button-bg);
         }
-         .header-buttons button#settingsButton:hover {
-             background-color: var(--button-hover-bg);
-         }
+        .header-buttons button#settingsButton:hover {
+            background-color: var(--button-hover-bg);
+        }
         .header-buttons button#clearChatButton {
-             background-color: var(--button-danger-bg);
+            background-color: var(--button-danger-bg);
         }
-         .header-buttons button#clearChatButton:hover {
-             background-color: var(--button-danger-hover-bg);
-         }
+        .header-buttons button#clearChatButton:hover {
+            background-color: var(--button-danger-hover-bg);
+        }
 
         .font-controls {
             display: flex;
@@ -162,55 +161,45 @@
             margin-right: 3px;
         }
         .font-controls button {
-            width: 28px; /* Fixed width for +/- */
+            width: 28px;
             height: 28px;
             padding: 0;
             line-height: 28px;
             text-align: center;
         }
 
-        /* Modals (Settings & Logs) */
+        /* Modals */
         .modal {
             display: none;
             position: fixed;
             z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
             overflow: auto;
             background-color: rgba(0, 0, 0, 0.5);
             animation: fadeIn 0.3s ease;
         }
-
         .modal-content {
             background-color: var(--bg-color);
-            margin: 5% auto; /* Reduced top margin */
+            margin: 5% auto;
             padding: 25px 30px;
             border: 1px solid var(--border-color);
-            width: 90%;
-            max-width: 750px; /* Slightly wider */
+            width: 90%; max-width: 750px;
             border-radius: var(--border-radius);
             position: relative;
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
-        #logModal .modal-content {
-             max-width: 900px; /* Wider for logs */
-        }
+        #logModal .modal-content { max-width: 900px; }
 
         .close-button {
             color: #aaa;
             position: absolute;
-            top: 15px;
-            right: 25px;
-            font-size: 32px;
-            font-weight: bold;
+            top: 15px; right: 25px;
+            font-size: 32px; font-weight: bold;
             cursor: pointer;
             line-height: 1;
         }
-        .close-button:hover, .close-button:focus {
-            color: var(--text-color);
-        }
+        .close-button:hover, .close-button:focus { color: var(--text-color); }
 
         .modal h2 {
             margin-top: 0;
@@ -259,31 +248,133 @@
             margin-right: 10px;
             margin-top: 10px;
         }
-        #settingsModal button#saveConfigButton { background-color: var(--button-bg); color: var(--button-text); }
-        #settingsModal button#saveConfigButton:hover { background-color: var(--button-hover-bg); }
-        #settingsModal button.danger { background-color: var(--button-danger-bg); color: var(--button-text); }
-        #settingsModal button.danger:hover { background-color: var(--button-danger-hover-bg); }
-        #settingsModal button.secondary { background-color: var(--button-secondary-bg); color: var(--button-text); }
-        #settingsModal button.secondary:hover { background-color: var(--button-secondary-hover-bg); }
+        #settingsModal button#saveConfigButton {
+            background-color: var(--button-bg);
+            color: var(--button-text);
+        }
+        #settingsModal button#saveConfigButton:hover {
+            background-color: var(--button-hover-bg);
+        }
+        #settingsModal button.danger {
+            background-color: var(--button-danger-bg);
+            color: var(--button-text);
+        }
+        #settingsModal button.danger:hover {
+            background-color: var(--button-danger-hover-bg);
+        }
+        #settingsModal button.secondary {
+            background-color: var(--button-secondary-bg);
+            color: var(--button-text);
+        }
+        #settingsModal button.secondary:hover {
+            background-color: var(--button-secondary-hover-bg);
+        }
 
-        .config-section { border: 1px solid var(--border-color); background-color: var(--secondary-color); padding: 20px; margin-bottom: 25px; border-radius: var(--border-radius); }
-        .config-section h3 { margin-top: 0; margin-bottom: 15px; font-weight: 600; color: #343a40; }
-        #configList { max-height: 180px; overflow-y: auto; margin-bottom: 15px; border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; background-color: var(--bg-color); }
-        #configList div { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #e9ecef; transition: background-color 0.15s ease; border-radius: 4px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
-        #configList div:last-child { border-bottom: none; margin-bottom: 0; }
+        .config-section {
+            border: 1px solid var(--border-color);
+            background-color: var(--secondary-color);
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: var(--border-radius);
+        }
+        .config-section h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-weight: 600;
+            color: #343a40;
+        }
+        #configList {
+            max-height: 180px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            border-radius: 6px;
+            background-color: var(--bg-color);
+        }
+        #configList div {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.15s ease;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #configList div:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
         #configList div:hover { background-color: #e9ecef; }
-        #configList div.selected { background-color: var(--primary-color); color: var(--button-text); font-weight: 500; }
+        #configList div.selected {
+            background-color: var(--primary-color);
+            color: var(--button-text);
+            font-weight: 500;
+        }
         #configList div.selected:hover { background-color: var(--primary-color); }
-        #configList div .config-stream-indicator { font-size: 0.8em; opacity: 0.7; margin-left: 10px; }
+        #configList div .config-stream-indicator {
+            font-size: 0.8em;
+            opacity: 0.7;
+            margin-left: 10px;
+        }
 
-        .form-row { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 18px; }
-        .form-row > div { flex: 1; min-width: 150px; /* Prevent excessive shrinking */ }
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 18px;
+        }
+        .form-row > div {
+            flex: 1;
+            min-width: 150px;
+        }
         .form-row label { margin-bottom: 5px; }
         .form-row input { margin-bottom: 0; width: calc(100% - 24px); }
 
-        .checkbox-group { display: flex; align-items: center; margin-bottom: 18px; }
-        .checkbox-group input[type="checkbox"] { margin-right: 10px; width: auto; height: 16px; width: 16px; cursor: pointer;}
-        .checkbox-group label { margin-bottom: 0; cursor: pointer; font-weight: normal; color: var(--text-color); }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 10px;
+            width: 16px; height: 16px;
+            cursor: pointer;
+        }
+        .checkbox-group label {
+            margin-bottom: 0;
+            cursor: pointer;
+            font-weight: normal;
+            color: var(--text-color);
+        }
+
+        /* 新增：自定义参数行样式 */
+        .param-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .param-row input {
+            flex: 1;
+            padding: 6px 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .param-row button {
+            flex: 0 0 auto;
+            background-color: var(--button-danger-bg);
+            color: var(--button-text);
+            border: none;
+            border-radius: 4px;
+            padding: 0 8px;
+            cursor: pointer;
+        }
+        .param-row button:hover {
+            background-color: var(--button-danger-hover-bg);
+        }
 
         /* Log Modal Specifics */
         #logContainer {
@@ -294,7 +385,7 @@
             border-radius: 6px;
             padding: 15px;
             margin-bottom: 20px;
-            font-size: 0.9em; /* Smaller font for logs */
+            font-size: 0.9em;
         }
         .log-entry {
             border-bottom: 1px dashed var(--border-color);
@@ -307,24 +398,34 @@
             background-color: #e9ecef;
             padding: 10px;
             border-radius: 4px;
-            white-space: pre-wrap; /* Wrap long lines */
-            word-break: break-all; /* Break long words/strings */
+            white-space: pre-wrap;
+            word-break: break-all;
             margin: 0;
-            max-height: 300px; /* Limit height of individual log data */
+            max-height: 300px;
             overflow-y: auto;
         }
-        .log-entry .log-meta { font-size: 0.85em; color: #6c757d; margin-bottom: 5px; }
-        .log-entry .log-type-request strong { color: #17a2b8; } /* Teal for request */
-        .log-entry .log-type-response strong { color: #28a745; } /* Green for response */
-        .log-entry .log-type-error strong { color: var(--error-color); } /* Red for error */
-        .log-entry .log-type-info strong { color: #ffc107; } /* Yellow for info */
+        .log-entry .log-meta {
+            font-size: 0.85em;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+        .log-entry .log-type-request strong { color: #17a2b8; }
+        .log-entry .log-type-response strong { color: #28a745; }
+        .log-entry .log-type-error strong { color: var(--error-color); }
+        .log-entry .log-type-info strong { color: #ffc107; }
 
         #logModal button {
-            padding: 10px 22px; border: none; border-radius: 6px; cursor: pointer; font-size: 1em;
-            transition: background-color 0.2s ease; margin-right: 10px;
-            background-color: var(--button-danger-bg); color: var(--button-text);
+            padding: 10px 22px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s ease;
+            margin-right: 10px;
+            background-color: var(--button-danger-bg);
+            color: var(--button-text);
         }
-         #logModal button:hover { background-color: var(--button-danger-hover-bg); }
+        #logModal button:hover { background-color: var(--button-danger-hover-bg); }
 
         /* Chat Box */
         .chat-box {
@@ -342,7 +443,7 @@
             border-radius: 18px;
             max-width: 85%;
             word-wrap: break-word;
-            position: relative; /* Needed for copy button positioning */
+            position: relative;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             line-height: 1.5;
         }
@@ -356,14 +457,12 @@
             align-self: flex-end;
             border-bottom-right-radius: 6px;
         }
-
         .message.assistant {
             background-color: var(--assistant-msg-bg);
             color: var(--assistant-msg-text);
             align-self: flex-start;
             border-bottom-left-radius: 6px;
         }
-
         .message.error {
             background-color: rgba(220, 53, 69, 0.1);
             color: var(--error-color);
@@ -386,11 +485,9 @@
         .message.user strong.role-indicator { color: #0056b3; }
         .message.error strong { color: var(--error-color); font-weight: 600; }
 
-        /* Copy Message Button */
         .copy-message-button {
             position: absolute;
-            top: 5px;
-            right: 8px;
+            top: 5px; right: 8px;
             background: rgba(0,0,0,0.1);
             border: none;
             color: rgba(0,0,0,0.5);
@@ -398,19 +495,18 @@
             cursor: pointer;
             font-size: 0.8em;
             padding: 3px 6px;
-            opacity: 0; /* Hidden by default */
+            opacity: 0;
             transition: opacity 0.2s ease, background-color 0.2s ease;
             z-index: 10;
         }
-        .message.user .copy-message-button { right: 8px; } /* Adjust if needed */
+        .message.user .copy-message-button { right: 8px; }
         .message.assistant .copy-message-button { right: 8px; }
         .copy-message-button:hover {
             background: rgba(0,0,0,0.2);
             color: rgba(0,0,0,0.8);
         }
-        .copy-message-button i { pointer-events: none; } /* Prevent icon from capturing click */
+        .copy-message-button i { pointer-events: none; }
 
-        /* Markdown Styles within messages */
         .message .content-wrapper { margin-top: 4px; }
         .message pre {
             background-color: #e9ecef;
@@ -420,31 +516,45 @@
             overflow-x: auto;
             margin: 12px 0;
             font-size: 0.9em;
-            position: relative; /* For copy button */
+            position: relative;
         }
         .message pre:hover .copy-code-button { opacity: 1; }
 
         .message code:not(pre code) {
-             background-color: rgba(0, 123, 255, 0.1);
-             color: #0056b3;
-             padding: 0.2em 0.5em;
-             border-radius: 4px;
-             font-size: 0.9em;
+            background-color: rgba(0, 123, 255, 0.1);
+            color: #0056b3;
+            padding: 0.2em 0.5em;
+            border-radius: 4px;
+            font-size: 0.9em;
         }
         .message pre code { background: none; padding: 0; border: none; color: inherit; }
-        .message blockquote { border-left: 4px solid var(--primary-color); padding-left: 15px; margin-left: 0; color: #6c757d; background-color: #f8f9fa; padding-top: 5px; padding-bottom: 5px; }
-        .message table { border-collapse: collapse; margin: 15px 0; width: auto; border: 1px solid var(--border-color); }
-        .message th, .message td { border: 1px solid var(--border-color); padding: 8px 12px; text-align: left; }
+        .message blockquote {
+            border-left: 4px solid var(--primary-color);
+            padding-left: 15px;
+            margin-left: 0;
+            color: #6c757d;
+            background-color: #f8f9fa;
+            padding-top: 5px; padding-bottom: 5px;
+        }
+        .message table {
+            border-collapse: collapse;
+            margin: 15px 0;
+            width: auto;
+            border: 1px solid var(--border-color);
+        }
+        .message th, .message td {
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            text-align: left;
+        }
         .message th { background-color: #e9ecef; font-weight: 600; }
         .message ul, .message ol { padding-left: 25px; margin-top: 8px; margin-bottom: 8px; }
         .message p { margin-top: 0; margin-bottom: 0.8em; }
         .message p:last-child { margin-bottom: 0; }
 
-        /* Copy Code Button inside <pre> */
         .copy-code-button {
             position: absolute;
-            top: 8px;
-            right: 8px;
+            top: 8px; right: 8px;
             background: rgba(0,0,0,0.4);
             border: none;
             color: white;
@@ -452,15 +562,14 @@
             cursor: pointer;
             font-size: 0.8em;
             padding: 4px 8px;
-            opacity: 0; /* Hidden by default */
+            opacity: 0;
             transition: opacity 0.2s ease, background-color 0.2s ease;
             z-index: 10;
         }
         .copy-code-button:hover { background: rgba(0,0,0,0.6); }
-        .copy-code-button.copied { background-color: #28a745; } /* Green when copied */
+        .copy-code-button.copied { background-color: #28a745; }
         .copy-code-button i { margin-right: 4px; }
 
-        /* Input Area */
         .input-area {
             display: flex;
             align-items: flex-end;
@@ -486,11 +595,11 @@
             margin-right: 12px;
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
-         #userInput:focus {
+        #userInput:focus {
             border-color: var(--primary-color);
             box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
             outline: none;
-         }
+        }
 
         #sendButton, #stopButton {
             padding: 0 28px;
@@ -508,19 +617,35 @@
             background-color: var(--button-bg);
             color: var(--button-text);
         }
-        #sendButton:hover:not(:disabled) { background-color: var(--button-hover-bg); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
-        #sendButton:disabled { background-color: #adb5bd; cursor: not-allowed; box-shadow: none; }
+        #sendButton:hover:not(:disabled) {
+            background-color: var(--button-hover-bg);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        #sendButton:disabled {
+            background-color: #adb5bd;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
 
         #stopButton {
-            display: none; /* Hidden by default */
+            display: none;
             background-color: var(--button-danger-bg);
             color: var(--button-text);
         }
         #stopButton:hover { background-color: var(--button-danger-hover-bg); }
 
-
-        .loading-indicator { display: none; margin-left: 15px; align-self: center; }
-        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        .loading-indicator {
+            display: none;
+            margin-left: 15px;
+            align-self: center;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 24px; height: 24px;
+            animation: spin 1s linear infinite;
+        }
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes fadeIn { from {opacity: 0;} to {opacity: 1;} }
@@ -528,11 +653,11 @@
         /* Responsive */
         @media (max-width: 768px) {
             .chat-container { max-width: 100%; height: 100%; border-radius: 0; box-shadow: none; }
-            .chat-header { padding: 8px 15px; flex-wrap: wrap; } /* Allow wrapping */
-            .header-left { flex-basis: 100%; justify-content: space-between; margin-bottom: 5px; } /* Header left takes full width */
+            .chat-header { padding: 8px 15px; flex-wrap: wrap; }
+            .header-left { flex-basis: 100%; justify-content: space-between; margin-bottom: 5px; }
             .chat-header h1 { font-size: 1.2em; }
             .active-config-display { max-width: 100px; }
-            .header-buttons { flex-grow: 1; justify-content: flex-end; } /* Buttons take remaining space */
+            .header-buttons { flex-grow: 1; justify-content: flex-end; }
             .header-buttons button, .font-controls button { padding: 5px 10px; font-size: 0.85em; }
             .font-controls button { width: 24px; height: 24px; line-height: 24px; }
             .chat-box { padding: 15px; gap: 15px; }
@@ -554,8 +679,8 @@
     <div class="chat-container">
         <div class="chat-header">
             <div class="header-left">
-                 <h1>高级 AI 对话</h1>
-                 <div id="activeConfigDisplay" class="active-config-display" title="当前使用的配置">无配置</div>
+                <h1>高级 AI 对话</h1>
+                <div id="activeConfigDisplay" class="active-config-display" title="当前使用的配置">无配置</div>
             </div>
             <div class="header-buttons">
                 <div class="font-controls">
@@ -576,7 +701,7 @@
         <div class="input-area">
             <textarea id="userInput" placeholder="在此输入消息... (Shift+Enter 换行)" rows="1"></textarea>
             <button id="sendButton">发送</button>
-            <button id="stopButton">停止</button> <!-- Initially hidden -->
+            <button id="stopButton">停止</button>
             <div class="loading-indicator" id="loadingIndicator">
                 <div class="spinner"></div>
             </div>
@@ -588,22 +713,28 @@
         <div class="modal-content">
             <span class="close-button" id="closeSettingsModalButton">&times;</span>
             <h2>API 设置</h2>
+
             <div class="config-section">
                 <h3>管理配置</h3>
                 <label for="configSelector">选择配置:</label>
                 <div id="configList"></div>
                 <button id="removeConfigButton" class="danger">删除选中配置</button>
             </div>
+
             <div class="config-section">
                 <h3>编辑 / 新增配置</h3>
                 <label for="configName">配置名称:</label>
                 <input type="text" id="configName" placeholder="例如：我的本地模型">
+
                 <label for="apiUrl">API 端点 URL:</label>
                 <input type="text" id="apiUrl" placeholder="例如：http://localhost:11434/v1/chat/completions">
+
                 <label for="apiKey">API 密钥 (可选):</label>
                 <input type="password" id="apiKey" placeholder="输入你的 API Key">
+
                 <label for="modelName">模型名称:</label>
                 <input type="text" id="modelName" placeholder="例如：llama3, gpt-4o-mini">
+
                 <div class="form-row">
                     <div>
                         <label for="maxTokens">最大 Token 数:</label>
@@ -613,21 +744,31 @@
                         <label for="temperature">温度 (0-2):</label>
                         <input type="number" id="temperature" placeholder="例如: 0.7" min="0" max="2" step="0.1">
                     </div>
-                     <div>
+                    <div>
                         <label for="contextCount">上下文消息数:</label>
                         <input type="number" id="contextCount" placeholder="例如: 10" min="0">
                     </div>
                 </div>
-                 <div class="checkbox-group">
-                     <input type="checkbox" id="streamResponse">
-                     <label for="streamResponse">启用流式响应 (实时显示)</label>
-                 </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="streamResponse">
+                    <label for="streamResponse">启用流式响应 (实时显示)</label>
+                </div>
+
                 <label for="systemPrompt">系统提示 (可选):</label>
                 <textarea id="systemPrompt" placeholder="例如：你是一个乐于助人的助手。"></textarea>
+
+                <!-- 新增：自定义请求参数区块 -->
+                <h4>自定义请求参数 (可留空)</h4>
+                <div id="customParamsContainer"></div>
+                <button id="addParamButton" class="secondary">+ 添加参数</button>
+                <!-- /自定义请求参数 -->
+
                 <button id="saveConfigButton">保存/新增配置</button>
                 <button id="newConfigButton" class="secondary">清空表单以新增</button>
             </div>
-             <p style="font-size: 0.85em; color: #6c757d; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+
+            <p style="font-size: 0.85em; color: #6c757d; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
                 <strong>⚠️ 安全警告:</strong> API 密钥存储在您的浏览器本地存储 (localStorage) 中。请谨慎使用敏感密钥。API 端点必须启用 CORS 才能从浏览器访问。
             </p>
         </div>
@@ -639,7 +780,6 @@
             <span class="close-button" id="closeLogModalButton">&times;</span>
             <h2>详细日志</h2>
             <div id="logContainer">
-                <!-- 日志条目将在这里填充 -->
                 <div style="text-align: center; color: #6c757d;">暂无日志记录</div>
             </div>
             <button id="clearLogsButton">清空日志</button>
@@ -677,6 +817,10 @@
         const saveConfigButton = document.getElementById('saveConfigButton');
         const newConfigButton = document.getElementById('newConfigButton');
 
+        // --- 自定义参数区块 DOM ---
+        const customParamsContainer = document.getElementById('customParamsContainer');
+        const addParamButton = document.getElementById('addParamButton');
+
         // --- 日志 Modal 元素 ---
         const logModal = document.getElementById('logModal');
         const closeLogModalButton = document.getElementById('closeLogModalButton');
@@ -684,20 +828,20 @@
         const clearLogsButton = document.getElementById('clearLogsButton');
 
         // --- 状态变量 ---
-        let chatHistory = []; // {role: 'user'/'assistant', content: '...'}
+        let chatHistory = []; 
         let apiConfigs = [];
         let currentConfigIndex = -1;
         let isLoading = false;
-        let currentAbortController = null; // 用于中止 fetch 请求
-        let logs = []; // 存储日志条目
-        let currentFontSize = 16; // 默认字体大小
+        let currentAbortController = null; 
+        let logs = [];
+        let currentFontSize = 16; 
         const MIN_FONT_SIZE = 8;
-        const MAX_LOG_ENTRIES = 100; // 日志存储上限
+        const MAX_LOG_ENTRIES = 100;
 
         // --- 默认值 ---
         const DEFAULT_CONTEXT_COUNT = 10;
-        const DEFAULT_TEMPERATURE = null; // 让 API 使用自己的默认值
-        const DEFAULT_MAX_TOKENS = null; // 让 API 使用自己的默认值
+        const DEFAULT_TEMPERATURE = null;
+        const DEFAULT_MAX_TOKENS = null;
         const DEFAULT_STREAM = false;
 
         // --- 初始化 ---
@@ -705,14 +849,14 @@
             loadFontSize();
             applyFontSize();
             loadLogs();
-            loadConfigs(); // 加载 API 配置 (会更新 currentConfigIndex)
-            loadChatHistory(); // 加载聊天记录
-            renderChatHistory(); // 渲染聊天记录 (依赖 chatHistory)
-            updateSettingsUI(); // 更新设置界面 (依赖 apiConfigs, currentConfigIndex)
-            updateActiveConfigDisplay(); // 更新顶部配置显示
-            setupEventListeners(); // 设置事件监听器
-            adjustTextareaHeight(); // 初始化文本域高度
-            configureMarked(); // 配置 Markdown 渲染
+            loadConfigs();
+            loadChatHistory();
+            renderChatHistory();
+            updateSettingsUI();
+            updateActiveConfigDisplay();
+            setupEventListeners();
+            adjustTextareaHeight();
+            configureMarked();
         });
 
         // --- 配置 Marked ---
@@ -741,118 +885,120 @@
             userInput.addEventListener('input', adjustTextareaHeight);
             clearChatButton.addEventListener('click', clearChat);
 
-            // Modals
             settingsButton.addEventListener('click', openSettingsModal);
             closeSettingsModalButton.addEventListener('click', closeSettingsModal);
             logButton.addEventListener('click', openLogModal);
             closeLogModalButton.addEventListener('click', closeLogModal);
-            window.addEventListener('click', (event) => { // 点击 Modal 外部关闭
+            window.addEventListener('click', (event) => {
                 if (event.target == settingsModal) closeSettingsModal();
                 if (event.target == logModal) closeLogModal();
             });
 
-            // Settings Modal 内
             saveConfigButton.addEventListener('click', saveOrAddConfig);
             removeConfigButton.addEventListener('click', removeSelectedConfig);
             newConfigButton.addEventListener('click', clearConfigFields);
             configListDiv.addEventListener('click', handleConfigSelection);
 
-            // Log Modal 内
             clearLogsButton.addEventListener('click', clearLogs);
 
-            // Font Size Controls
             increaseFontButton.addEventListener('click', increaseFontSize);
             decreaseFontButton.addEventListener('click', decreaseFontSize);
 
-            // Copy Buttons (Event Delegation on chatBox)
             chatBox.addEventListener('click', handleChatBoxClick);
+
+            // 自定义参数
+            addParamButton.addEventListener('click', () => {
+                addCustomParamRow();
+            });
+        }
+
+        // --- 自定义参数相关函数 ---
+        // 渲染已有自定义参数
+        function renderCustomParamsUI(params = {}) {
+            customParamsContainer.innerHTML = '';
+            Object.entries(params).forEach(([key, val]) => {
+                addCustomParamRow(key, typeof val === 'string' ? JSON.stringify(val) : JSON.stringify(val));
+            });
+        }
+        // 新增一行参数输入
+        function addCustomParamRow(key = '', value = '') {
+            const row = document.createElement('div');
+            row.classList.add('param-row');
+            const keyInput = document.createElement('input');
+            keyInput.placeholder = '参数名 (如 top_p)';
+            keyInput.value = key;
+            const valInput = document.createElement('input');
+            valInput.placeholder = '参数值 (如 0.8 或 "high")';
+            valInput.value = value;
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.textContent = '✕';
+            removeBtn.title = '删除此参数';
+            removeBtn.addEventListener('click', () => row.remove());
+            row.appendChild(keyInput);
+            row.appendChild(valInput);
+            row.appendChild(removeBtn);
+            customParamsContainer.appendChild(row);
         }
 
         // --- 核心聊天功能 ---
-
         function adjustTextareaHeight() {
             userInput.style.height = 'auto';
             const newHeight = Math.max(userInput.scrollHeight, 48);
             userInput.style.height = newHeight + 'px';
         }
-
         function handleInputKeydown(event) {
             if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
                 sendMessage();
             }
         }
-
-        // 处理聊天框内的点击事件 (用于复制按钮)
         function handleChatBoxClick(event) {
             const target = event.target;
-
-            // 消息复制按钮
             if (target.classList.contains('copy-message-button') || target.closest('.copy-message-button')) {
                 const button = target.closest('.copy-message-button');
                 const messageElement = button.closest('.message');
-                const messageIndex = Array.from(chatBox.children).indexOf(messageElement);
-                // Find the corresponding message in history (adjust index if initial message exists)
-                const historyIndex = chatHistory.findIndex((_, idx) => idx === messageIndex - (chatHistory.length > 0 && chatBox.children[0].classList.contains('assistant') && chatHistory[0]?.role !== 'assistant' ? 0 : (chatBox.children.length - chatHistory.length)));
-
-                if (historyIndex !== -1 && chatHistory[historyIndex]) {
-                    copyToClipboard(chatHistory[historyIndex].content, button);
-                } else {
-                    // Fallback for initial message or error messages not in history
-                    const contentWrapper = messageElement.querySelector('.content-wrapper');
-                    if (contentWrapper) {
-                         copyToClipboard(contentWrapper.textContent || contentWrapper.innerText, button);
-                    }
-                    logEvent('info', `Could not find message in history for index ${messageIndex}. Copied rendered text.`);
+                const contentWrapper = messageElement.querySelector('.content-wrapper');
+                if (contentWrapper) {
+                    copyToClipboard(contentWrapper.textContent || contentWrapper.innerText, button);
                 }
-                return; // Prevent further processing
+                return;
             }
-
-            // 代码块复制按钮
             if (target.classList.contains('copy-code-button') || target.closest('.copy-code-button')) {
                 const button = target.closest('.copy-code-button');
-                const preElement = button.closest('pre');
-                const codeElement = preElement?.querySelector('code');
-                if (codeElement) {
-                    copyToClipboard(codeElement.textContent, button);
-                }
-                return; // Prevent further processing
+                const pre = button.closest('pre');
+                const codeEl = pre?.querySelector('code');
+                if (codeEl) copyToClipboard(codeEl.textContent, button);
+                return;
             }
         }
-
-        // 复制到剪贴板函数
-        function copyToClipboard(text, buttonElement = null) {
+        function copyToClipboard(text, button = null) {
             navigator.clipboard.writeText(text).then(() => {
                 logEvent('info', '内容已复制到剪贴板');
-                if (buttonElement) {
-                    const originalText = buttonElement.innerHTML;
-                    buttonElement.innerHTML = '<i class="fas fa-check"></i> 已复制';
-                    buttonElement.classList.add('copied');
+                if (button) {
+                    const orig = button.innerHTML;
+                    button.innerHTML = '<i class="fas fa-check"></i> 已复制';
+                    button.classList.add('copied');
                     setTimeout(() => {
-                        buttonElement.innerHTML = originalText;
-                        buttonElement.classList.remove('copied');
-                    }, 1500); // 恢复按钮状态
+                        button.innerHTML = orig;
+                        button.classList.remove('copied');
+                    }, 1500);
                 }
             }).catch(err => {
-                logEvent('error', `无法复制内容: ${err}`);
+                logEvent('error', `复制失败: ${err}`);
                 alert('复制失败: ' + err);
             });
         }
 
-
-        // 向聊天框添加消息 (返回创建的元素)
         function addMessageToChat(role, content, isError = false, messageId = null) {
             const messageElement = document.createElement('div');
             messageElement.classList.add('message', role);
-            if (messageId) messageElement.dataset.messageId = messageId; // 用于流式更新
-
+            if (messageId) messageElement.dataset.messageId = messageId;
             const roleIndicator = document.createElement('strong');
             roleIndicator.classList.add('role-indicator');
-
             const contentWrapper = document.createElement('div');
             contentWrapper.classList.add('content-wrapper');
 
-            // 添加消息复制按钮 (除了错误消息)
             if (!isError) {
                 const copyButton = document.createElement('button');
                 copyButton.classList.add('copy-message-button');
@@ -867,164 +1013,145 @@
                 contentWrapper.textContent = content;
             } else {
                 roleIndicator.textContent = role === 'user' ? '你' : '助手';
-                updateMessageContent(contentWrapper, content, role === 'assistant'); // 使用统一函数处理内容
+                updateMessageContent(contentWrapper, content, role === 'assistant');
             }
 
             messageElement.appendChild(roleIndicator);
             messageElement.appendChild(contentWrapper);
             chatBox.appendChild(messageElement);
             scrollToBottom();
-            return messageElement; // 返回元素以便流式更新
+            return messageElement;
         }
 
-        // 更新消息内容 (用于初始添加和流式更新)
         function updateMessageContent(contentWrapper, content, isAssistant) {
-             if (isAssistant) {
-                // 使用 marked 渲染 Markdown
+            if (isAssistant) {
                 contentWrapper.innerHTML = marked.parse(content || "*思考中...*");
-                // 渲染后为代码块添加复制按钮
                 contentWrapper.querySelectorAll('pre').forEach(pre => {
-                    if (pre.querySelector('.copy-code-button')) return; // 避免重复添加
-
-                    const codeElement = pre.querySelector('code');
-                    if (!codeElement) return; // Skip if no code element found
-
-                    const copyButton = document.createElement('button');
-                    copyButton.classList.add('copy-code-button');
-                    copyButton.innerHTML = '<i class="fas fa-copy"></i> 复制';
-                    copyButton.title = '复制代码';
-                    pre.appendChild(copyButton);
+                    if (pre.querySelector('.copy-code-button')) return;
+                    const copyBtn = document.createElement('button');
+                    copyBtn.classList.add('copy-code-button');
+                    copyBtn.innerHTML = '<i class="fas fa-copy"></i> 复制';
+                    copyBtn.title = '复制代码';
+                    pre.appendChild(copyBtn);
                 });
             } else {
-                // 用户消息直接显示文本内容 (防止 XSS)
                 contentWrapper.textContent = content;
             }
         }
 
-        // 渲染整个聊天历史
         function renderChatHistory() {
             chatBox.innerHTML = '';
             if (chatHistory.length === 0) {
-                 addMessageToChat('assistant', '你好！请在“设置”中配置你的 API 信息，然后开始对话吧。');
+                addMessageToChat('assistant', '你好！请在“设置”中配置你的 API 信息，然后开始对话吧。');
             } else {
-                chatHistory.forEach((msg, index) => {
-                    addMessageToChat(msg.role, msg.content, false, `msg-${index}`);
+                chatHistory.forEach((msg, idx) => {
+                    addMessageToChat(msg.role, msg.content, false, `msg-${idx}`);
                 });
             }
             scrollToBottom();
         }
-
         function scrollToBottom() {
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // 设置加载状态
         function setLoading(loading, isStreaming = false) {
             isLoading = loading;
             userInput.disabled = loading;
             userInput.placeholder = loading ? "等待 AI 响应..." : "在此输入消息... (Shift+Enter 换行)";
-
             if (loading) {
-                sendButton.style.display = 'none'; // 隐藏发送按钮
+                sendButton.style.display = 'none';
                 if (isStreaming) {
-                    stopButton.style.display = 'inline-block'; // 显示停止按钮
-                    loadingIndicator.style.display = 'none'; // 流式时不显示 spinner
+                    stopButton.style.display = 'inline-block';
+                    loadingIndicator.style.display = 'none';
                 } else {
-                    stopButton.style.display = 'none'; // 非流式隐藏停止按钮
-                    loadingIndicator.style.display = 'flex'; // 显示 spinner
+                    stopButton.style.display = 'none';
+                    loadingIndicator.style.display = 'flex';
                 }
             } else {
-                sendButton.style.display = 'inline-block'; // 显示发送按钮
-                stopButton.style.display = 'none'; // 隐藏停止按钮
-                loadingIndicator.style.display = 'none'; // 隐藏 spinner
-                sendButton.disabled = false; // 确保发送按钮可用
+                sendButton.style.display = 'inline-block';
+                stopButton.style.display = 'none';
+                loadingIndicator.style.display = 'none';
+                sendButton.disabled = false;
             }
         }
 
-        // 发送消息
         async function sendMessage() {
             const userText = userInput.value.trim();
             if (!userText || isLoading) return;
-
             if (currentConfigIndex < 0 || !apiConfigs[currentConfigIndex]) {
                 addMessageToChat('error', '请先在“设置”中选择或添加一个有效的 API 配置。', true);
                 return;
             }
-
-            const currentConfig = apiConfigs[currentConfigIndex];
-            if (!currentConfig.endpoint || !currentConfig.model) {
-                 addMessageToChat('error', '当前选择的 API 配置不完整（缺少端点 URL 或模型名称）。', true);
+            const cfg = apiConfigs[currentConfigIndex];
+            if (!cfg.endpoint || !cfg.model) {
+                addMessageToChat('error', '当前选择的 API 配置不完整（缺少端点 URL 或模型名称）。', true);
                 return;
             }
 
-            // 1. 添加用户消息
-            const userMessage = { role: 'user', content: userText };
-            chatHistory.push(userMessage);
-            addMessageToChat(userMessage.role, userMessage.content, false, `msg-${chatHistory.length - 1}`);
-            userInput.value = '';
-            adjustTextareaHeight();
-            saveChatHistory();
+            // 用户消息
+            const userMsg = { role: 'user', content: userText };
+            chatHistory.push(userMsg);
+            addMessageToChat('user', userText, false, `msg-${chatHistory.length - 1}`);
+            userInput.value = ''; adjustTextareaHeight(); saveChatHistory();
 
-            // 2. 准备 API 请求
-            const messagesForApi = prepareMessagesForApi(currentConfig);
-            const requestBody = buildRequestBody(currentConfig, messagesForApi);
-            const useStreaming = currentConfig.stream ?? DEFAULT_STREAM;
+            // 准备请求
+            const messagesForApi = prepareMessagesForApi(cfg);
+            const requestBody = buildRequestBody(cfg, messagesForApi);
+            const useStreaming = cfg.stream ?? DEFAULT_STREAM;
 
-            setLoading(true, useStreaming); // 进入加载状态，指明是否流式
-            currentAbortController = new AbortController(); // 创建新的 AbortController
+            setLoading(true, useStreaming);
+            currentAbortController = new AbortController();
 
-            logEvent('request', { url: currentConfig.endpoint, headers: { ...(currentConfig.key ? { 'Authorization': 'Bearer ***' } : {}), 'Content-Type': 'application/json' }, body: requestBody });
+            logEvent('request', {
+                url: cfg.endpoint,
+                headers: { ...(cfg.key ? { 'Authorization': 'Bearer ***' } : {}), 'Content-Type': 'application/json' },
+                body: requestBody
+            });
 
             try {
-                const response = await fetch(currentConfig.endpoint, {
+                const resp = await fetch(cfg.endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        ...(currentConfig.key ? { 'Authorization': `Bearer ${currentConfig.key}` } : {})
+                        ...(cfg.key ? { 'Authorization': `Bearer ${cfg.key}` } : {})
                     },
                     body: JSON.stringify(requestBody),
-                    signal: currentAbortController.signal // 关联 AbortController
+                    signal: currentAbortController.signal
                 });
-
-                if (!response.ok) {
-                    let errorMsg = `API 错误: ${response.status} ${response.statusText}`;
+                if (!resp.ok) {
+                    let errMsg = `API 错误: ${resp.status} ${resp.statusText}`;
                     try {
-                        const errorData = await response.json();
-                        errorMsg += ` - ${errorData.error?.message || JSON.stringify(errorData)}`;
-                        logEvent('error', `API Error Response: ${JSON.stringify(errorData)}`);
+                        const errData = await resp.json();
+                        errMsg += ` - ${errData.error?.message || JSON.stringify(errData)}`;
+                        logEvent('error', `API Error Response: ${JSON.stringify(errData)}`);
                     } catch (e) {
-                        const textError = await response.text();
-                        errorMsg += ` - ${textError}`;
-                        logEvent('error', `API Error Response (non-JSON): ${textError}`);
+                        const textErr = await resp.text();
+                        errMsg += ` - ${textErr}`;
+                        logEvent('error', `API Error Response (non-JSON): ${textErr}`);
                     }
-                    throw new Error(errorMsg);
+                    throw new Error(errMsg);
                 }
-
-                // 3. 处理响应 (流式或非流式)
-                if (useStreaming && response.body) {
-                    await handleStreamingResponse(response.body);
+                if (useStreaming && resp.body) {
+                    await handleStreamingResponse(resp.body);
                 } else {
-                    const data = await response.json();
+                    const data = await resp.json();
                     logEvent('response', data);
                     handleNonStreamingResponse(data);
                 }
-
             } catch (error) {
                 if (error.name === 'AbortError') {
                     logEvent('info', '请求被用户中止');
-                    // 可以在中止时添加一个特定的消息
-                    const lastMessage = chatBox.lastElementChild;
-                    if (lastMessage && lastMessage.classList.contains('assistant')) {
-                        const contentWrapper = lastMessage.querySelector('.content-wrapper');
-                        if (contentWrapper && contentWrapper.innerHTML.includes("思考中")) {
-                             contentWrapper.innerHTML += "<br><small>(已停止)</small>";
-                        } else if (contentWrapper) {
-                             contentWrapper.innerHTML += "... <small>(已停止)</small>";
+                    const last = chatBox.lastElementChild;
+                    if (last && last.classList.contains('assistant')) {
+                        const cw = last.querySelector('.content-wrapper');
+                        if (cw && cw.innerHTML.includes("思考中")) {
+                            cw.innerHTML += "<br><small>(已停止)</small>";
+                        } else if (cw) {
+                            cw.innerHTML += "... <small>(已停止)</small>";
                         }
-                        // 更新 history 中的部分内容
-                        const lastHistory = chatHistory[chatHistory.length - 1];
-                        if (lastHistory && lastHistory.role === 'assistant') {
-                            lastHistory.content = contentWrapper?.innerHTML || lastHistory.content + "... (已停止)";
+                        const lh = chatHistory[chatHistory.length - 1];
+                        if (lh && lh.role === 'assistant') {
+                            lh.content = cw.innerHTML || lh.content + "... (已停止)";
                             saveChatHistory();
                         }
                     } else {
@@ -1033,57 +1160,48 @@
                 } else {
                     logEvent('error', `请求失败: ${error.message}`);
                     addMessageToChat('error', `请求失败: ${error.message}`, true);
-                    // 考虑是否移除最后一条助手消息（如果已部分生成）
-                    const lastHistory = chatHistory[chatHistory.length - 1];
-                     if (lastHistory && lastHistory.role === 'assistant' && lastHistory.content.includes("思考中")) {
-                         chatHistory.pop(); // 移除未完成的助手消息记录
-                     }
+                    const lh = chatHistory[chatHistory.length - 1];
+                    if (lh && lh.role === 'assistant' && lh.content.includes("思考中")) {
+                        chatHistory.pop();
+                    }
                 }
             } finally {
-                setLoading(false); // 结束加载状态
-                currentAbortController = null; // 清理 AbortController
+                setLoading(false);
+                currentAbortController = null;
             }
         }
 
-        // 准备发送给 API 的消息列表
         function prepareMessagesForApi(config) {
-            const messages = [];
+            const msgs = [];
             if (config.systemPrompt) {
-                messages.push({ role: 'system', content: config.systemPrompt });
+                msgs.push({ role: 'system', content: config.systemPrompt });
             }
-            const contextCount = config.contextCount ?? DEFAULT_CONTEXT_COUNT;
-            const historyStartIndex = Math.max(0, chatHistory.length - contextCount);
-            messages.push(...chatHistory.slice(historyStartIndex));
-            return messages;
+            const cnt = config.contextCount ?? DEFAULT_CONTEXT_COUNT;
+            const start = Math.max(0, chatHistory.length - cnt);
+            msgs.push(...chatHistory.slice(start));
+            return msgs;
         }
 
-        // 构建 API 请求体
         function buildRequestBody(config, messages) {
             const body = {
                 model: config.model,
-                messages: messages,
+                messages,
                 stream: config.stream ?? DEFAULT_STREAM
             };
-            if (config.maxTokens !== null && config.maxTokens > 0) {
-                body.max_tokens = config.maxTokens;
+            if (config.maxTokens) body.max_tokens = config.maxTokens;
+            if (config.temperature !== null) body.temperature = config.temperature;
+            // 合并自定义参数
+            if (config.customParams) {
+                Object.assign(body, config.customParams);
             }
-            if (config.temperature !== null) {
-                body.temperature = Math.max(0, Math.min(2, config.temperature));
-            }
-            // 可以根据需要添加其他 OpenAI 兼容参数
-            // if (config.top_p !== null) body.top_p = config.top_p;
-            // if (config.frequency_penalty !== null) body.frequency_penalty = config.frequency_penalty;
-            // if (config.presence_penalty !== null) body.presence_penalty = config.presence_penalty;
             return body;
         }
 
-        // 处理非流式响应
         function handleNonStreamingResponse(data) {
-            if (data.choices && data.choices.length > 0 && data.choices[0].message) {
-                const assistantMessageContent = data.choices[0].message.content?.trim() || "*AI 未返回有效内容*";
-                const assistantMessage = { role: 'assistant', content: assistantMessageContent };
-                chatHistory.push(assistantMessage);
-                addMessageToChat(assistantMessage.role, assistantMessage.content, false, `msg-${chatHistory.length - 1}`);
+            if (data.choices?.length && data.choices[0].message) {
+                const content = data.choices[0].message.content?.trim() || "*AI 未返回有效内容*";
+                chatHistory.push({ role: 'assistant', content });
+                addMessageToChat('assistant', content, false, `msg-${chatHistory.length - 1}`);
                 saveChatHistory();
             } else {
                 logEvent('warn', "API 响应格式不符合预期 (非流式)", data);
@@ -1091,108 +1209,66 @@
             }
         }
 
-        // 处理流式响应 (SSE)
-        async function handleStreamingResponse(readableStream) {
-            const reader = readableStream.getReader();
+        async function handleStreamingResponse(stream) {
+            const reader = stream.getReader();
             const decoder = new TextDecoder();
-            let accumulatedContent = "";
-            let assistantMessageElement = null;
-            let messageId = `msg-${chatHistory.length}`; // 预先确定 ID
-
-            // 先创建一个空的助手消息气泡
-            assistantMessageElement = addMessageToChat('assistant', '', false, messageId);
-            const contentWrapper = assistantMessageElement.querySelector('.content-wrapper');
-
-            let buffer = ''; // Buffer for incomplete lines
+            let buffer = '';
+            let accumulated = '';
+            let assistantEl = addMessageToChat('assistant', '', false, `msg-${chatHistory.length}`);
+            const cw = assistantEl.querySelector('.content-wrapper');
 
             try {
                 while (true) {
                     const { value, done } = await reader.read();
-                    if (done) {
-                        logEvent('info', 'Stream finished.');
-                        break;
-                    }
-
-                    buffer += decoder.decode(value, { stream: true }); // Append chunk to buffer
-                    const lines = buffer.split('\n'); // Split into lines
-
-                    buffer = lines.pop() || ''; // Keep the last (potentially incomplete) line in buffer
-
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
                     for (const line of lines) {
-                        if (line.trim() === '') continue; // Skip empty lines
-                        if (line.startsWith(':')) continue; // Skip comments
-
+                        if (!line.trim() || line.startsWith(':')) continue;
                         if (line.startsWith('data: ')) {
-                            const dataJson = line.substring(6).trim(); // Get the JSON part
-                            if (dataJson === '[DONE]') {
-                                logEvent('info', 'Stream received [DONE] marker.');
-                                // Optional: Check finish reason if available in a final chunk
-                                break; // Exit inner loop, outer loop will check reader.read() result
-                            }
+                            const jsonStr = line.slice(6).trim();
+                            if (jsonStr === '[DONE]') break;
                             try {
-                                const data = JSON.parse(dataJson);
-                                logEvent('response', data); // Log each chunk
-                                if (data.choices && data.choices.length > 0) {
-                                    const delta = data.choices[0].delta;
-                                    if (delta && delta.content) {
-                                        accumulatedContent += delta.content;
-                                        // Update the content wrapper incrementally
-                                        updateMessageContent(contentWrapper, accumulatedContent, true);
-                                        scrollToBottom(); // Keep scrolled down
-                                    }
-                                    // Check for finish reason (optional)
-                                    if (data.choices[0].finish_reason) {
-                                         logEvent('info', `Stream finished with reason: ${data.choices[0].finish_reason}`);
-                                         // You might want to break or handle based on the reason
-                                    }
+                                const data = JSON.parse(jsonStr);
+                                logEvent('response', data);
+                                const delta = data.choices?.[0].delta;
+                                if (delta?.content) {
+                                    accumulated += delta.content;
+                                    updateMessageContent(cw, accumulated, true);
+                                    scrollToBottom();
+                                }
+                                if (data.choices[0].finish_reason) {
+                                    logEvent('info', `Stream finished with reason: ${data.choices[0].finish_reason}`);
                                 }
                             } catch (e) {
-                                logEvent('error', `Error parsing stream data JSON: ${e.message}`, dataJson);
+                                logEvent('error', `Error parsing stream JSON: ${e.message}`, jsonStr);
                             }
                         } else {
-                             logEvent('warn', `Unexpected stream line format: ${line}`);
+                            logEvent('warn', `Unexpected stream line: ${line}`);
                         }
                     }
-                     // Check if aborted during processing chunks
-                     if (currentAbortController?.signal.aborted) {
-                         throw new Error('AbortError'); // Propagate abort
-                     }
+                    if (currentAbortController?.signal.aborted) {
+                        throw new Error('AbortError');
+                    }
                 }
             } finally {
-                 // Ensure decoder flush is called if needed (though usually handled by stream end)
-                 // buffer += decoder.decode(); // Flush any remaining bytes (might be needed in some edge cases)
-                 // Process final buffer content if any (less common with SSE)
-
-                reader.releaseLock(); // Release the lock on the stream
+                reader.releaseLock();
             }
 
-
-            // Stream finished, save the complete message to history
-            if (accumulatedContent || assistantMessageElement) { // Save even if content is empty, to represent the turn
-                 const finalContent = accumulatedContent || "*AI 未返回任何内容*";
-                 // Update the final rendered content one last time
-                 updateMessageContent(contentWrapper, finalContent, true);
-
-                 const assistantMessage = { role: 'assistant', content: finalContent };
-                 chatHistory.push(assistantMessage);
-                 saveChatHistory();
-            } else {
-                 // If no element was created and no content received, maybe log a warning
-                 logEvent('warn', 'Stream ended without producing any content or message element.');
-            }
+            const finalContent = accumulated || "*AI 未返回任何内容*";
+            updateMessageContent(cw, finalContent, true);
+            chatHistory.push({ role: 'assistant', content: finalContent });
+            saveChatHistory();
         }
 
-
-        // 停止生成 (用于流式响应)
         function stopGeneration() {
             if (currentAbortController) {
                 currentAbortController.abort();
                 logEvent('info', 'Stop generation requested by user.');
-                // setLoading(false) will be called in the finally block of sendMessage
             }
         }
 
-        // 清空聊天记录
         function clearChat() {
             if (confirm('确定要清空所有对话记录吗？此操作不可恢复。')) {
                 chatHistory = [];
@@ -1204,135 +1280,161 @@
         }
 
         // --- 设置 Modal 相关 ---
-
         function openSettingsModal() {
             updateSettingsUI();
             settingsModal.style.display = 'block';
         }
-
         function closeSettingsModal() {
             settingsModal.style.display = 'none';
         }
-
         function updateSettingsUI() {
-            // 1. 填充配置列表
+            // 填充配置列表
             configListDiv.innerHTML = '';
-            if (apiConfigs.length === 0) {
-                configListDiv.innerHTML = '<div style="text-align: center; color: #6c757d;">无可用配置</div>';
+            if (!apiConfigs.length) {
+                configListDiv.innerHTML = '<div style="text-align:center;color:#6c757d;">无可用配置</div>';
             } else {
-                apiConfigs.forEach((config, index) => {
+                apiConfigs.forEach((cfg, idx) => {
                     const div = document.createElement('div');
-                    div.dataset.index = index;
-                    const nameSpan = document.createElement('span');
-                    nameSpan.textContent = config.name || `配置 ${index + 1}`;
-                    div.appendChild(nameSpan);
-
-                    // Add stream indicator
-                    if (config.stream) {
-                        const streamIndicator = document.createElement('span');
-                        streamIndicator.classList.add('config-stream-indicator');
-                        streamIndicator.innerHTML = '<i class="fas fa-stream"></i> 流式';
-                        streamIndicator.title = '流式响应已启用';
-                        div.appendChild(streamIndicator);
+                    div.dataset.index = idx;
+                    const span = document.createElement('span');
+                    span.textContent = cfg.name || `配置 ${idx+1}`;
+                    div.appendChild(span);
+                    if (cfg.stream) {
+                        const indi = document.createElement('span');
+                        indi.classList.add('config-stream-indicator');
+                        indi.innerHTML = '<i class="fas fa-stream"></i> 流式';
+                        indi.title = '流式响应已启用';
+                        div.appendChild(indi);
                     }
-
-                    if (index === currentConfigIndex) {
-                        div.classList.add('selected');
-                    }
+                    if (idx === currentConfigIndex) div.classList.add('selected');
                     configListDiv.appendChild(div);
                 });
             }
 
-            // 2. 填充表单
+            // 填充表单
             if (currentConfigIndex >= 0 && apiConfigs[currentConfigIndex]) {
-                const config = apiConfigs[currentConfigIndex];
-                configNameInput.value = config.name || '';
-                apiUrlInput.value = config.endpoint || '';
-                apiKeyInput.value = config.key || '';
-                modelNameInput.value = config.model || '';
-                maxTokensInput.value = config.maxTokens ?? '';
-                temperatureInput.value = config.temperature ?? '';
-                contextCountInput.value = config.contextCount ?? '';
-                streamResponseCheckbox.checked = config.stream ?? DEFAULT_STREAM;
-                systemPromptInput.value = config.systemPrompt || '';
+                const cfg = apiConfigs[currentConfigIndex];
+                configNameInput.value = cfg.name || '';
+                apiUrlInput.value = cfg.endpoint || '';
+                apiKeyInput.value = cfg.key || '';
+                modelNameInput.value = cfg.model || '';
+                maxTokensInput.value = cfg.maxTokens ?? '';
+                temperatureInput.value = cfg.temperature ?? '';
+                contextCountInput.value = cfg.contextCount ?? '';
+                streamResponseCheckbox.checked = cfg.stream ?? DEFAULT_STREAM;
+                systemPromptInput.value = cfg.systemPrompt || '';
+                renderCustomParamsUI(cfg.customParams || {});
                 removeConfigButton.disabled = false;
-                saveConfigButton.textContent = "保存更改";
+                saveConfigButton.textContent = '保存更改';
             } else {
-                clearConfigFields(false); // 清空表单，不取消选择
+                clearConfigFields(false);
+                renderCustomParamsUI({});
                 removeConfigButton.disabled = true;
-                saveConfigButton.textContent = "新增配置";
+                saveConfigButton.textContent = '新增配置';
             }
         }
 
         function handleConfigSelection(event) {
-            const targetDiv = event.target.closest('div[data-index]');
-            if (targetDiv) {
-                const index = parseInt(targetDiv.dataset.index, 10);
-                if (index >= 0 && index < apiConfigs.length) {
-                    currentConfigIndex = index;
-                    saveCurrentConfigIndex();
-                    updateSettingsUI();
-                    updateActiveConfigDisplay(); // 更新顶部显示
-                }
+            const d = event.target.closest('div[data-index]');
+            if (!d) return;
+            const idx = parseInt(d.dataset.index, 10);
+            if (idx >= 0 && idx < apiConfigs.length) {
+                currentConfigIndex = idx;
+                saveCurrentConfigIndex();
+                updateSettingsUI();
+                updateActiveConfigDisplay();
             }
         }
 
         function saveOrAddConfig() {
             const name = configNameInput.value.trim();
             const endpoint = apiUrlInput.value.trim();
-            const key = apiKeyInput.value;
+            const key = apiKeyInput.value.trim();
             const model = modelNameInput.value.trim();
             const systemPrompt = systemPromptInput.value.trim();
             const stream = streamResponseCheckbox.checked;
 
-            const maxTokensRaw = maxTokensInput.value.trim();
-            const maxTokens = maxTokensRaw ? parseInt(maxTokensRaw, 10) : null;
+            const maxRaw = maxTokensInput.value.trim();
+            const maxTokens = maxRaw ? parseInt(maxRaw, 10) : null;
+            const tmpRaw = temperatureInput.value.trim();
+            const temperature = tmpRaw ? parseFloat(tmpRaw) : null;
+            const cntRaw = contextCountInput.value.trim();
+            const contextCount = cntRaw ? parseInt(cntRaw, 10) : null;
 
-            const temperatureRaw = temperatureInput.value.trim();
-            const temperature = temperatureRaw ? parseFloat(temperatureRaw) : null;
+            if (!name || !endpoint || !model) {
+                alert('配置名称、API 端点 URL 和模型名称是必填项。');
+                return;
+            }
+            if (maxTokens !== null && (isNaN(maxTokens) || maxTokens <= 0)) {
+                alert('最大 Token 数必须是大于 0 的有效数字。');
+                return;
+            }
+            if (temperature !== null && (isNaN(temperature) || temperature < 0 || temperature > 2)) {
+                alert('温度必须是 0 到 2 之间的有效数字。');
+                return;
+            }
+            if (contextCount !== null && (isNaN(contextCount) || contextCount < 0)) {
+                alert('上下文消息数必须是大于或等于 0 的有效数字。');
+                return;
+            }
 
-            const contextCountRaw = contextCountInput.value.trim();
-            let contextCount = contextCountRaw ? parseInt(contextCountRaw, 10) : null;
-            if (contextCount !== null && (isNaN(contextCount) || contextCount < 0)) contextCount = null;
+            // 读取自定义参数
+            const customParams = {};
+            customParamsContainer.querySelectorAll('.param-row').forEach(row => {
+                const [kIn, vIn] = row.querySelectorAll('input');
+                const k = kIn.value.trim();
+                let v = vIn.value.trim();
+                if (!k) return;
+                try {
+                    v = JSON.parse(v);
+                } catch {
+                    // 保留原字符串
+                }
+                customParams[k] = v;
+            });
 
-            if (!name || !endpoint || !model) { alert('配置名称、API 端点 URL 和模型名称是必填项。'); return; }
-            if (maxTokens !== null && (isNaN(maxTokens) || maxTokens <= 0)) { alert('最大 Token 数必须是大于 0 的有效数字。'); return; }
-            if (temperature !== null && (isNaN(temperature) || temperature < 0 || temperature > 2)) { alert('温度必须是 0 到 2 之间的有效数字。'); return; }
-            if (contextCount !== null && (isNaN(contextCount) || contextCount < 0)) { alert('上下文消息数必须是大于或等于 0 的有效数字。'); return; }
-
-            const newConfig = { name, endpoint, key, model, maxTokens, temperature, contextCount, stream, systemPrompt };
+            const newCfg = {
+                name,
+                endpoint,
+                key,
+                model,
+                maxTokens,
+                temperature,
+                contextCount,
+                stream,
+                systemPrompt,
+                customParams
+            };
 
             if (currentConfigIndex >= 0 && apiConfigs[currentConfigIndex]) {
-                apiConfigs[currentConfigIndex] = newConfig;
+                apiConfigs[currentConfigIndex] = newCfg;
                 logEvent('info', `Configuration updated: ${name}`);
             } else {
-                apiConfigs.push(newConfig);
+                apiConfigs.push(newCfg);
                 currentConfigIndex = apiConfigs.length - 1;
                 logEvent('info', `Configuration added: ${name}`);
             }
-
             saveConfigs();
             saveCurrentConfigIndex();
             updateSettingsUI();
-            updateActiveConfigDisplay(); // 更新顶部显示
+            updateActiveConfigDisplay();
             alert('配置已保存！');
         }
 
         function removeSelectedConfig() {
-            if (currentConfigIndex >= 0 && currentConfigIndex < apiConfigs.length) {
-                const configNameToRemove = apiConfigs[currentConfigIndex].name || `配置 ${currentConfigIndex + 1}`;
-                if (confirm(`确定要删除配置 "${configNameToRemove}" 吗？`)) {
-                    apiConfigs.splice(currentConfigIndex, 1);
-                    logEvent('info', `Configuration removed: ${configNameToRemove}`);
-                    currentConfigIndex = apiConfigs.length > 0 ? 0 : -1;
-                    saveConfigs();
-                    saveCurrentConfigIndex();
-                    updateSettingsUI();
-                    updateActiveConfigDisplay(); // 更新顶部显示
-                }
-            } else {
+            if (currentConfigIndex < 0 || currentConfigIndex >= apiConfigs.length) {
                 alert('没有选中的配置可删除。');
+                return;
             }
+            const toRemove = apiConfigs[currentConfigIndex].name || `配置 ${currentConfigIndex+1}`;
+            if (!confirm(`确定要删除配置 "${toRemove}" 吗？`)) return;
+            apiConfigs.splice(currentConfigIndex, 1);
+            logEvent('info', `Configuration removed: ${toRemove}`);
+            currentConfigIndex = apiConfigs.length>0?0:-1;
+            saveConfigs();
+            saveCurrentConfigIndex();
+            updateSettingsUI();
+            updateActiveConfigDisplay();
         }
 
         function clearConfigFields(deselect = true) {
@@ -1345,23 +1447,20 @@
             contextCountInput.value = '';
             streamResponseCheckbox.checked = DEFAULT_STREAM;
             systemPromptInput.value = '';
+            renderCustomParamsUI({});
             if (deselect) {
                 currentConfigIndex = -1;
                 saveCurrentConfigIndex();
                 updateSettingsUI();
-                updateActiveConfigDisplay(); // 更新顶部显示
-            } else {
-                 saveConfigButton.textContent = "新增配置";
-                 removeConfigButton.disabled = true;
+                updateActiveConfigDisplay();
             }
         }
 
-        // 更新顶部活动配置显示
         function updateActiveConfigDisplay() {
             if (currentConfigIndex >= 0 && apiConfigs[currentConfigIndex]) {
-                const config = apiConfigs[currentConfigIndex];
-                activeConfigDisplay.textContent = config.name || `配置 ${currentConfigIndex + 1}`;
-                activeConfigDisplay.title = `当前配置: ${config.name || `配置 ${currentConfigIndex + 1}`}\n模型: ${config.model}\n端点: ${config.endpoint}`;
+                const cfg = apiConfigs[currentConfigIndex];
+                activeConfigDisplay.textContent = cfg.name || `配置 ${currentConfigIndex+1}`;
+                activeConfigDisplay.title = `当前配置: ${cfg.name}\n模型: ${cfg.model}\n端点: ${cfg.endpoint}`;
                 activeConfigDisplay.classList.remove('none');
             } else {
                 activeConfigDisplay.textContent = '无配置';
@@ -1371,167 +1470,184 @@
         }
 
         // --- 日志 Modal 相关 ---
-
         function openLogModal() {
             renderLogs();
             logModal.style.display = 'block';
         }
-
         function closeLogModal() {
             logModal.style.display = 'none';
         }
-
         function renderLogs() {
-            logContainer.innerHTML = ''; // 清空现有日志
-            if (logs.length === 0) {
-                logContainer.innerHTML = '<div style="text-align: center; color: #6c757d;">暂无日志记录</div>';
+            logContainer.innerHTML = '';
+            if (!logs.length) {
+                logContainer.innerHTML = '<div style="text-align:center;color:#6c757d;">暂无日志记录</div>';
                 return;
             }
-
-            // 显示最新日志在前面
             [...logs].reverse().forEach(log => {
-                const entryDiv = document.createElement('div');
-                entryDiv.classList.add('log-entry', `log-type-${log.type}`);
-
-                const metaDiv = document.createElement('div');
-                metaDiv.classList.add('log-meta');
-                metaDiv.textContent = `${new Date(log.timestamp).toLocaleString()} - [${log.type.toUpperCase()}]`;
-                entryDiv.appendChild(metaDiv);
-
-                const dataPre = document.createElement('pre');
+                const entry = document.createElement('div');
+                entry.classList.add('log-entry', `log-type-${log.type}`);
+                const meta = document.createElement('div');
+                meta.classList.add('log-meta');
+                meta.textContent = `${new Date(log.timestamp).toLocaleString()} - [${log.type.toUpperCase()}]`;
+                entry.appendChild(meta);
+                const pre = document.createElement('pre');
                 try {
-                    // 尝试格式化 JSON，否则显示原始数据
-                    dataPre.textContent = typeof log.data === 'string' ? log.data : JSON.stringify(log.data, null, 2);
-                } catch (e) {
-                    dataPre.textContent = String(log.data); // Fallback to string conversion
+                    pre.textContent = typeof log.data==='string'?log.data:JSON.stringify(log.data,null,2);
+                } catch {
+                    pre.textContent = String(log.data);
                 }
-                entryDiv.appendChild(dataPre);
-
-                logContainer.appendChild(entryDiv);
+                entry.appendChild(pre);
+                logContainer.appendChild(entry);
             });
         }
-
         function clearLogs() {
             if (confirm('确定要清空所有日志记录吗？')) {
                 logs = [];
                 saveLogs();
-                renderLogs(); // 更新显示
+                renderLogs();
             }
         }
 
         // --- 字体大小调节 ---
         function increaseFontSize() {
-            currentFontSize += 1;
+            currentFontSize++;
             applyFontSize();
             saveFontSize();
         }
-
         function decreaseFontSize() {
             currentFontSize = Math.max(MIN_FONT_SIZE, currentFontSize - 1);
             applyFontSize();
             saveFontSize();
         }
-
         function applyFontSize() {
             document.documentElement.style.setProperty('--base-font-size', `${currentFontSize}px`);
         }
 
         // --- 持久化 (localStorage) ---
-
-        // 日志记录
-        function logEvent(type, data, optionalMessage = '') {
-            const timestamp = Date.now();
-            const logEntry = { timestamp, type, data: data || optionalMessage }; // Store data or message
-            logs.push(logEntry);
-
-            // 限制日志数量
-            if (logs.length > MAX_LOG_ENTRIES) {
-                logs.shift(); // 移除最旧的日志
-            }
-            saveLogs(); // 保存到 localStorage
-
-            // 同时输出到控制台方便调试
+        function logEvent(type, data) {
+            const ts = Date.now();
+            const entry = { timestamp: ts, type, data };
+            logs.push(entry);
+            if (logs.length > MAX_LOG_ENTRIES) logs.shift();
+            saveLogs();
             switch(type) {
                 case 'error': console.error(`[LOG ${type.toUpperCase()}]`, data); break;
                 case 'warn': console.warn(`[LOG ${type.toUpperCase()}]`, data); break;
                 default: console.log(`[LOG ${type.toUpperCase()}]`, data);
             }
         }
-        function saveLogs() { try { localStorage.setItem('aiChat_logs', JSON.stringify(logs)); } catch (e) { console.error("无法保存日志:", e); } }
-        function loadLogs() { try { const stored = localStorage.getItem('aiChat_logs'); if (stored) logs = JSON.parse(stored); } catch (e) { console.error("无法加载日志:", e); logs = []; localStorage.removeItem('aiChat_logs'); } }
+        function saveLogs() {
+            try { localStorage.setItem('aiChat_logs', JSON.stringify(logs)); }
+            catch(e){ console.error("无法保存日志:", e); }
+        }
+        function loadLogs() {
+            try {
+                const s = localStorage.getItem('aiChat_logs');
+                if (s) logs = JSON.parse(s);
+            } catch(e){
+                console.error("无法加载日志:", e);
+                logs = [];
+                localStorage.removeItem('aiChat_logs');
+            }
+        }
 
-        // API 配置
-        function saveConfigs() { try { localStorage.setItem('aiChat_apiConfigs_v3', JSON.stringify(apiConfigs)); } catch (e) { console.error("无法保存 API 配置:", e); alert("保存配置时出错。"); } }
+        function saveConfigs() {
+            try { localStorage.setItem('aiChat_apiConfigs_v3', JSON.stringify(apiConfigs)); }
+            catch(e){ console.error("无法保存 API 配置:", e); alert("保存配置时出错。"); }
+        }
         function loadConfigs() {
             try {
-                // Try loading v3 first
-                let storedConfigs = localStorage.getItem('aiChat_apiConfigs_v3');
-                if (storedConfigs) {
-                    apiConfigs = JSON.parse(storedConfigs);
+                let stored = localStorage.getItem('aiChat_apiConfigs_v3');
+                if (stored) {
+                    apiConfigs = JSON.parse(stored);
                 } else {
-                    // Try migrating from v2
-                    storedConfigs = localStorage.getItem('aiChat_apiConfigs_v2');
-                    if (storedConfigs) {
-                        logEvent('info', "Migrating API configs from v2 to v3");
-                        apiConfigs = JSON.parse(storedConfigs).map(cfg => ({
+                    // 迁移旧版 v2 / v1 略（同原逻辑）
+                    const old2 = localStorage.getItem('aiChat_apiConfigs_v2');
+                    if (old2) {
+                        apiConfigs = JSON.parse(old2).map(cfg => ({
                             ...cfg,
-                            stream: cfg.stream ?? DEFAULT_STREAM // Add stream default if missing
+                            stream: cfg.stream ?? DEFAULT_STREAM
                         }));
-                        saveConfigs(); // Save in new v3 format
-                        localStorage.removeItem('aiChat_apiConfigs_v2'); // Remove old v2
+                        saveConfigs();
+                        localStorage.removeItem('aiChat_apiConfigs_v2');
                     } else {
-                         // Try migrating from v1 (original)
-                         storedConfigs = localStorage.getItem('aiChat_apiConfigs');
-                         if (storedConfigs) {
-                             logEvent('info', "Migrating API configs from v1 to v3");
-                             apiConfigs = JSON.parse(storedConfigs).map(cfg => ({
-                                 name: cfg.name || 'Unnamed Config',
-                                 endpoint: cfg.endpoint || '',
-                                 key: cfg.key || '',
-                                 model: cfg.model || '',
-                                 maxTokens: null,
-                                 temperature: null,
-                                 contextCount: null,
-                                 stream: DEFAULT_STREAM, // Add new fields
-                                 systemPrompt: cfg.systemPrompt || ''
-                             }));
-                             saveConfigs(); // Save in new v3 format
-                             localStorage.removeItem('aiChat_apiConfigs'); // Remove old v1
-                         }
+                        const old1 = localStorage.getItem('aiChat_apiConfigs');
+                        if (old1) {
+                            apiConfigs = JSON.parse(old1).map(cfg => ({
+                                name: cfg.name || '',
+                                endpoint: cfg.endpoint || '',
+                                key: cfg.key || '',
+                                model: cfg.model || '',
+                                maxTokens: null,
+                                temperature: null,
+                                contextCount: null,
+                                stream: DEFAULT_STREAM,
+                                systemPrompt: cfg.systemPrompt || '',
+                                customParams: {}
+                            }));
+                            saveConfigs();
+                            localStorage.removeItem('aiChat_apiConfigs');
+                        }
                     }
                 }
+                // 确保每个配置都有 customParams 字段
+                apiConfigs = apiConfigs.map(cfg => ({ customParams: {}, ...cfg, customParams: cfg.customParams||{} }));
 
-                // Load selected index
-                const storedIndex = localStorage.getItem('aiChat_currentConfigIndex');
-                if (storedIndex !== null) {
-                    const index = parseInt(storedIndex, 10);
-                    currentConfigIndex = (index >= 0 && index < apiConfigs.length) ? index : (apiConfigs.length > 0 ? 0 : -1);
+                const idx = localStorage.getItem('aiChat_currentConfigIndex');
+                if (idx !== null) {
+                    const i = parseInt(idx,10);
+                    currentConfigIndex = (i>=0&&i<apiConfigs.length)?i:(apiConfigs.length>0?0:-1);
                 } else {
-                    currentConfigIndex = apiConfigs.length > 0 ? 0 : -1;
+                    currentConfigIndex = apiConfigs.length>0?0:-1;
                 }
-                saveCurrentConfigIndex(); // Save potentially corrected index
-
-            } catch (e) {
+                saveCurrentConfigIndex();
+            } catch(e) {
                 logEvent('error', "无法加载或迁移 API 配置:", e);
-                apiConfigs = []; currentConfigIndex = -1;
-                // Clear potentially corrupted keys
+                apiConfigs = [];
+                currentConfigIndex = -1;
                 localStorage.removeItem('aiChat_apiConfigs_v3');
                 localStorage.removeItem('aiChat_apiConfigs_v2');
                 localStorage.removeItem('aiChat_apiConfigs');
                 localStorage.removeItem('aiChat_currentConfigIndex');
             }
         }
-        function saveCurrentConfigIndex() { try { localStorage.setItem('aiChat_currentConfigIndex', currentConfigIndex.toString()); } catch (e) { console.error("无法保存当前配置索引:", e); } }
+        function saveCurrentConfigIndex() {
+            try { localStorage.setItem('aiChat_currentConfigIndex', currentConfigIndex.toString()); }
+            catch(e){ console.error("无法保存当前配置索引:", e); }
+        }
 
-        // 聊天记录
-        function saveChatHistory() { try { const historyToSave = chatHistory.slice(-50); localStorage.setItem('aiChat_chatHistory', JSON.stringify(historyToSave)); } catch (e) { logEvent('error', "无法保存聊天记录:", e); } }
-        function loadChatHistory() { try { const stored = localStorage.getItem('aiChat_chatHistory'); if (stored) chatHistory = JSON.parse(stored); } catch (e) { logEvent('error', "无法加载聊天记录:", e); chatHistory = []; localStorage.removeItem('aiChat_chatHistory'); } }
+        function saveChatHistory() {
+            try {
+                const slice = chatHistory.slice(-50);
+                localStorage.setItem('aiChat_chatHistory', JSON.stringify(slice));
+            } catch(e) {
+                logEvent('error', "无法保存聊天记录:", e);
+            }
+        }
+        function loadChatHistory() {
+            try {
+                const s = localStorage.getItem('aiChat_chatHistory');
+                if (s) chatHistory = JSON.parse(s);
+            } catch(e) {
+                logEvent('error', "无法加载聊天记录:", e);
+                chatHistory = [];
+                localStorage.removeItem('aiChat_chatHistory');
+            }
+        }
 
-        // 字体大小
-        function saveFontSize() { try { localStorage.setItem('aiChat_fontSize', currentFontSize.toString()); } catch (e) { console.error("无法保存字体大小:", e); } }
-        function loadFontSize() { try { const stored = localStorage.getItem('aiChat_fontSize'); if (stored) currentFontSize = Math.max(MIN_FONT_SIZE, parseInt(stored, 10)); } catch (e) { console.error("无法加载字体大小:", e); currentFontSize = 16; } }
-
+        function saveFontSize() {
+            try { localStorage.setItem('aiChat_fontSize', currentFontSize.toString()); }
+            catch(e){ console.error("无法保存字体大小:", e); }
+        }
+        function loadFontSize() {
+            try {
+                const s = localStorage.getItem('aiChat_fontSize');
+                if (s) currentFontSize = Math.max(MIN_FONT_SIZE, parseInt(s,10));
+            } catch(e) {
+                console.error("无法加载字体大小:", e);
+                currentFontSize = 16;
+            }
+        }
     </script>
-
 </body>
 </html>
