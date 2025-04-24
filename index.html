@@ -58,7 +58,6 @@
         /* Adjust highlightjs theme for dark mode if needed */
         [data-theme="dark"] .hljs { background: var(--code-bg); color: var(--code-text); }
 
-
         * {
             box-sizing: border-box;
             margin: 0;
@@ -216,7 +215,6 @@
              color: #ffffff;
         }
 
-
         .ai-message {
             background-color: var(--ai-msg-bg);
             color: var(--text-color);
@@ -261,7 +259,6 @@
              color: white;
          }
 
-
         /* Code Block Specific Copy Button */
         .copy-code-button {
             position: absolute;
@@ -289,7 +286,6 @@
              background-color: var(--success-color);
              color: white;
          }
-
 
         /* --- Input Area --- */
         .input-area-container {
@@ -342,7 +338,6 @@
             padding: 0;
             box-shadow: 0 0 5px rgba(0,0,0,0.3);
         }
-
 
         .input-area {
             display: flex;
@@ -401,7 +396,6 @@
             padding: 8px; /* Smaller padding for icon button */
             font-size: 1.2em; /* Larger icon */
         }
-
 
         /* --- Side Panels (Settings & Logs) --- */
         .side-panel {
@@ -513,7 +507,6 @@
              color: var(--timestamp-color); /* Dim text */
          }
 
-
         .form-group button {
             padding: 8px 12px;
             background-color: var(--primary-color);
@@ -611,7 +604,6 @@
         [data-theme="dark"] .log-entry summary { background-color: rgba(255, 255, 255, 0.05); }
         [data-theme="dark"] .log-content { background-color: var(--secondary-bg-color); color: var(--text-color); }
 
-
         /* --- Rich Content Rendering --- */
         /* Code Blocks (highlight.js) */
         pre {
@@ -643,7 +635,6 @@
         [data-theme="dark"] :not(pre) > code {
              background-color: rgba(175, 184, 193, 0.3); /* Slightly adjusted for dark */
         }
-
 
         /* Math Formulas (KaTeX) */
         .katex-display { /* Block math */
@@ -703,7 +694,6 @@
              #image-preview-area { padding: 8px 10px 4px; max-height: 100px; }
              .preview-image-container img { max-height: 50px; }
              .remove-preview-btn { width: 16px; height: 16px; font-size: 10px; line-height: 14px; }
-
 
             .side-panel {
                 width: 100%; /* Full width on mobile */
@@ -791,7 +781,6 @@
                     </select>
                  </div>
 
-
                 <hr style="margin: 20px 0; border-color: var(--border-color);">
 
                 <div class="form-group">
@@ -805,10 +794,17 @@
                     </label>
                     <small style="display: block; color: var(--timestamp-color);">如果启用，将允许上传图片随文本发送 (需要模型支持 Vision)。</small>
                 </div>
+                <!-- 新增: 启用思考过程显示复选框 -->
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="enableReasoning"> 启用思考过程显示
+                    </label>
+                    <small style="display: block; color: var(--timestamp-color);">如果模型支持，显示 AI 的思考过程。</small>
+                </div>
 
-                 <hr style="margin: 20px 0; border-color: var(--border-color);">
+                <hr style="margin: 20px 0; border-color: var(--border-color);">
 
-                 <!-- Temperature Setting -->
+                <!-- Temperature Setting -->
                 <div class="form-group">
                      <label class="checkbox-label">
                          <input type="checkbox" id="enableTemperature"> 使用自定义 Temperature
@@ -820,7 +816,7 @@
                      </div>
                 </div>
 
-                 <!-- Max Tokens Setting -->
+                <!-- Max Tokens Setting -->
                 <div class="form-group">
                      <label class="checkbox-label">
                          <input type="checkbox" id="enableMaxTokens"> 使用自定义 Max Tokens
@@ -838,9 +834,9 @@
                      <small style="display: block; color: var(--timestamp-color);">包括用户和AI的消息，0表示不发送历史。</small>
                 </div>
 
-                 <hr style="margin: 20px 0; border-color: var(--border-color);">
+                <hr style="margin: 20px 0; border-color: var(--border-color);">
 
-                 <div class="form-group">
+                <div class="form-group">
                     <label>自定义请求体参数:</label>
                     <div id="customParamsList">
                         <!-- Custom param entries will be added here -->
@@ -852,7 +848,6 @@
                     <button id="addParamBtn" style="margin-top: 10px;">添加参数</button>
                      <small style="display: block; color: var(--timestamp-color);">Value 必须是有效的 JSON (例如 "string", 123, true)。</small>
                 </div>
-
 
                 <hr style="margin: 20px 0; border-color: var(--border-color);">
 
@@ -931,6 +926,7 @@
             const selectedModelSelect = document.getElementById('selectedModel');
             const streamResponseCheckbox = document.getElementById('streamResponse');
             const enableImageSupportCheckbox = document.getElementById('enableImageSupport');
+            const enableReasoningCheckbox = document.getElementById('enableReasoning'); // 新增: 思考过程启用复选框
 
             // Temperature & Max Tokens Elements
             const enableTemperatureCheckbox = document.getElementById('enableTemperature');
@@ -958,7 +954,6 @@
             const imagePreviewArea = document.getElementById('image-preview-area');
             const imagePreviewList = document.getElementById('image-preview-list'); // Container for previews
 
-
             // --- State Variables ---
             let settings = {
                 apiUrl: '',
@@ -967,6 +962,7 @@
                 selectedModel: '',
                 stream: true, // Default stream to true
                 enableImageSupport: false,
+                enableReasoning: false, // 新增: 默认禁用思考过程显示
                 enableTemperature: false, // Default disabled
                 temperature: 1.0,
                 enableMaxTokens: false, // Default disabled
@@ -983,7 +979,6 @@
             let currentReasoningContent = ''; // Accumulator for reasoning content (added for thinking models)
             let abortController = null; // To cancel fetch requests
             let uploadedImages = []; // Store uploaded image data as { name: string, base64: string }
-
 
             // --- Initialization ---
             loadSettings();
@@ -1044,6 +1039,9 @@
                  if (!enableImageSupportCheckbox.checked) {
                     clearImagePreviews(); // Clear previews if disabled
                  }
+            });
+            enableReasoningCheckbox.addEventListener('change', () => {
+                // No immediate action needed, saveSettings will handle it
             });
             selectedModelSelect.addEventListener('change', () => {
                  // settings.selectedModel = selectedModelSelect.value; // Wait for save
@@ -1118,7 +1116,6 @@
                  }
                  hljs.highlightAll(); // Apply highlighting to initial messages if any
              }
-
 
             function adjustTextareaHeight() {
                 userInput.style.height = 'auto'; // Reset height
@@ -1220,7 +1217,6 @@
                  imageInput.value = ''; // Clear file input
             }
 
-
             function sendMessage() {
                 const userText = userInput.value.trim();
 
@@ -1239,7 +1235,6 @@
                      alert('请先在设置中添加并选择一个模型！');
                      return;
                  }
-
 
                 // --- Prepare User Message Content (OpenAI Vision format) ---
                 let userMessageContent = [];
@@ -1295,11 +1290,6 @@
                  if (settings.enableMaxTokens) {
                      requestBody.max_tokens = settings.maxTokens;
                  }
-
-
-                 // Filter out null/empty custom parameters just in case (shouldn't happen with JSON validation)
-                 // Already handled by addCustomParam validation
-
 
                 addLog('Request', requestBody);
 
@@ -1408,18 +1398,25 @@
                                 try {
                                     const chunk = JSON.parse(dataContent);
                                     // Look for content delta in various possible locations
-                                    const reasoningDelta = chunk.choices && chunk.choices[0]?.delta?.reasoning_content; // Added for thinking models
-                                    const contentDelta = chunk.choices && chunk.choices[0]?.delta?.content;
-
-                                    if (reasoningDelta !== undefined) {
-                                        currentReasoningContent += reasoningDelta; // Accumulate reasoning content
+                                    if (settings.enableReasoning) { // 修正: 仅在启用时处理 reasoning_content
+                                        const reasoningDelta = chunk.choices && chunk.choices[0]?.delta?.reasoning_content;
+                                        if (reasoningDelta !== undefined) {
+                                            currentReasoningContent += reasoningDelta; // Accumulate reasoning content
+                                        }
                                     }
+                                    const contentDelta = chunk.choices && chunk.choices[0]?.delta?.content;
                                     if (contentDelta !== undefined) {
                                         currentAIContent += contentDelta; // Accumulate final content
                                     }
 
                                     // Update the UI with combined content
-                                    const fullContent = (currentReasoningContent ? "**思考过程：**\n" + currentReasoningContent + "\n\n" : "") + (currentAIContent ? "**最终回答：**\n" + currentAIContent : "");
+                                    let fullContent = "";
+                                    if (settings.enableReasoning && currentReasoningContent) {
+                                        fullContent += "**思考过程：**\n" + currentReasoningContent + "\n\n";
+                                    }
+                                    if (currentAIContent) {
+                                        fullContent += "**最终回答：**\n" + currentAIContent;
+                                    }
                                     updateAIMessageContent(fullContent);
 
                                 } catch (e) {
@@ -1470,7 +1467,13 @@
              }
 
             function finalizeStream() {
-                const fullContentFinal = (currentReasoningContent ? "**思考过程：**\n" + currentReasoningContent + "\n\n" : "") + (currentAIContent ? "**最终回答：**\n" + currentAIContent : "");
+                let fullContentFinal = "";
+                if (settings.enableReasoning && currentReasoningContent) { // 修正: 仅在启用时包含思考过程
+                    fullContentFinal += "**思考过程：**\n" + currentReasoningContent + "\n\n";
+                }
+                if (currentAIContent) {
+                    fullContentFinal += "**最终回答：**\n" + currentAIContent;
+                }
                 if (fullContentFinal) {
                      // Add the complete message to history with combined content
                      chatHistory.push({ role: 'assistant', content: fullContentFinal });
@@ -1495,7 +1498,6 @@
                  // Clean up abort controller
                  abortController = null;
             }
-
 
             function resetUIAfterResponse() {
                 sendBtn.disabled = false;
@@ -1531,7 +1533,6 @@
                     messageDiv.style.color = '#fff';
                  }
 
-
                 const contentDiv = document.createElement('div');
                 contentDiv.classList.add('message-content');
 
@@ -1544,7 +1545,6 @@
                 copyButton.dataset.clipboardText = text || "";
                 messageDiv.appendChild(copyButton);
 
-
                  try {
                      // Use Marked.js to parse Markdown content safely
                      contentDiv.innerHTML = marked.parse(text || ""); // Handle potential null/empty text
@@ -1552,7 +1552,6 @@
                      console.error("Marked parsing error:", e);
                      contentDiv.textContent = text || ""; // Fallback to plain text
                  }
-
 
                 // Add images if provided (mainly for user messages)
                 if (Array.isArray(imagesBase64) && imagesBase64.length > 0 && role === 'user') {
@@ -1567,7 +1566,6 @@
                     });
                     contentDiv.appendChild(grid); // Append image grid after text content
                 }
-
 
                 const timestampDiv = document.createElement('div');
                 timestampDiv.classList.add('message-timestamp');
@@ -1605,7 +1603,6 @@
                           return `<span style="color:var(--error-color); font-family: monospace;">[Math Error]</span>`;
                      }
                  });
-
 
                  // --- Apply Syntax Highlighting using highlight.js ---
                  element.querySelectorAll('pre code').forEach((block) => {
@@ -1683,7 +1680,6 @@
                     });
             }
 
-
             function scrollToBottom() {
                  // Add a small delay to allow rendering engine to catch up, especially with images/rich content
                  setTimeout(() => {
@@ -1711,7 +1707,6 @@
                  summary.appendChild(titleSpan);
                  summary.appendChild(timeSpan);
 
-
                 const content = document.createElement('div');
                 content.className = 'log-content';
                 try {
@@ -1735,7 +1730,6 @@
                      content.textContent = String(data);
                      console.warn("Could not stringify log data:", data, e);
                 }
-
 
                 entry.appendChild(summary);
                 entry.appendChild(content);
@@ -1777,6 +1771,7 @@
                              // Ensure boolean flags are boolean
                              stream: typeof parsedSettings.stream === 'boolean' ? parsedSettings.stream : true,
                              enableImageSupport: typeof parsedSettings.enableImageSupport === 'boolean' ? parsedSettings.enableImageSupport : false,
+                             enableReasoning: typeof parsedSettings.enableReasoning === 'boolean' ? parsedSettings.enableReasoning : false, // 新增: 处理 enableReasoning
                              enableTemperature: typeof parsedSettings.enableTemperature === 'boolean' ? parsedSettings.enableTemperature : false,
                              enableMaxTokens: typeof parsedSettings.enableMaxTokens === 'boolean' ? parsedSettings.enableMaxTokens : false,
                              // Ensure numbers are numbers
@@ -1805,6 +1800,7 @@
                  apiKeyInput.value = settings.apiKey || '';
                  streamResponseCheckbox.checked = settings.stream;
                  enableImageSupportCheckbox.checked = settings.enableImageSupport;
+                 enableReasoningCheckbox.checked = settings.enableReasoning || false; // 新增: 设置思考过程复选框
                  uploadImageBtn.style.display = settings.enableImageSupport ? 'flex' : 'none';
 
                  // Temperature
@@ -1837,13 +1833,13 @@
                  selectedModelSelect.value = settings.selectedModel || ''; // Set selected model
              }
 
-
             function saveSettings() {
                 // Update settings object from UI just before saving
                 settings.apiUrl = apiUrlInput.value.trim();
                 settings.apiKey = apiKeyInput.value.trim();
                 settings.stream = streamResponseCheckbox.checked;
                 settings.enableImageSupport = enableImageSupportCheckbox.checked;
+                settings.enableReasoning = enableReasoningCheckbox.checked; // 新增: 保存思考过程设置
                 settings.enableTemperature = enableTemperatureCheckbox.checked;
                 settings.temperature = parseFloat(temperatureSlider.value);
                 settings.enableMaxTokens = enableMaxTokensCheckbox.checked;
@@ -1901,7 +1897,6 @@
                  // Optional: Visually indicate default value when disabled
                  // maxTokensValueSpan.textContent = enabled ? maxTokensSlider.value : 'Default';
              }
-
 
             // --- Model Management ---
             function addModel() {
@@ -1991,7 +1986,6 @@
                      }
                  }
              }
-
 
             // --- Custom Parameter Management ---
             function addCustomParam() {
