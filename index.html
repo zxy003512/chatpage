@@ -979,7 +979,8 @@
             };
             let chatHistory = []; // Stores message objects { role: 'user'/'assistant', content: '...' or [{type: 'text', ...}, {type: 'image_url', ...}] }
             let currentAIMessageElement = null; // For streaming updates
-            let currentAIContent = ''; // Accumulator for streaming content
+            let currentAIContent = ''; // Accumulator for final content
+            let currentReasoningContent = ''; // Accumulator for reasoning content (added for thinking models)
             let abortController = null; // To cancel fetch requests
             let uploadedImages = []; // Store uploaded image data as { name: string, base64: string }
 
@@ -1374,7 +1375,8 @@
                 currentAIMessageElement = createMessageElement('', 'assistant');
                 chatbox.appendChild(currentAIMessageElement);
                 scrollToBottom();
-                currentAIContent = ''; // Reset content accumulator
+                currentAIContent = ''; // Reset content accumulator for final answer
+                currentReasoningContent = ''; // Reset content accumulator for reasoning (added for thinking models)
 
                 const reader = responseBody.getReader();
                 const decoder = new TextDecoder();
@@ -1383,7 +1385,7 @@
                 function processStream() {
                     reader.read().then(({ done, value }) => {
                         if (done) {
-                            addLog('Response (Stream End)', { fullContent: currentAIContent });
+                            addLog('Response (Stream End)', { fullContent: currentAIContent, reasoningContent: currentReasoningContent });
                             finalizeStream();
                             return;
                         }
@@ -1406,18 +1408,19 @@
                                 try {
                                     const chunk = JSON.parse(dataContent);
                                     // Look for content delta in various possible locations
-                                    const delta = chunk.choices && chunk.choices[0]?.delta?.content;
-                                    // Add other potential delta locations if needed based on API
-                                    // const delta = chunk.delta?.content || chunk.choices?.[0]?.delta?.content;
+                                    const reasoningDelta = chunk.choices && chunk.choices[0]?.delta?.reasoning_content; // Added for thinking models
+                                    const contentDelta = chunk.choices && chunk.choices[0]?.delta?.content;
 
-                                    if (delta) {
-                                        currentAIContent += delta;
-                                        // Update the message content progressively
-                                         updateAIMessageContent(currentAIContent);
+                                    if (reasoningDelta !== undefined) {
+                                        currentReasoningContent += reasoningDelta; // Accumulate reasoning content
                                     }
-                                    // Handle potential role changes if needed (usually first chunk)
-                                    // const role = chunk.choices && chunk.choices[0]?.delta?.role;
-                                    // if (role && !chatHistory[chatHistory.length-1]?.role) { /* Set role */}
+                                    if (contentDelta !== undefined) {
+                                        currentAIContent += contentDelta; // Accumulate final content
+                                    }
+
+                                    // Update the UI with combined content
+                                    const fullContent = (currentReasoningContent ? "**思考过程：**\n" + currentReasoningContent + "\n\n" : "") + (currentAIContent ? "**最终回答：**\n" + currentAIContent : "");
+                                    updateAIMessageContent(fullContent);
 
                                 } catch (e) {
                                     // Ignore empty data lines or lines that are not valid JSON
@@ -1467,9 +1470,10 @@
              }
 
             function finalizeStream() {
-                if (currentAIContent) {
-                     // Add the complete message to history
-                     chatHistory.push({ role: 'assistant', content: currentAIContent });
+                const fullContentFinal = (currentReasoningContent ? "**思考过程：**\n" + currentReasoningContent + "\n\n" : "") + (currentAIContent ? "**最终回答：**\n" + currentAIContent : "");
+                if (fullContentFinal) {
+                     // Add the complete message to history with combined content
+                     chatHistory.push({ role: 'assistant', content: fullContentFinal });
                 }
                  // Ensure final rendering pass on the completed message
                  if (currentAIMessageElement) {
@@ -1485,6 +1489,7 @@
                  }
                 currentAIMessageElement = null;
                 currentAIContent = '';
+                currentReasoningContent = ''; // Reset reasoning content accumulator
                 resetUIAfterResponse();
                 scrollToBottom();
                  // Clean up abort controller
