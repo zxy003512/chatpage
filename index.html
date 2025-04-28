@@ -20,6 +20,7 @@
             --transition: all 0.3s ease;
             --border-radius: 10px;
             --font-main: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            --font-size: 16px;
         }
 
         /* 暗色主题 */
@@ -41,6 +42,7 @@
             padding: 0;
             box-sizing: border-box;
             font-family: var(--font-main);
+            font-size: var(--font-size);
         }
 
         body {
@@ -269,6 +271,22 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
+        }
+
+        .model-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 0;
+        }
+
+        .model-selector select {
+            flex: 1;
+            padding: 8px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            background-color: var(--background-color);
+            color: var(--text-color);
         }
 
         .chat-input-wrapper {
@@ -647,6 +665,49 @@
             .message-content {
                 max-width: calc(100% - 50px);
             }
+            
+            /* 手机端优化 */
+            .container {
+                padding: 5px;
+            }
+            
+            header {
+                padding: 8px 10px;
+                flex-wrap: wrap;
+            }
+            
+            .header-buttons {
+                gap: 5px;
+            }
+            
+            .btn {
+                padding: 6px 10px;
+                font-size: 0.9rem;
+            }
+            
+            .message {
+                margin-bottom: 10px;
+            }
+            
+            .message-avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 0.8rem;
+            }
+            
+            .message-content {
+                padding: 8px 12px;
+                font-size: 0.95rem;
+            }
+            
+            .chat-input {
+                min-height: 60px;
+                padding: 8px;
+            }
+            
+            .send-button {
+                padding: 8px 15px;
+            }
         }
 
         /* 动画效果 */
@@ -786,6 +847,11 @@
                     <!-- 消息将通过JS动态添加 -->
                 </div>
                 <div class="chat-input-container">
+                    <div class="model-selector">
+                        <select id="model-select" class="form-control">
+                            <!-- 模型选项将通过JS动态添加 -->
+                        </select>
+                    </div>
                     <div class="chat-input-wrapper">
                         <textarea class="chat-input" id="chat-input" placeholder="输入您的问题..."></textarea>
                     </div>
@@ -985,7 +1051,8 @@
             apiKey: document.getElementById('api-key'),
             imagePreview: document.getElementById('image-preview'),
             previewImage: document.getElementById('preview-image'),
-            closePreview: document.getElementById('close-preview')
+            closePreview: document.getElementById('close-preview'),
+            modelSelect: document.getElementById('model-select')
         };
 
         // 初始化
@@ -998,6 +1065,9 @@
                 addModelConfig('gpt-4-turbo', 'GPT-4 Turbo');
                 addModelConfig('gpt-3.5-turbo', 'GPT-3.5 Turbo');
             }
+
+            // 更新模型选择器
+            updateModelSelector();
 
             // 添加事件监听器
             setupEventListeners();
@@ -1038,7 +1108,10 @@
             });
 
             // 添加模型
-            elements.addModel.addEventListener('click', () => addModelConfig());
+            elements.addModel.addEventListener('click', () => {
+                addModelConfig();
+                updateModelSelector();
+            });
 
             // 添加参数
             elements.addParam.addEventListener('click', addCustomParam);
@@ -1080,7 +1153,7 @@
                     elements.maxContext.value = settings.maxContext || 10;
                     elements.streamToggle.checked = settings.streamEnabled !== false;
                     elements.visionToggle.checked = settings.visionEnabled || false;
-                    settings.thinkingEnabled = settings.thinkingEnabled || false;
+                    elements.thinkingToggle.checked = settings.thinkingEnabled || false;
                     
                     // 字体设置
                     if (settings.fontFamily) {
@@ -1105,6 +1178,14 @@
                         settings.models.forEach(model => {
                             addModelConfig(model.id, model.name);
                         });
+                        
+                        // 更新模型选择器
+                        updateModelSelector();
+                        
+                        // 设置选中的模型
+                        if (settings.selectedModel) {
+                            elements.modelSelect.value = settings.selectedModel;
+                        }
                     }
                     
                     // 加载自定义参数
@@ -1159,7 +1240,8 @@
                     fontSize: elements.fontSize.value,
                     darkTheme: document.body.classList.contains('dark-theme'),
                     models,
-                    customParams
+                    customParams,
+                    selectedModel: elements.modelSelect.value
                 };
                 
                 // 保存到本地存储
@@ -1217,15 +1299,52 @@
             removeButton.addEventListener('click', () => {
                 modelItem.remove();
                 saveSettings();
+                updateModelSelector();
             });
             
             const inputs = modelItem.querySelectorAll('input');
             inputs.forEach(input => {
-                input.addEventListener('change', saveSettings);
+                input.addEventListener('change', () => {
+                    saveSettings();
+                    updateModelSelector();
+                });
             });
             
             elements.modelConfigs.appendChild(modelItem);
             saveSettings();
+        }
+
+        // 更新模型选择器
+        function updateModelSelector() {
+            const modelSelect = elements.modelSelect;
+            const modelItems = document.querySelectorAll('.model-config-item');
+            
+            // 清空选择器
+            modelSelect.innerHTML = '';
+            
+            // 添加所有模型选项
+            Array.from(modelItems).forEach(item => {
+                const idInput = item.querySelector('[data-type="model-id"]');
+                const nameInput = item.querySelector('[data-type="model-name"]');
+                
+                if (idInput.value && nameInput.value) {
+                    const option = document.createElement('option');
+                    option.value = idInput.value;
+                    option.textContent = nameInput.value;
+                    modelSelect.appendChild(option);
+                }
+            });
+            
+            // 如果没有模型选项，添加一个提示
+            if (modelSelect.options.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = '-- 请添加模型 --';
+                modelSelect.appendChild(option);
+            }
+            
+            // 监听模型选择变化
+            modelSelect.addEventListener('change', saveSettings);
         }
 
         // 添加自定义参数
@@ -1301,16 +1420,9 @@
             }
             
             // 获取选择的模型
-            const modelConfigs = document.querySelectorAll('.model-config-item');
-            if (modelConfigs.length === 0) {
-                addSystemMessage('请至少添加一个模型配置');
-                togglePanel(elements.settingsPanel);
-                return;
-            }
-            
-            const selectedModelId = modelConfigs[0].querySelector('[data-type="model-id"]').value;
+            const selectedModelId = elements.modelSelect.value;
             if (!selectedModelId) {
-                addSystemMessage('请设置有效的模型 ID');
+                addSystemMessage('请至少添加一个模型配置并选择模型');
                 togglePanel(elements.settingsPanel);
                 return;
             }
