@@ -3,2070 +3,1875 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>自定义 AI </title>
-    <!-- KaTeX CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1tBCsfMNzfHWquKxdCXCavCFZBhz" crossorigin="anonymous">
-    <!-- Highlight.js CSS (Default theme) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"> <!-- Using a specific theme -->
+    <title>自定义中转API AI对话</title>
     <style>
-        /* --- Base Styles & Reset --- */
+        /* 全局样式 */
         :root {
-            --bg-color: #f0f2f5;
-            --text-color: #333;
-            --primary-color: #007bff;
-            --primary-hover-color: #0056b3;
-            --secondary-bg-color: #ffffff;
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --background-color: #f5f8fa;
+            --chat-bg: #ffffff;
+            --user-msg-bg: #e1f5fe;
+            --ai-msg-bg: #f1f8e9;
             --border-color: #e0e0e0;
-            --user-msg-bg: #d1e7ff;
-            --ai-msg-bg: #f8f9fa;
-            --code-bg: #282c34; /* Darker background for code */
-            --code-text: #abb2bf;
-            --error-color: #dc3545;
-            --success-color: #198754;
-            --timestamp-color: #6c757d;
-            --panel-bg: #ffffff;
-            --panel-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-            --icon-color: #6c757d;
-            --icon-hover-color: #333;
-            --font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
-            --font-size: 16px;
-            --copy-btn-bg: rgba(255, 255, 255, 0.7);
-            --copy-btn-text: #333;
+            --text-color: #333333;
+            --text-secondary: #757575;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+            --border-radius: 10px;
+            --font-main: 'PingFang SC', 'Microsoft YaHei', sans-serif;
         }
 
-        [data-theme="dark"] {
-            --bg-color: #1a1a1a;
+        /* 暗色主题 */
+        .dark-theme {
+            --primary-color: #64b5f6;
+            --secondary-color: #81c784;
+            --background-color: #121212;
+            --chat-bg: #1e1e1e;
+            --user-msg-bg: #263238;
+            --ai-msg-bg: #1b2b1e;
+            --border-color: #424242;
             --text-color: #e0e0e0;
-            --primary-color: #0d6efd;
-            --primary-hover-color: #0a58ca;
-            --secondary-bg-color: #2a2a2a;
-            --border-color: #444;
-            --user-msg-bg: #0d6efd; /* Adjust user message bg for dark */
-            --ai-msg-bg: #3a3a3a;
-            --code-bg: #282c34; /* Keep dark for code */
-            --code-text: #abb2bf;
-            --error-color: #ff6b6b;
-            --success-color: #20c997;
-            --timestamp-color: #888;
-            --panel-bg: #252525;
-            --panel-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
-            --icon-color: #aaa;
-            --icon-hover-color: #eee;
-             --copy-btn-bg: rgba(0, 0, 0, 0.5);
-             --copy-btn-text: #eee;
+            --text-secondary: #b0b0b0;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
         }
-        /* Adjust highlightjs theme for dark mode if needed */
-        [data-theme="dark"] .hljs { background: var(--code-bg); color: var(--code-text); }
 
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
-        }
-
-        html, body {
-            height: 100%;
-            overflow: hidden; /* Prevent body scroll when panels are open */
+            box-sizing: border-box;
+            font-family: var(--font-main);
         }
 
         body {
-            font-family: var(--font-family);
-            font-size: var(--font-size);
-            background-color: var(--bg-color);
+            background-color: var(--background-color);
             color: var(--text-color);
-            line-height: 1.6;
-            display: flex;
-            flex-direction: column;
-            transition: background-color 0.3s, color 0.3s;
+            transition: var(--transition);
+            min-height: 100vh;
+            overflow-x: hidden;
         }
 
-        /* --- Main Layout --- */
-        .chat-container {
+        /* 布局样式 */
+        .container {
             display: flex;
             flex-direction: column;
-            height: 100vh; /* Full viewport height */
-            width: 100%;
-            max-width: 1200px; /* Max width for desktop */
-            margin: 0 auto; /* Center */
-            position: relative; /* For positioning panels */
-            overflow: hidden; /* Contain panels */
-        }
-
-        .chat-interface {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden; /* Prevent internal overflow issues */
-            background-color: var(--secondary-bg-color);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            border-radius: 8px;
-            margin: 10px; /* Add some margin */
+            min-height: 100vh;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 10px;
         }
 
         header {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 10px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-top-left-radius: 8px;
-            border-top-right-radius: 8px;
-            flex-shrink: 0;
+            padding: 10px 20px;
+            background-color: var(--chat-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 15px;
         }
 
-        header h1 {
-            font-size: 1.2em;
-            margin: 0;
-        }
-
-        .header-buttons button {
-            background: none;
-            border: 1px solid white;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-left: 10px;
-            transition: background-color 0.2s, color 0.2s;
-            font-size: 0.9em;
-        }
-
-        .header-buttons button:hover {
-            background-color: white;
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
             color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        .header-buttons button#clearChatBtn {
-            border-color: #ffc107;
-            color: #ffc107;
-        }
-         .header-buttons button#clearChatBtn:hover {
-             background-color: #ffc107;
-             color: #333;
-         }
 
-        /* --- Chatbox Area --- */
-        #chatbox {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 15px;
+        .logo svg {
+            height: 24px;
+            width: 24px;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 6px;
+            padding: 8px 15px;
+            background-color: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 500;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn.secondary {
+            background-color: var(--secondary-color);
+        }
+
+        .btn.outline {
+            background-color: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+        }
+
+        /* 主内容区域 */
+        .main-content {
+            display: flex;
+            flex: 1;
+            gap: 15px;
+        }
+
+        .chat-container {
+            flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 15px; /* Space between messages */
+            background-color: var(--chat-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-height: 300px;
         }
 
         .message {
-            padding: 10px 15px;
-            border-radius: 12px;
-            max-width: 85%; /* Slightly wider max-width */
-            word-wrap: break-word; /* Break long words */
             display: flex;
-            flex-direction: column; /* Stack content and timestamp */
-            position: relative; /* For copy button */
-            transition: background-color 0.3s;
-        }
-
-        .message:hover .message-copy-button {
-             opacity: 1;
-        }
-
-        .message-content {
-             margin-bottom: 5px; /* Space before timestamp */
-             position: relative; /* Context for image grid if needed */
-        }
-
-        .message-content img {
-            max-width: 100%; /* Ensure images fit within content */
-            height: auto;
-            border-radius: 4px;
-            margin-top: 10px;
-            display: block; /* Prevent extra space below */
-        }
-        /* Style for multiple images in user message */
-        .user-image-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin-top: 10px;
-        }
-        .user-image-grid img {
-             max-width: 100px; /* Smaller thumbnails */
-             max-height: 100px;
-             object-fit: cover;
-             border: 1px solid var(--border-color);
-             margin-top: 0; /* Remove top margin */
-             display: inline-block; /* Align properly */
-             cursor: pointer; /* Indicate they can be clicked (optional) */
-             transition: transform 0.2s;
-        }
-        .user-image-grid img:hover {
-            transform: scale(1.05);
+            margin-bottom: 15px;
+            animation: fadeIn 0.3s ease;
+            max-width: 90%;
         }
 
         .user-message {
-            background-color: var(--user-msg-bg);
-            color: var(--text-color); /* Adjust if needed based on bg */
             align-self: flex-end;
-            border-bottom-right-radius: 0;
-            margin-left: auto; /* Push to right */
-        }
-         /* Ensure user text is readable on dark theme */
-        [data-theme="dark"] .user-message {
-             color: #ffffff;
+            flex-direction: row-reverse;
         }
 
         .ai-message {
-            background-color: var(--ai-msg-bg);
-            color: var(--text-color);
             align-self: flex-start;
-            border-bottom-left-radius: 0;
-            margin-right: auto; /* Push to left */
         }
 
-        .message-timestamp {
-            font-size: 0.75em;
-            color: var(--timestamp-color);
-            text-align: right; /* Align timestamp to the right */
+        .message-content {
+            padding: 12px 16px;
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+            line-height: 1.5;
+        }
+
+        .user-message .message-content {
+            background-color: var(--user-msg-bg);
+            border-top-right-radius: 4px;
+            margin-right: 10px;
+        }
+
+        .ai-message .message-content {
+            background-color: var(--ai-msg-bg);
+            border-top-left-radius: 4px;
+            margin-left: 10px;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .ai-message .message-avatar {
+            background-color: var(--secondary-color);
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
             margin-top: 5px;
+            text-align: right;
         }
 
-        .ai-message .message-timestamp {
-            text-align: left; /* Align AI timestamp left */
+        /* 代码高亮和公式渲染样式 */
+        pre {
+            background-color: #282c34;
+            border-radius: 8px;
+            padding: 10px;
+            overflow-x: auto;
+            margin: 10px 0;
         }
 
-        /* General Message Copy Button */
-        .message-copy-button {
-             position: absolute;
-             top: 5px;
-             right: 5px;
-             background-color: var(--copy-btn-bg);
-             color: var(--copy-btn-text);
-             border: none;
-             padding: 3px 6px;
-             font-size: 0.9em;
-             border-radius: 4px;
-             cursor: pointer;
-             opacity: 0; /* Hidden by default, shown on hover */
-             transition: opacity 0.2s, background-color 0.2s, color 0.2s;
-             z-index: 10; /* Ensure it's above content */
-        }
-        .message-copy-button:hover {
-             background-color: var(--primary-color);
-             color: white;
-        }
-         .message-copy-button.copied {
-             background-color: var(--success-color);
-             color: white;
-         }
-
-        /* Code Block Specific Copy Button */
-        .copy-code-button {
-            position: absolute;
-            top: 8px; /* Adjusted position */
-            right: 8px;
-            background-color: var(--copy-btn-bg);
-            color: var(--copy-btn-text);
-            border: none;
-            padding: 4px 8px; /* Slightly larger */
-            font-size: 0.8em;
-            border-radius: 4px;
-            cursor: pointer;
-            opacity: 0; /* Hidden by default */
-            transition: opacity 0.2s, background-color 0.2s, color 0.2s;
-            z-index: 5; /* Above code, below general copy if overlapping */
-        }
-        .ai-message pre:hover .copy-code-button {
-            opacity: 1; /* Show on hover of the pre element */
-        }
-         .copy-code-button:hover {
-             background-color: var(--primary-hover-color);
-             color: white;
-         }
-        .copy-code-button.copied {
-             background-color: var(--success-color);
-             color: white;
-         }
-
-        /* --- Input Area --- */
-        .input-area-container {
-            flex-shrink: 0; /* Prevent shrinking */
-            border-top: 1px solid var(--border-color);
-            background-color: var(--secondary-bg-color);
-            border-bottom-left-radius: 8px;
-            border-bottom-right-radius: 8px;
+        code {
+            font-family: 'Fira Code', monospace;
+            color: #abb2bf;
         }
 
-        /* Image Preview Area for Multiple Images */
-        #image-preview-area {
-            display: none; /* Hidden by default */
-            padding: 10px 15px 5px; /* Padding around previews */
-            border-bottom: 1px dashed var(--border-color); /* Separator */
-            background-color: var(--ai-msg-bg); /* Slightly different bg */
-            max-height: 120px; /* Limit height */
-            overflow-y: auto; /* Scroll if many images */
+        .math-formula {
+            padding: 5px 0;
+            overflow-x: auto;
         }
-        #image-preview-list {
+
+        /* 图片附件样式 */
+        .image-attachments {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
+            margin-top: 10px;
         }
-        .preview-image-container {
-            position: relative;
-            display: inline-block; /* Fit content */
-        }
-        .preview-image-container img {
-            max-height: 60px; /* Smaller previews */
-            max-width: 80px;
-            border-radius: 4px;
-            border: 1px solid var(--border-color);
-            display: block; /* Prevent extra space */
-        }
-        .remove-preview-btn {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: var(--error-color);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            font-size: 11px;
-            line-height: 16px; /* Adjust for centering 'X' */
-            text-align: center;
+
+        .image-attachment {
+            border-radius: 8px;
+            max-width: 200px;
+            max-height: 200px;
+            object-fit: cover;
             cursor: pointer;
-            padding: 0;
-            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+            transition: var(--transition);
+            border: 2px solid transparent;
         }
 
-        .input-area {
-            display: flex;
-            align-items: flex-end; /* Align items to bottom */
-            padding: 10px 15px;
+        .image-attachment:hover {
+            transform: scale(1.05);
+            border-color: var(--primary-color);
         }
 
-        #userInput {
-            flex-grow: 1;
+        /* 思考过程样式 */
+        .thinking-process {
+            font-style: italic;
+            color: var(--text-secondary);
+            background-color: rgba(0, 0, 0, 0.03);
             padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            resize: none; /* Disable manual resize */
-            min-height: 40px; /* Minimum height */
-            max-height: 150px; /* Maximum height before scroll */
-            overflow-y: auto; /* Scroll if needed */
-            font-family: inherit;
-            font-size: inherit;
-            line-height: 1.4;
-            margin-right: 10px;
-            background-color: var(--secondary-bg-color); /* Ensure bg matches */
-            color: var(--text-color); /* Ensure text color matches */
+            border-radius: 8px;
+            margin-top: 10px;
+            border-left: 3px solid var(--primary-color);
         }
 
-        .input-buttons {
-             display: flex;
-             gap: 10px;
-             align-items: flex-end; /* Align with bottom of textarea */
-        }
-
-        .input-buttons button {
-            padding: 10px 15px;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            font-size: 1em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 40px; /* Match min-height of textarea */
-        }
-
-        .input-buttons button:hover {
-            background-color: var(--primary-hover-color);
-        }
-
-        .input-buttons button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-
-        #uploadImageBtn {
-            padding: 8px; /* Smaller padding for icon button */
-            font-size: 1.2em; /* Larger icon */
-        }
-
-        /* --- Side Panels (Settings & Logs) --- */
-        .side-panel {
-            position: fixed;
-            top: 0;
-            right: -100%; /* Start off-screen */
-            width: 90%; /* Responsive width */
-            max-width: 450px; /* Max width on desktop */
-            height: 100%;
-            background-color: var(--panel-bg);
-            box-shadow: var(--panel-shadow);
-            z-index: 1000;
-            transition: right 0.4s ease-in-out;
+        /* 输入区域 */
+        .chat-input-container {
+            padding: 15px;
+            border-top: 1px solid var(--border-color);
+            background-color: var(--chat-bg);
             display: flex;
             flex-direction: column;
-            overflow: hidden; /* Prevent content spill */
+            gap: 10px;
         }
 
-        .side-panel.open {
-            right: 0;
+        .chat-input-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
         }
 
-        .panel-header {
-            padding: 15px;
-            background-color: var(--primary-color);
-            color: white;
+        .chat-input {
+            resize: none;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 12px 45px 12px 15px;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            min-height: 80px;
+            max-height: 200px;
+            transition: var(--transition);
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        .chat-input-actions {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-shrink: 0; /* Prevent header shrinking */
-        }
-        .panel-header h2 { margin: 0; font-size: 1.1em;}
-        .close-panel-btn {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.8em;
-            cursor: pointer;
-            line-height: 1; /* Adjust line height for better alignment */
         }
 
-        .panel-content {
-            padding: 20px;
-            overflow-y: auto; /* Make content scrollable */
-            flex-grow: 1; /* Allow content to take available space */
-        }
-
-        /* Panel Form Styles */
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: var(--text-color);
-        }
-        .form-group input[type="text"],
-        .form-group input[type="password"],
-        .form-group input[type="number"],
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 0.95em;
-            background-color: var(--secondary-bg-color);
-            color: var(--text-color);
-        }
-        .form-group textarea {
-            min-height: 80px;
-            resize: vertical;
-        }
-        .form-group input[type="range"] {
-            width: 100%;
-            vertical-align: middle; /* Align slider better */
-        }
-         .form-group input[type="range"]:disabled {
-             opacity: 0.5;
-             cursor: not-allowed;
-         }
-        .range-value {
-            display: inline-block;
-            margin-left: 10px;
-            font-weight: bold;
-            min-width: 40px; /* Ensure space */
-            text-align: right;
-        }
-        .form-group input[type="checkbox"] {
-            margin-right: 8px;
-            vertical-align: middle;
-        }
-         .form-group .checkbox-label {
-             display: inline-flex; /* Align checkbox and label */
-             align-items: center;
-             margin-bottom: 8px;
-         }
-        .form-group .slider-container {
-            opacity: 1;
-            transition: opacity 0.3s;
-        }
-        .form-group .slider-container.disabled {
-            opacity: 0.5;
-            pointer-events: none; /* Prevent interaction */
-        }
-         .form-group .slider-container.disabled label,
-         .form-group .slider-container.disabled span {
-             color: var(--timestamp-color); /* Dim text */
-         }
-
-        .form-group button {
-            padding: 8px 12px;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            margin-top: 5px;
-            margin-right: 5px;
-        }
-        .form-group button:hover {
-            background-color: var(--primary-hover-color);
-        }
-         .form-group button.remove-btn {
-             background-color: var(--error-color);
-         }
-         .form-group button.remove-btn:hover {
-             background-color: #a71d2a;
-         }
-
-        .model-entry, .param-entry {
+        .input-buttons {
             display: flex;
-            align-items: center;
             gap: 10px;
-            margin-bottom: 10px;
-        }
-        .model-entry input, .param-entry input {
-            flex-grow: 1;
         }
 
-        .panel-actions {
-            padding: 15px;
-            border-top: 1px solid var(--border-color);
-            background-color: var(--panel-bg);
-            text-align: right;
-            flex-shrink: 0; /* Prevent footer shrinking */
-        }
-        .panel-actions button {
+        .send-button {
             padding: 10px 20px;
             background-color: var(--primary-color);
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: var(--border-radius);
             cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .panel-actions button:hover {
-            background-color: var(--primary-hover-color);
+            font-weight: 500;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
-        /* --- Log Panel Specifics --- */
-        #log-entries {
-            font-size: 0.9em;
-            line-height: 1.4;
+        .send-button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
         }
-        .log-entry {
-            margin-bottom: 15px;
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .upload-button, .settings-button {
+            background-color: transparent;
+            color: var(--text-color);
             border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background-color: var(--ai-msg-bg); /* Use AI msg bg for contrast */
-        }
-        .log-entry summary {
-            padding: 8px 12px;
+            border-radius: var(--border-radius);
+            padding: 8px;
             cursor: pointer;
-            font-weight: bold;
-            background-color: rgba(0,0,0,0.03); /* Slightly different bg for header */
-            border-bottom: 1px solid var(--border-color);
-            display: flex; /* Use flexbox for alignment */
-            justify-content: space-between; /* Space out title and timestamp */
+            display: flex;
             align-items: center;
+            justify-content: center;
+            transition: var(--transition);
         }
-         .log-entry summary::-webkit-details-marker { display: none; } /* Hide default marker */
-         .log-entry summary::before { content: '▶ '; font-size: 0.8em; margin-right: 5px; } /* Custom marker */
-         .log-entry[open] summary::before { content: '▼ '; }
+
+        .upload-button:hover, .settings-button:hover {
+            background-color: var(--background-color);
+            color: var(--primary-color);
+        }
+
+        /* 设置面板 */
+        .panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 380px;
+            height: 100vh;
+            background-color: var(--chat-bg);
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            transition: right 0.3s ease-in-out;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .panel.open {
+            right: 0;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .panel-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .close-panel {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 1.5rem;
+        }
+
+        .panel-section {
+            margin-bottom: 20px;
+        }
+
+        .panel-section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text-color);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-color);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            background-color: var(--background-color);
+            color: var(--text-color);
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .switch-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: var(--transition);
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: var(--transition);
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary-color);
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px var(--primary-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        /* 模型配置项 */
+        .model-configs {
+            margin-top: 10px;
+        }
+
+        .model-config-item {
+            background-color: var(--background-color);
+            border-radius: var(--border-radius);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .model-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .model-title {
+            font-weight: 600;
+        }
+
+        .remove-model {
+            background: none;
+            border: none;
+            color: #e74c3c;
+            cursor: pointer;
+        }
+
+        .add-model-btn {
+            width: 100%;
+            text-align: center;
+            padding: 8px;
+            background-color: var(--background-color);
+            border: 1px dashed var(--border-color);
+            border-radius: var(--border-radius);
+            color: var(--primary-color);
+            cursor: pointer;
+            margin-top: 10px;
+            transition: var(--transition);
+        }
+
+        .add-model-btn:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+
+        /* 自定义参数项 */
+        .custom-params {
+            margin-top: 10px;
+        }
+
+        .param-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .param-item input {
+            flex: 1;
+        }
+
+        .add-param-btn {
+            color: var(--primary-color);
+            background: none;
+            border: none;
+            cursor: pointer;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* 日志面板 */
+        .log-item {
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .log-header {
+            padding: 10px;
+            background-color: var(--background-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .log-title {
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
         .log-timestamp {
-            font-size: 0.8em;
-            font-weight: normal;
-            color: var(--timestamp-color);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
         }
+
+        .log-body {
+            padding: 10px;
+            display: none;
+            background-color: var(--background-color);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .log-body.open {
+            display: block;
+        }
+
+        .log-section {
+            margin-bottom: 10px;
+        }
+
+        .log-section-title {
+            font-weight: 500;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
         .log-content {
-            padding: 10px 15px;
-            max-height: 300px; /* Limit height */
-            overflow: auto; /* Scroll if needed */
-            white-space: pre-wrap; /* Preserve whitespace and wrap */
-            word-wrap: break-word;
-            background-color: var(--secondary-bg-color); /* Slightly lighter bg for content */
-            color: var(--text-color); /* Ensure text color */
-            border-bottom-left-radius: 4px;
-            border-bottom-right-radius: 4px;
-        }
-         /* Ensure log content bg/color is correct in dark mode */
-        [data-theme="dark"] .log-entry { background-color: var(--ai-msg-bg); }
-        [data-theme="dark"] .log-entry summary { background-color: rgba(255, 255, 255, 0.05); }
-        [data-theme="dark"] .log-content { background-color: var(--secondary-bg-color); color: var(--text-color); }
-
-        /* --- Rich Content Rendering --- */
-        /* Code Blocks (highlight.js) */
-        pre {
-            position: relative; /* Needed for copy button positioning */
-            background-color: var(--code-bg);
-            color: var(--code-text);
-            padding: 15px;
-            border-radius: 6px;
-            overflow-x: auto; /* Horizontal scroll for long lines */
-            margin: 10px 0; /* Add some vertical space */
-        }
-        code.hljs {
-            font-family: 'Fira Code', 'Consolas', monospace; /* Monospaced font */
-            font-size: 0.9em;
-            line-height: 1.5;
-            padding: 0 !important; /* Remove default padding from hljs */
-            background: none !important; /* Override hljs background */
-        }
-        /* Inline code */
-        :not(pre) > code {
-            background-color: rgba(175, 184, 193, 0.2); /* Subtle background */
-             color: var(--text-color); /* Ensure readable color */
-            padding: 0.2em 0.4em;
-            margin: 0;
-            font-size: 85%;
-            border-radius: 3px;
-            font-family: 'Fira Code', 'Consolas', monospace;
-        }
-        [data-theme="dark"] :not(pre) > code {
-             background-color: rgba(175, 184, 193, 0.3); /* Slightly adjusted for dark */
-        }
-
-        /* Math Formulas (KaTeX) */
-        .katex-display { /* Block math */
+            padding: 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
             overflow-x: auto;
-            overflow-y: hidden; /* Prevent vertical scroll */
-            padding: 5px 0;
-        }
-        .message-content .katex {
-            font-size: 1.1em; /* Slightly larger math */
-            color: inherit; /* Inherit text color */
+            color: #333;
+            font-family: monospace;
         }
 
-        /* --- Utility Classes --- */
-        .hidden {
-            display: none !important;
+        .dark-theme .log-content {
+            background-color: #2d2d2d;
+            color: #ddd;
         }
 
-        /* --- Animations & Transitions --- */
-        /* Add subtle fade-in for messages */
-        .message {
-            animation: fadeIn 0.5s ease-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* --- Responsiveness --- */
+        /* 响应式设计 */
         @media (max-width: 768px) {
-            body {
-                font-size: 15px; /* Slightly smaller base font */
+            .main-content {
+                flex-direction: column;
             }
+
             .chat-container {
-                margin: 0; /* No margin on small screens */
-                border-radius: 0;
+                width: 100%;
             }
-             .chat-interface {
-                 margin: 0;
-                 border-radius: 0;
-             }
 
-            header h1 { font-size: 1.1em; }
-            .header-buttons button { padding: 4px 8px; font-size: 0.85em; margin-left: 5px; }
+            .panel {
+                width: 100%;
+                right: -100%;
+            }
 
-            #chatbox { padding: 10px; gap: 10px; }
-            .message { max-width: 92%; } /* Slightly more width */
-             .message-copy-button { font-size: 0.8em; padding: 2px 4px; }
-             .copy-code-button { font-size: 0.75em; padding: 3px 6px; }
-
-            .input-area-container { border-radius: 0; }
-            .input-area { padding: 8px 10px; flex-wrap: wrap; /* Allow wrapping */ }
-            #userInput { margin-right: 0; margin-bottom: 8px; /* Space below textarea */ width: 100%; /* Full width */ }
-            .input-buttons { width: 100%; justify-content: flex-end; /* Align buttons right */ }
-            #uploadImageBtn { font-size: 1.1em; padding: 7px; }
-            .input-buttons button { padding: 8px 12px; font-size: 0.95em; height: 38px;}
-
-             #image-preview-area { padding: 8px 10px 4px; max-height: 100px; }
-             .preview-image-container img { max-height: 50px; }
-             .remove-preview-btn { width: 16px; height: 16px; font-size: 10px; line-height: 14px; }
-
-            .side-panel {
-                width: 100%; /* Full width on mobile */
+            .message {
                 max-width: 100%;
-                right: -100%; /* Ensure it's fully off-screen */
             }
-             .side-panel.open {
-                 right: 0;
-             }
-            .panel-content { padding: 15px; }
+
+            .message-content {
+                max-width: calc(100% - 50px);
+            }
         }
 
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes typing {
+            0% { background-position: 0% 0; }
+            100% { background-position: 100% 0; }
+        }
+
+        .typing-indicator {
+            display: inline-block;
+            width: 20px;
+            height: 10px;
+            margin-left: 5px;
+            background: linear-gradient(to right, var(--text-secondary) 0%, var(--text-secondary) 25%, transparent 25%, transparent 75%, var(--text-secondary) 75%, var(--text-secondary) 100%);
+            background-size: 20px 100%;
+            background-repeat: no-repeat;
+            animation: typing 1s steps(4) infinite;
+        }
+
+        /* 暗幕覆盖层 */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        /* 图片预览 */
+        .image-preview {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 90vw;
+            max-height: 90vh;
+            z-index: 1001;
+            display: none;
+            background-color: white;
+            padding: 10px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .image-preview.active {
+            display: block;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 80vh;
+            object-fit: contain;
+        }
+
+        .close-preview {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
     </style>
 </head>
-<body data-theme="light"> <!-- Default theme, can be toggled -->
-
-    <div class="chat-container">
-        <div class="chat-interface">
-            <header>
-                <h1>AI 聊天</h1>
-                <div class="header-buttons">
-                    <button id="clearChatBtn" title="清除当前会话记录">清除会话</button>
-                    <button id="toggleThemeBtn">🌙</button> <!-- Theme Toggle -->
-                    <button id="toggleLogsBtn">日志</button>
-                    <button id="toggleSettingsBtn">设置</button>
-                </div>
-            </header>
-
-            <div id="chatbox">
-                <!-- Messages will be appended here -->
-                 <div class="message ai-message">
-                    <div class="message-content">你好！请先在“设置”中配置您的 API 信息。如果需要发送图片，请确保模型支持 Vision 功能。</div>
-                    <div class="message-timestamp">...</div>
-                </div>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                </svg>
+                <span>AI对话助手</span>
             </div>
+            <div class="header-buttons">
+                <button class="btn outline" id="toggle-theme">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <span>切换主题</span>
+                </button>
+                <button class="btn" id="show-settings">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    <span>设置</span>
+                </button>
+                <button class="btn secondary" id="show-logs">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    <span>日志</span>
+                </button>
+            </div>
+        </header>
 
-            <div class="input-area-container">
-                 <!-- Image Preview Area -->
-                <div id="image-preview-area">
-                    <div id="image-preview-list">
-                        <!-- Image previews will be added here -->
+        <div class="main-content">
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-messages">
+                    <!-- 消息将通过JS动态添加 -->
+                </div>
+                <div class="chat-input-container">
+                    <div class="chat-input-wrapper">
+                        <textarea class="chat-input" id="chat-input" placeholder="输入您的问题..."></textarea>
+                    </div>
+                    <div class="chat-input-actions">
+                        <div class="input-buttons">
+                            <button class="upload-button" id="upload-image" title="上传图片">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                            </button>
+                            <input type="file" id="image-input" multiple accept="image/*" style="display: none;">
+                        </div>
+                        <button class="send-button" id="send-message">
+                            <span>发送</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
                     </div>
                 </div>
-
-                <div class="input-area">
-                    <textarea id="userInput" rows="1" placeholder="输入消息... (Shift+Enter 换行)"></textarea>
-                    <div class="input-buttons">
-                         <button id="uploadImageBtn" title="上传图片 (需要模型支持, 可多选)">🖼️</button>
-                         <input type="file" id="imageInput" accept="image/*" multiple class="hidden"> <!-- Added multiple -->
-                        <button id="sendBtn">发送</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Settings Panel -->
-        <div id="settings-panel" class="side-panel">
-            <div class="panel-header">
-                <h2>设置</h2>
-                <button class="close-panel-btn" id="closeSettingsBtn">&times;</button>
-            </div>
-            <div class="panel-content">
-                <div class="form-group">
-                    <label for="apiUrl">API Endpoint URL:</label>
-                    <input type="text" id="apiUrl" placeholder="例如: https://api.openai.com/v1/chat/completions">
-                </div>
-                <div class="form-group">
-                    <label for="apiKey">API Key:</label>
-                    <input type="password" id="apiKey" placeholder="输入您的 API Key">
-                </div>
-
-                <div class="form-group">
-                    <label>AI 模型管理:</label>
-                    <div id="modelList">
-                        <!-- Model entries will be added here -->
-                    </div>
-                     <input type="text" id="newModelInput" placeholder="输入模型名称 (例如 gpt-4-vision-preview)" style="width: calc(100% - 100px); margin-right: 10px; display: inline-block;">
-                    <button id="addModelBtn">添加模型</button>
-                </div>
-                 <div class="form-group">
-                    <label for="selectedModel">当前选用模型:</label>
-                    <select id="selectedModel">
-                         <!-- Options populated by JS -->
-                         <option value="">请先添加模型</option>
-                    </select>
-                 </div>
-
-                <hr style="margin: 20px 0; border-color: var(--border-color);">
-
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="streamResponse"> 启用流式响应 (Streaming)
-                    </label>
-                </div>
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="enableImageSupport"> 启用图片理解 (全局)
-                    </label>
-                    <small style="display: block; color: var(--timestamp-color);">如果启用，将允许上传图片随文本发送 (需要模型支持 Vision)。</small>
-                </div>
-                <!-- 新增: 启用思考过程显示复选框 -->
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="enableReasoning"> 启用思考过程显示
-                    </label>
-                    <small style="display: block; color: var(--timestamp-color);">如果模型支持，显示 AI 的思考过程。</small>
-                </div>
-
-                <hr style="margin: 20px 0; border-color: var(--border-color);">
-
-                <!-- Temperature Setting -->
-                <div class="form-group">
-                     <label class="checkbox-label">
-                         <input type="checkbox" id="enableTemperature"> 使用自定义 Temperature
-                     </label>
-                     <div class="slider-container" id="temperatureContainer">
-                        <label for="temperature">Temperature: <span class="range-value" id="temperatureValue">1.0</span></label>
-                        <input type="range" id="temperature" min="0" max="2" step="0.1" value="1.0">
-                        <small style="display: block; color: var(--timestamp-color);">控制随机性，值越高越随机。禁用则使用 API 默认值。</small>
-                     </div>
-                </div>
-
-                <!-- Max Tokens Setting -->
-                <div class="form-group">
-                     <label class="checkbox-label">
-                         <input type="checkbox" id="enableMaxTokens"> 使用自定义 Max Tokens
-                     </label>
-                    <div class="slider-container" id="maxTokensContainer">
-                        <label for="maxTokens">Max Tokens: <span class="range-value" id="maxTokensValue">4096</span></label>
-                        <input type="range" id="maxTokens" min="1" max="100000" step="1" value="4096">
-                         <small style="display: block; color: var(--timestamp-color);">限制单次回复的最大长度。禁用则使用 API 默认值。</small>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="historyLength">上下文消息数量: <span class="range-value" id="historyLengthValue">10</span></label>
-                    <input type="range" id="historyLength" min="0" max="50" step="1" value="10">
-                     <small style="display: block; color: var(--timestamp-color);">包括用户和AI的消息，0表示不发送历史。</small>
-                </div>
-
-                <hr style="margin: 20px 0; border-color: var(--border-color);">
-
-                <div class="form-group">
-                    <label>自定义请求体参数:</label>
-                    <div id="customParamsList">
-                        <!-- Custom param entries will be added here -->
-                    </div>
-                    <div style="display: flex; gap: 10px;">
-                         <input type="text" id="newParamKey" placeholder="参数 Key" style="flex: 1;">
-                         <input type="text" id="newParamValue" placeholder="参数 Value (JSON)" style="flex: 1;">
-                    </div>
-                    <button id="addParamBtn" style="margin-top: 10px;">添加参数</button>
-                     <small style="display: block; color: var(--timestamp-color);">Value 必须是有效的 JSON (例如 "string", 123, true)。</small>
-                </div>
-
-                <hr style="margin: 20px 0; border-color: var(--border-color);">
-
-                <div class="form-group">
-                    <label for="fontFamily">字体:</label>
-                    <select id="fontFamily">
-                        <option value="'Noto Sans SC', 'Microsoft YaHei', sans-serif">Noto Sans SC / Microsoft YaHei</option>
-                        <option value="'Arial', sans-serif">Arial</option>
-                        <option value="'Verdana', sans-serif">Verdana</option>
-                        <option value="'Times New Roman', serif">Times New Roman</option>
-                        <option value="'Courier New', monospace">Courier New (Monospace)</option>
-                         <option value="'Fira Code', 'Consolas', monospace">Fira Code (Monospace)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="fontSize">字体大小: <span class="range-value" id="fontSizeValue">16px</span></label>
-                    <input type="range" id="fontSize" min="10" max="24" step="1" value="16">
-                </div>
-
-            </div>
-            <div class="panel-actions">
-                <button id="saveSettingsBtn">保存设置</button>
-            </div>
-        </div>
-
-        <!-- Log Panel -->
-        <div id="log-panel" class="side-panel">
-            <div class="panel-header">
-                <h2>日志记录</h2>
-                <button class="close-panel-btn" id="closeLogsBtn">&times;</button>
-            </div>
-            <div class="panel-content">
-                <div id="log-entries">
-                    <!-- Log entries will be appended here -->
-                </div>
-            </div>
-             <div class="panel-actions">
-                 <button id="clearLogsBtn">清除日志</button>
             </div>
         </div>
     </div>
 
-    <!-- External JS Libraries -->
-    <!-- KaTeX -->
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
-    <!-- Highlight.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <!-- Marked.js -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- 设置面板 -->
+    <div class="panel" id="settings-panel">
+        <div class="panel-header">
+            <h2 class="panel-title">设置</h2>
+            <button class="close-panel" id="close-settings">&times;</button>
+        </div>
+        <div class="panel-body">
+            <div class="panel-section">
+                <h3 class="panel-section-title">API 配置</h3>
+                <div class="form-group">
+                    <label for="api-endpoint">API 地址</label>
+                    <input type="text" id="api-endpoint" class="form-control" placeholder="https://api.example.com/v1/chat/completions">
+                </div>
+                <div class="form-group">
+                    <label for="api-key">API Key</label>
+                    <input type="password" id="api-key" class="form-control" placeholder="sk-...">
+                </div>
+            </div>
 
-    <!-- Main Application JavaScript -->
+            <div class="panel-section">
+                <h3 class="panel-section-title">模型配置</h3>
+                <div class="model-configs" id="model-configs">
+                    <!-- 模型配置项将通过JS动态添加 -->
+                </div>
+                <button class="add-model-btn" id="add-model">+ 添加模型</button>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-section-title">生成设置</h3>
+                <div class="form-group">
+                    <label for="temperature">温度 (0.0 - 2.0)</label>
+                    <input type="range" id="temperature" class="form-control" min="0" max="2" step="0.1" value="0.7">
+                    <span id="temperature-value">0.7</span>
+                </div>
+                <div class="form-group">
+                    <label for="max-tokens">最大生成 Token</label>
+                    <input type="number" id="max-tokens" class="form-control" min="100" max="100000" value="2048">
+                </div>
+                <div class="form-group">
+                    <label for="max-context">上下文记忆条数</label>
+                    <input type="number" id="max-context" class="form-control" min="1" max="100" value="10">
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-section-title">功能开关</h3>
+                <div class="switch-wrapper">
+                    <span>流式回复</span>
+                    <label class="switch">
+                        <input type="checkbox" id="stream-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="switch-wrapper">
+                    <span>图像理解能力</span>
+                    <label class="switch">
+                        <input type="checkbox" id="vision-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="switch-wrapper">
+                    <span>显示思考过程</span>
+                    <label class="switch">
+                        <input type="checkbox" id="thinking-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-section-title">自定义请求参数</h3>
+                <div class="custom-params" id="custom-params">
+                    <!-- 参数项将通过JS动态添加 -->
+                </div>
+                <button class="add-param-btn" id="add-param">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="16"></line>
+                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                    </svg>
+                    添加参数
+                </button>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-section-title">界面设置</h3>
+                <div class="form-group">
+                    <label for="font-family">字体</label>
+                    <select id="font-family" class="form-control">
+                        <option value="'PingFang SC', 'Microsoft YaHei', sans-serif">默认</option>
+                        <option value="'Noto Sans SC', sans-serif">Noto Sans SC</option>
+                        <option value="'Source Han Sans CN', sans-serif">思源黑体</option>
+                        <option value="'Roboto', 'Microsoft YaHei', sans-serif">Roboto</option>
+                        <option value="'LXGW WenKai', serif">霞鹜文楷</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="font-size">字体大小</label>
+                    <input type="range" id="font-size" class="form-control" min="12" max="20" step="1" value="16">
+                    <span id="font-size-value">16px</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 日志面板 -->
+    <div class="panel" id="logs-panel">
+        <div class="panel-header">
+            <h2 class="panel-title">请求日志</h2>
+            <button class="close-panel" id="close-logs">&times;</button>
+        </div>
+        <div class="panel-body">
+            <div class="logs-container" id="logs-container">
+                <!-- 日志将通过JS动态添加 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 遮罩层 -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- 图片预览 -->
+    <div class="image-preview" id="image-preview">
+        <img id="preview-image" class="preview-image" src="" alt="预览图片">
+        <button class="close-preview" id="close-preview">&times;</button>
+    </div>
+
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- DOM Elements ---
-            const chatbox = document.getElementById('chatbox');
-            const userInput = document.getElementById('userInput');
-            const sendBtn = document.getElementById('sendBtn');
-            const settingsPanel = document.getElementById('settings-panel');
-            const logsPanel = document.getElementById('log-panel');
-            const toggleSettingsBtn = document.getElementById('toggleSettingsBtn');
-            const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-            const toggleLogsBtn = document.getElementById('toggleLogsBtn');
-            const closeLogsBtn = document.getElementById('closeLogsBtn');
-            const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-            const logEntries = document.getElementById('log-entries');
-            const clearLogsBtn = document.getElementById('clearLogsBtn');
-            const toggleThemeBtn = document.getElementById('toggleThemeBtn');
-            const clearChatBtn = document.getElementById('clearChatBtn'); // Clear Chat Button
+        // 全局变量
+        const state = {
+            messages: [],
+            imageAttachments: [],
+            selectedModel: null,
+            streamController: null,
+            pendingMessages: 0,
+            logs: []
+        };
 
-            // Settings Elements
-            const apiUrlInput = document.getElementById('apiUrl');
-            const apiKeyInput = document.getElementById('apiKey');
-            const modelListDiv = document.getElementById('modelList');
-            const newModelInput = document.getElementById('newModelInput');
-            const addModelBtn = document.getElementById('addModelBtn');
-            const selectedModelSelect = document.getElementById('selectedModel');
-            const streamResponseCheckbox = document.getElementById('streamResponse');
-            const enableImageSupportCheckbox = document.getElementById('enableImageSupport');
-            const enableReasoningCheckbox = document.getElementById('enableReasoning'); // 新增: 思考过程启用复选框
+        // DOM元素
+        const elements = {
+            chatMessages: document.getElementById('chat-messages'),
+            chatInput: document.getElementById('chat-input'),
+            sendButton: document.getElementById('send-message'),
+            uploadButton: document.getElementById('upload-image'),
+            imageInput: document.getElementById('image-input'),
+            toggleTheme: document.getElementById('toggle-theme'),
+            showSettings: document.getElementById('show-settings'),
+            showLogs: document.getElementById('show-logs'),
+            closeSettings: document.getElementById('close-settings'),
+            closeLogs: document.getElementById('close-logs'),
+            settingsPanel: document.getElementById('settings-panel'),
+            logsPanel: document.getElementById('logs-panel'),
+            overlay: document.getElementById('overlay'),
+            modelConfigs: document.getElementById('model-configs'),
+            addModel: document.getElementById('add-model'),
+            customParams: document.getElementById('custom-params'),
+            addParam: document.getElementById('add-param'),
+            logsContainer: document.getElementById('logs-container'),
+            streamToggle: document.getElementById('stream-toggle'),
+            visionToggle: document.getElementById('vision-toggle'),
+            thinkingToggle: document.getElementById('thinking-toggle'),
+            temperature: document.getElementById('temperature'),
+            temperatureValue: document.getElementById('temperature-value'),
+            maxTokens: document.getElementById('max-tokens'),
+            maxContext: document.getElementById('max-context'),
+            fontFamily: document.getElementById('font-family'),
+            fontSize: document.getElementById('font-size'),
+            fontSizeValue: document.getElementById('font-size-value'),
+            apiEndpoint: document.getElementById('api-endpoint'),
+            apiKey: document.getElementById('api-key'),
+            imagePreview: document.getElementById('image-preview'),
+            previewImage: document.getElementById('preview-image'),
+            closePreview: document.getElementById('close-preview')
+        };
 
-            // Temperature & Max Tokens Elements
-            const enableTemperatureCheckbox = document.getElementById('enableTemperature');
-            const temperatureContainer = document.getElementById('temperatureContainer');
-            const temperatureSlider = document.getElementById('temperature');
-            const temperatureValueSpan = document.getElementById('temperatureValue');
-            const enableMaxTokensCheckbox = document.getElementById('enableMaxTokens');
-            const maxTokensContainer = document.getElementById('maxTokensContainer');
-            const maxTokensSlider = document.getElementById('maxTokens');
-            const maxTokensValueSpan = document.getElementById('maxTokensValue');
-
-            const historyLengthSlider = document.getElementById('historyLength');
-            const historyLengthValueSpan = document.getElementById('historyLengthValue');
-            const customParamsListDiv = document.getElementById('customParamsList');
-            const newParamKeyInput = document.getElementById('newParamKey');
-            const newParamValueInput = document.getElementById('newParamValue');
-            const addParamBtn = document.getElementById('addParamBtn');
-            const fontFamilySelect = document.getElementById('fontFamily');
-            const fontSizeSlider = document.getElementById('fontSize');
-            const fontSizeValueSpan = document.getElementById('fontSizeValue');
-
-            // Image Upload Elements
-            const uploadImageBtn = document.getElementById('uploadImageBtn');
-            const imageInput = document.getElementById('imageInput');
-            const imagePreviewArea = document.getElementById('image-preview-area');
-            const imagePreviewList = document.getElementById('image-preview-list'); // Container for previews
-
-            // --- State Variables ---
-            let settings = {
-                apiUrl: '',
-                apiKey: '',
-                models: [], // Array of model name strings
-                selectedModel: '',
-                stream: true, // Default stream to true
-                enableImageSupport: false,
-                enableReasoning: false, // 新增: 默认禁用思考过程显示
-                enableTemperature: false, // Default disabled
-                temperature: 1.0,
-                enableMaxTokens: false, // Default disabled
-                maxTokens: 4096, // Default value
-                historyLength: 10,
-                customParams: {}, // Key-value pairs
-                fontFamily: "'Noto Sans SC', 'Microsoft YaHei', sans-serif",
-                fontSize: 16,
-                theme: 'light' // 'light' or 'dark'
-            };
-            let chatHistory = []; // Stores message objects { role: 'user'/'assistant', content: '...' or [{type: 'text', ...}, {type: 'image_url', ...}] }
-            let currentAIMessageElement = null; // For streaming updates
-            let currentAIContent = ''; // Accumulator for final content
-            let currentReasoningContent = ''; // Accumulator for reasoning content (added for thinking models)
-            let abortController = null; // To cancel fetch requests
-            let uploadedImages = []; // Store uploaded image data as { name: string, base64: string }
-
-            // --- Initialization ---
+        // 初始化
+        function init() {
+            // 加载设置
             loadSettings();
-            applySettings(); // Apply loaded settings to UI (sliders, checkboxes etc.)
-            updateModelsUI();
-            updateCustomParamsUI();
-            updateSelectedModelOptions(); // Populate dropdown initially
-            renderInitialMessages(); // Render any initial messages if needed
-            adjustTextareaHeight(); // Adjust textarea height initially
+            
+            // 创建初始模型配置
+            if (document.querySelectorAll('.model-config-item').length === 0) {
+                addModelConfig('gpt-4-turbo', 'GPT-4 Turbo');
+                addModelConfig('gpt-3.5-turbo', 'GPT-3.5 Turbo');
+            }
 
-            // --- Event Listeners ---
+            // 添加事件监听器
+            setupEventListeners();
 
-            // Panel Toggles
-            toggleSettingsBtn.addEventListener('click', () => settingsPanel.classList.add('open'));
-            closeSettingsBtn.addEventListener('click', () => settingsPanel.classList.remove('open'));
-            toggleLogsBtn.addEventListener('click', () => logsPanel.classList.add('open'));
-            closeLogsBtn.addEventListener('click', () => logsPanel.classList.remove('open'));
+            // 添加欢迎消息
+            addSystemMessage('欢迎使用自定义中转API AI对话助手！请在设置中配置您的API信息。');
+        }
 
-            // Settings Interactions
-            saveSettingsBtn.addEventListener('click', () => {
-                saveSettings();
-                applySettings(); // Apply immediately after saving
-                settingsPanel.classList.remove('open');
-                addLog('Info', 'Settings saved and applied.');
-                alert('设置已保存！');
-            });
-
-            addModelBtn.addEventListener('click', addModel);
-            modelListDiv.addEventListener('click', handleModelListActions); // Event delegation
-
-            addParamBtn.addEventListener('click', addCustomParam);
-            customParamsListDiv.addEventListener('click', handleCustomParamListActions); // Event delegation
-
-            // Temperature & Max Tokens Enable/Disable Logic
-            enableTemperatureCheckbox.addEventListener('change', toggleTemperatureControl);
-            enableMaxTokensCheckbox.addEventListener('change', toggleMaxTokensControl);
-
-            temperatureSlider.addEventListener('input', () => {
-                temperatureValueSpan.textContent = parseFloat(temperatureSlider.value).toFixed(1);
-                // No need to update settings.temperature here, saveSettings does it
-            });
-            maxTokensSlider.addEventListener('input', () => {
-                maxTokensValueSpan.textContent = maxTokensSlider.value;
-                // No need to update settings.maxTokens here, saveSettings does it
-            });
-            historyLengthSlider.addEventListener('input', () => {
-                historyLengthValueSpan.textContent = historyLengthSlider.value;
-                 // No need to update settings.historyLength here, saveSettings does it
-             });
-            streamResponseCheckbox.addEventListener('change', () => {
-                 // Update immediately for responsiveness? Or just on save? Let's wait for save.
-                 // settings.stream = streamResponseCheckbox.checked;
-            });
-             enableImageSupportCheckbox.addEventListener('change', () => {
-                 // Update immediately for responsiveness? Or just on save? Let's wait for save.
-                 // settings.enableImageSupport = enableImageSupportCheckbox.checked;
-                 uploadImageBtn.style.display = enableImageSupportCheckbox.checked ? 'flex' : 'none';
-                 if (!enableImageSupportCheckbox.checked) {
-                    clearImagePreviews(); // Clear previews if disabled
-                 }
-            });
-            enableReasoningCheckbox.addEventListener('change', () => {
-                // No immediate action needed, saveSettings will handle it
-            });
-            selectedModelSelect.addEventListener('change', () => {
-                 // settings.selectedModel = selectedModelSelect.value; // Wait for save
-            });
-
-            fontFamilySelect.addEventListener('input', () => {
-                settings.fontFamily = fontFamilySelect.value; // Apply font immediately
-                applyAppearanceSettings();
-            });
-            fontSizeSlider.addEventListener('input', () => {
-                settings.fontSize = parseInt(fontSizeSlider.value, 10);
-                fontSizeValueSpan.textContent = `${settings.fontSize}px`;
-                applyAppearanceSettings(); // Apply font size immediately
-            });
-
-            // Chat Input & Sending
-            sendBtn.addEventListener('click', sendMessage);
-            userInput.addEventListener('keydown', (e) => {
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 发送消息
+            elements.sendButton.addEventListener('click', sendMessage);
+            elements.chatInput.addEventListener('keydown', e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault(); // Prevent newline
+                    e.preventDefault();
                     sendMessage();
                 }
             });
-             userInput.addEventListener('input', adjustTextareaHeight); // Auto-resize textarea
 
-             // Image Upload (Multiple)
-            uploadImageBtn.addEventListener('click', () => {
-                if (settings.enableImageSupport) {
-                    imageInput.click();
-                } else {
-                    alert('请先在设置中启用图片理解功能。');
+            // 上传图片
+            elements.uploadButton.addEventListener('click', () => elements.imageInput.click());
+            elements.imageInput.addEventListener('change', handleImageUpload);
+
+            // 主题切换
+            elements.toggleTheme.addEventListener('click', toggleTheme);
+
+            // 设置面板
+            elements.showSettings.addEventListener('click', () => togglePanel(elements.settingsPanel));
+            elements.closeSettings.addEventListener('click', () => togglePanel(elements.settingsPanel));
+
+            // 日志面板
+            elements.showLogs.addEventListener('click', () => togglePanel(elements.logsPanel));
+            elements.closeLogs.addEventListener('click', () => togglePanel(elements.logsPanel));
+
+            // 遮罩层
+            elements.overlay.addEventListener('click', () => {
+                closeAllPanels();
+            });
+
+            // 添加模型
+            elements.addModel.addEventListener('click', () => addModelConfig());
+
+            // 添加参数
+            elements.addParam.addEventListener('click', addCustomParam);
+
+            // 滑块值更新
+            elements.temperature.addEventListener('input', () => {
+                elements.temperatureValue.textContent = elements.temperature.value;
+            });
+
+            elements.fontSize.addEventListener('input', () => {
+                const size = elements.fontSize.value;
+                elements.fontSizeValue.textContent = `${size}px`;
+                document.documentElement.style.setProperty('--font-size', `${size}px`);
+                saveSettings();
+            });
+
+            // 图片预览
+            elements.closePreview.addEventListener('click', closeImagePreview);
+            document.addEventListener('click', e => {
+                if (e.target.classList.contains('image-attachment')) {
+                    showImagePreview(e.target.src);
                 }
             });
-            imageInput.addEventListener('change', handleImageUpload);
-            // Remove button logic handled via event delegation on imagePreviewList
+        }
 
-            // Log Panel
-            clearLogsBtn.addEventListener('click', () => {
-                logEntries.innerHTML = '';
-                addLog('Info', 'Logs cleared.');
-            });
-
-            // Theme Toggle
-            toggleThemeBtn.addEventListener('click', toggleTheme);
-
-            // Clear Chat
-            clearChatBtn.addEventListener('click', clearConversation);
-
-            // Copy Button Event Delegation (for messages)
-            chatbox.addEventListener('click', handleChatboxClick);
-
-            // --- Core Functions ---
-
-             function renderInitialMessages() {
-                 // If chatHistory was loaded from somewhere (not implemented here)
-                 // or for the initial welcome message
-                 chatbox.innerHTML = ''; // Clear placeholder
-                 if (chatHistory.length === 0) {
-                     displayMessage("你好！请先在“设置”中配置您的 API 信息。如果需要发送图片，请确保模型支持 Vision 功能。", 'assistant');
-                 } else {
-                     // Render existing history (if loaded)
-                     chatHistory.forEach(msg => {
-                         // Need to handle potential complex content format if loaded
-                         if (typeof msg.content === 'string') {
-                             displayMessage(msg.content, msg.role);
-                         } else if (Array.isArray(msg.content)) {
-                             const textContent = msg.content.find(part => part.type === 'text')?.text || '';
-                             const images = msg.content.filter(part => part.type === 'image_url').map(part => part.image_url.url);
-                             displayMessage(textContent, msg.role, images); // Pass array of base64
-                         }
-                     });
-                 }
-                 hljs.highlightAll(); // Apply highlighting to initial messages if any
-             }
-
-            function adjustTextareaHeight() {
-                userInput.style.height = 'auto'; // Reset height
-                // Use scrollHeight, but add a small buffer or use max function to prevent slight cutoffs
-                const newHeight = Math.max(userInput.scrollHeight, 40); // Ensure min height
-                userInput.style.height = newHeight + 'px';
-            }
-
-            function handleImageUpload(event) {
-                const files = event.target.files;
-                if (!files || files.length === 0) {
-                    return;
-                }
-
-                const imagePromises = [];
-                const maxImages = 10; // Limit number of images user can upload at once
-
-                for (let i = 0; i < Math.min(files.length, maxImages); i++) {
-                    const file = files[i];
-                    if (file.type.startsWith('image/')) {
-                        imagePromises.push(
-                            new Promise((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                    // Check size (optional, e.g., limit to 5MB)
-                                    // if (reader.result.length > 5 * 1024 * 1024) {
-                                    //    reject(`Image ${file.name} is too large.`);
-                                    //    return;
-                                    // }
-                                    resolve({ name: file.name, base64: reader.result });
-                                };
-                                reader.onerror = (error) => reject(error);
-                                reader.readAsDataURL(file);
-                            })
-                        );
+        // 加载设置
+        function loadSettings() {
+            try {
+                const savedSettings = localStorage.getItem('ai-chat-settings');
+                if (savedSettings) {
+                    const settings = JSON.parse(savedSettings);
+                    
+                    // 应用设置
+                    elements.apiEndpoint.value = settings.apiEndpoint || '';
+                    elements.apiKey.value = settings.apiKey || '';
+                    elements.temperature.value = settings.temperature || 0.7;
+                    elements.temperatureValue.textContent = settings.temperature || 0.7;
+                    elements.maxTokens.value = settings.maxTokens || 2048;
+                    elements.maxContext.value = settings.maxContext || 10;
+                    elements.streamToggle.checked = settings.streamEnabled !== false;
+                    elements.visionToggle.checked = settings.visionEnabled || false;
+                    settings.thinkingEnabled = settings.thinkingEnabled || false;
+                    
+                    // 字体设置
+                    if (settings.fontFamily) {
+                        elements.fontFamily.value = settings.fontFamily;
+                        document.documentElement.style.setProperty('--font-main', settings.fontFamily);
+                    }
+                    
+                    if (settings.fontSize) {
+                        elements.fontSize.value = settings.fontSize;
+                        elements.fontSizeValue.textContent = `${settings.fontSize}px`;
+                        document.documentElement.style.setProperty('--font-size', `${settings.fontSize}px`);
+                    }
+                    
+                    // 主题
+                    if (settings.darkTheme) {
+                        document.body.classList.add('dark-theme');
+                    }
+                    
+                    // 加载模型配置
+                    if (settings.models && settings.models.length > 0) {
+                        elements.modelConfigs.innerHTML = '';
+                        settings.models.forEach(model => {
+                            addModelConfig(model.id, model.name);
+                        });
+                    }
+                    
+                    // 加载自定义参数
+                    if (settings.customParams && settings.customParams.length > 0) {
+                        elements.customParams.innerHTML = '';
+                        settings.customParams.forEach(param => {
+                            addCustomParam(param.key, param.value);
+                        });
                     }
                 }
-
-                 if (files.length > maxImages) {
-                     alert(`最多只能同时上传 ${maxImages} 张图片。`);
-                 }
-
-                Promise.all(imagePromises)
-                    .then(newImages => {
-                        uploadedImages = uploadedImages.concat(newImages); // Add new images
-                        renderImagePreviews();
-                        // Clear file input value to allow re-uploading the same file(s)
-                        imageInput.value = '';
-                    })
-                    .catch(error => {
-                        console.error("Error reading images:", error);
-                        alert(`读取图片时出错: ${error}`);
-                        imageInput.value = ''; // Clear input even on error
-                    });
+            } catch (error) {
+                console.error('加载设置失败:', error);
             }
+        }
 
-            function renderImagePreviews() {
-                imagePreviewList.innerHTML = ''; // Clear existing previews
-                if (uploadedImages.length > 0) {
-                    uploadedImages.forEach((imgData, index) => {
-                        const container = document.createElement('div');
-                        container.className = 'preview-image-container';
-
-                        const img = document.createElement('img');
-                        img.src = imgData.base64;
-                        img.alt = `Preview ${index + 1}`;
-                        img.title = imgData.name; // Show filename on hover
-
-                        const removeBtn = document.createElement('button');
-                        removeBtn.className = 'remove-preview-btn';
-                        removeBtn.textContent = 'X';
-                        removeBtn.title = '移除此图片';
-                        removeBtn.dataset.index = index; // Store index to remove
-                        removeBtn.onclick = (e) => {
-                             const indexToRemove = parseInt(e.target.dataset.index, 10);
-                             removePreviewImage(indexToRemove);
-                        };
-
-                        container.appendChild(img);
-                        container.appendChild(removeBtn);
-                        imagePreviewList.appendChild(container);
-                    });
-                    imagePreviewArea.style.display = 'block';
-                } else {
-                    imagePreviewArea.style.display = 'none';
-                }
-            }
-
-            function removePreviewImage(index) {
-                if (index >= 0 && index < uploadedImages.length) {
-                    uploadedImages.splice(index, 1); // Remove image from array
-                    renderImagePreviews(); // Re-render the preview list
-                }
-            }
-
-            function clearImagePreviews() {
-                 uploadedImages = [];
-                 renderImagePreviews();
-                 imageInput.value = ''; // Clear file input
-            }
-
-            function sendMessage() {
-                const userText = userInput.value.trim();
-
-                if (!userText && uploadedImages.length === 0) {
-                    return; // Don't send empty messages
-                }
-                 if (uploadedImages.length > 0 && !settings.enableImageSupport) {
-                     alert('图片已选择，但未在设置中启用图片理解。请启用或移除图片。');
-                     return;
-                 }
-                 if (!settings.apiUrl || !settings.apiKey) {
-                     alert('请先在设置中配置 API URL 和 API Key！');
-                     return;
-                 }
-                 if (!settings.selectedModel) {
-                     alert('请先在设置中添加并选择一个模型！');
-                     return;
-                 }
-
-                // --- Prepare User Message Content (OpenAI Vision format) ---
-                let userMessageContent = [];
-                if (userText) {
-                    userMessageContent.push({ type: "text", text: userText });
-                }
-                if (uploadedImages.length > 0 && settings.enableImageSupport) {
-                     uploadedImages.forEach(imgData => {
-                         userMessageContent.push({
-                             type: "image_url",
-                             image_url: {
-                                 // Remove the "data:image/...;base64," prefix if API requires pure base64
-                                 // url: imgData.base64.split(',')[1]
-                                 // Keep Data URI for broader compatibility unless API specifies otherwise
-                                 url: imgData.base64
-                                 // OpenAI also supports 'detail': 'low'/'high'/'auto' (optional)
-                                 // detail: 'auto'
-                             }
-                         });
-                     });
-                }
-
-                // If only image(s) are sent, add placeholder text for display
-                const displayUserText = userText || (uploadedImages.length > 0 ? `[用户发送了 ${uploadedImages.length} 张图片]` : "");
-                const displayImages = uploadedImages.map(img => img.base64); // Get base64 for display
-
-                displayMessage(displayUserText, 'user', displayImages); // Display user message with images
-                chatHistory.push({ role: 'user', content: userMessageContent }); // Add structured content to history
-
-                // Clear input and image previews
-                userInput.value = '';
-                adjustTextareaHeight();
-                clearImagePreviews(); // Use the clearing function
-
-                // Disable input while waiting
-                sendBtn.disabled = true;
-                userInput.disabled = true;
-                uploadImageBtn.disabled = true;
-
-                // Prepare API request body
-                const requestBody = {
-                    model: settings.selectedModel,
-                    messages: getHistoryContext(),
-                    stream: settings.stream,
-                    // Add other custom parameters from settings
-                     ...settings.customParams
+        // 保存设置
+        function saveSettings() {
+            try {
+                // 获取模型配置
+                const modelItems = document.querySelectorAll('.model-config-item');
+                const models = Array.from(modelItems).map(item => {
+                    const idInput = item.querySelector('[data-type="model-id"]');
+                    const nameInput = item.querySelector('[data-type="model-name"]');
+                    return {
+                        id: idInput.value,
+                        name: nameInput.value
+                    };
+                });
+                
+                // 获取自定义参数
+                const paramItems = document.querySelectorAll('.param-item');
+                const customParams = Array.from(paramItems).map(item => {
+                    const keyInput = item.querySelector('[data-type="param-key"]');
+                    const valueInput = item.querySelector('[data-type="param-value"]');
+                    return {
+                        key: keyInput.value,
+                        value: valueInput.value
+                    };
+                });
+                
+                // 创建设置对象
+                const settings = {
+                    apiEndpoint: elements.apiEndpoint.value,
+                    apiKey: elements.apiKey.value,
+                    temperature: elements.temperature.value,
+                    maxTokens: elements.maxTokens.value,
+                    maxContext: elements.maxContext.value,
+                    streamEnabled: elements.streamToggle.checked,
+                    visionEnabled: elements.visionToggle.checked,
+                    thinkingEnabled: elements.thinkingToggle.checked,
+                    fontFamily: elements.fontFamily.value,
+                    fontSize: elements.fontSize.value,
+                    darkTheme: document.body.classList.contains('dark-theme'),
+                    models,
+                    customParams
                 };
+                
+                // 保存到本地存储
+                localStorage.setItem('ai-chat-settings', JSON.stringify(settings));
+            } catch (error) {
+                console.error('保存设置失败:', error);
+            }
+        }
 
-                 // Conditionally add temperature and max_tokens
-                 if (settings.enableTemperature) {
-                     requestBody.temperature = settings.temperature;
-                 }
-                 if (settings.enableMaxTokens) {
-                     requestBody.max_tokens = settings.maxTokens;
-                 }
+        // 切换主题
+        function toggleTheme() {
+            document.body.classList.toggle('dark-theme');
+            saveSettings();
+        }
 
-                addLog('Request', requestBody);
+        // 切换面板
+        function togglePanel(panel) {
+            const isOpen = panel.classList.contains('open');
+            
+            closeAllPanels();
+            
+            if (!isOpen) {
+                panel.classList.add('open');
+                elements.overlay.classList.add('active');
+            }
+        }
 
-                // Create a new AbortController for this request
-                abortController = new AbortController();
-                const signal = abortController.signal;
+        // 关闭所有面板
+        function closeAllPanels() {
+            elements.settingsPanel.classList.remove('open');
+            elements.logsPanel.classList.remove('open');
+            elements.overlay.classList.remove('active');
+        }
 
-                // --- Make API Call ---
-                fetch(settings.apiUrl, {
+        // 添加模型配置
+        function addModelConfig(id = '', name = '') {
+            const modelItem = document.createElement('div');
+            modelItem.className = 'model-config-item';
+            modelItem.innerHTML = `
+                <div class="model-header">
+                    <div class="model-title">模型配置</div>
+                    <button class="remove-model">删除</button>
+                </div>
+                <div class="form-group">
+                    <label>模型 ID</label>
+                    <input type="text" class="form-control" data-type="model-id" placeholder="gpt-4-turbo" value="${id}">
+                </div>
+                <div class="form-group">
+                    <label>模型名称</label>
+                    <input type="text" class="form-control" data-type="model-name" placeholder="GPT-4 Turbo" value="${name}">
+                </div>
+            `;
+            
+            const removeButton = modelItem.querySelector('.remove-model');
+            removeButton.addEventListener('click', () => {
+                modelItem.remove();
+                saveSettings();
+            });
+            
+            const inputs = modelItem.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('change', saveSettings);
+            });
+            
+            elements.modelConfigs.appendChild(modelItem);
+            saveSettings();
+        }
+
+        // 添加自定义参数
+        function addCustomParam(key = '', value = '') {
+            const paramItem = document.createElement('div');
+            paramItem.className = 'param-item';
+            paramItem.innerHTML = `
+                <input type="text" class="form-control" data-type="param-key" placeholder="参数名" value="${key}">
+                <input type="text" class="form-control" data-type="param-value" placeholder="参数值" value="${value}">
+                <button class="remove-param">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            `;
+            
+            const removeButton = paramItem.querySelector('.remove-param');
+            removeButton.addEventListener('click', () => {
+                paramItem.remove();
+                saveSettings();
+            });
+            
+            const inputs = paramItem.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('change', saveSettings);
+            });
+            
+            elements.customParams.appendChild(paramItem);
+            saveSettings();
+        }
+
+        // 处理图片上传
+        function handleImageUpload(e) {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+
+            state.imageAttachments = [];
+            Array.from(files).forEach(file => {
+                if (!file.type.startsWith('image/')) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64Data = e.target.result;
+                    state.imageAttachments.push({
+                        data: base64Data,
+                        filename: file.name
+                    });
+                    
+                    // 显示上传提示
+                    const uploadCount = state.imageAttachments.length;
+                    addSystemMessage(`已上传 ${uploadCount} 张图片，将随下一条消息一起发送`);
+                    elements.visionToggle.checked = true;
+                    saveSettings();
+                };
+                reader.readAsDataURL(file);
+            });
+            
+            // 重置文件输入
+            e.target.value = '';
+        }
+
+        // 发送消息
+        async function sendMessage() {
+            const message = elements.chatInput.value.trim();
+            if (message === '' && state.imageAttachments.length === 0) return;
+            
+            // 检查设置
+            if (!elements.apiEndpoint.value || !elements.apiKey.value) {
+                addSystemMessage('请先在设置中配置 API 地址和 API Key');
+                togglePanel(elements.settingsPanel);
+                return;
+            }
+            
+            // 获取选择的模型
+            const modelConfigs = document.querySelectorAll('.model-config-item');
+            if (modelConfigs.length === 0) {
+                addSystemMessage('请至少添加一个模型配置');
+                togglePanel(elements.settingsPanel);
+                return;
+            }
+            
+            const selectedModelId = modelConfigs[0].querySelector('[data-type="model-id"]').value;
+            if (!selectedModelId) {
+                addSystemMessage('请设置有效的模型 ID');
+                togglePanel(elements.settingsPanel);
+                return;
+            }
+            
+            // 添加用户消息到聊天
+            addUserMessage(message, state.imageAttachments);
+            elements.chatInput.value = '';
+            state.pendingMessages++;
+            updateSendButtonState();
+            
+            // 构建请求数据
+            let content = [];
+            
+            // 添加文本内容
+            if (message) {
+                content.push({
+                    type: "text",
+                    text: message
+                });
+            }
+            
+            // 添加图像内容（如果开启图像理解能力）
+            if (elements.visionToggle.checked && state.imageAttachments.length > 0) {
+                state.imageAttachments.forEach(image => {
+                    content.push({
+                        type: "image_url",
+                        image_url: {
+                            url: image.data
+                        }
+                    });
+                });
+            }
+            
+            // 构建消息历史
+            const messageHistory = getMessageHistory();
+            
+            // 构建请求主体
+            let requestBody = {
+                model: selectedModelId,
+                messages: messageHistory.concat([
+                    {
+                        role: "user",
+                        content: content
+                    }
+                ]),
+                temperature: parseFloat(elements.temperature.value),
+                max_tokens: parseInt(elements.maxTokens.value),
+                stream: elements.streamToggle.checked
+            };
+            
+            // 添加自定义参数
+            const customParams = document.querySelectorAll('.param-item');
+            if (customParams.length > 0) {
+                Array.from(customParams).forEach(param => {
+                    const key = param.querySelector('[data-type="param-key"]').value;
+                    const value = param.querySelector('[data-type="param-value"]').value;
+                    
+                    if (key && value) {
+                        // 尝试将值转换为合适的类型
+                        try {
+                            requestBody[key] = JSON.parse(value);
+                        } catch (e) {
+                            requestBody[key] = value;
+                        }
+                    }
+                });
+            }
+            
+            // 日志记录请求
+            const logId = addLog('发送请求', requestBody);
+            
+            try {
+                // 发送请求
+                const aiMessage = addAIMessage('');
+                
+                if (elements.streamToggle.checked) {
+                    streamResponse(requestBody, aiMessage, logId);
+                } else {
+                    const response = await sendRequest(requestBody);
+                    updateLogResponse(logId, response);
+                    
+                    if (response.error) {
+                        throw new Error(response.error.message || '请求失败');
+                    }
+                    
+                    const aiResponse = response.choices[0].message.content;
+                    updateAIMessage(aiMessage, aiResponse);
+                    
+                    if (elements.thinkingToggle.checked && response.choices[0].thinking) {
+                        addThinkingProcess(aiMessage, response.choices[0].thinking);
+                    }
+                }
+            } catch (error) {
+                console.error('API 请求失败:', error);
+                addSystemMessage(`API 请求失败: ${error.message}`);
+                updateLogError(logId, error.message);
+            } finally {
+                // 清除图片附件
+                state.imageAttachments = [];
+                state.pendingMessages--;
+                updateSendButtonState();
+            }
+        }
+
+        // 流式响应处理
+        async function streamResponse(requestBody, aiMessage, logId) {
+            try {
+                // 创建控制器
+                if (state.streamController) {
+                    state.streamController.abort();
+                }
+                state.streamController = new AbortController();
+                
+                // 创建请求
+                const response = await fetch(elements.apiEndpoint.value, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${settings.apiKey}`
+                        'Authorization': `Bearer ${elements.apiKey.value}`
                     },
                     body: JSON.stringify(requestBody),
-                    signal: signal // Pass the signal to fetch
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        // Try to read error body for more details
-                        return response.json().then(err => {
-                            const errorMsg = err.error?.message || JSON.stringify(err);
-                            addLog('Error Response Body', err); // Log the full error
-                            throw new Error(`HTTP error! status: ${response.status}, message: ${errorMsg}`);
-                        }).catch((parseError) => {
-                             // If error body is not JSON or empty, or parsing failed
-                             addLog('Error Response Status', { status: response.status, statusText: response.statusText });
-                             throw new Error(`HTTP error! status: ${response.status} ${response.statusText}. Could not parse error body.`);
-                        });
-                    }
-
-                    if (settings.stream && response.body) {
-                        // Handle streaming response
-                        handleStreamResponse(response.body);
-                    } else {
-                        // Handle non-streaming response
-                        return response.json().then(data => {
-                            addLog('Response (Full)', data);
-                            // Handle potential variations in response structure
-                            const message = data.choices && data.choices[0]?.message;
-                            const aiContent = message?.content;
-
-                            if (aiContent) {
-                                displayMessage(aiContent, 'assistant');
-                                chatHistory.push({ role: 'assistant', content: aiContent });
-                            } else {
-                                console.warn("No content found in non-streaming response:", data);
-                                addLog('Warning', 'No content found in non-streaming response.');
-                                // Display a generic message or nothing?
-                                // displayMessage("[API returned empty response]", 'error');
-                            }
-                            resetUIAfterResponse();
-                        });
-                    }
-                })
-                .catch(error => {
-                    if (error.name === 'AbortError') {
-                        addLog('Info', 'API request cancelled by user.');
-                        // Optionally display a message in chat?
-                        // displayMessage('请求已取消。', 'error');
-                    } else {
-                         console.error('API Call Error:', error);
-                         addLog('Error', { message: error.message, stack: error.stack });
-                         // Display a user-friendly error in the chat
-                         displayMessage(`抱歉，请求失败： ${error.message}`, 'error');
-                    }
-                    resetUIAfterResponse(); // Always re-enable UI on error/abort
+                    signal: state.streamController.signal
                 });
-            }
-
-            function handleStreamResponse(responseBody) {
-                // Create placeholder message element for AI response
-                currentAIMessageElement = createMessageElement('', 'assistant');
-                chatbox.appendChild(currentAIMessageElement);
-                scrollToBottom();
-                currentAIContent = ''; // Reset content accumulator for final answer
-                currentReasoningContent = ''; // Reset content accumulator for reasoning (added for thinking models)
-
-                const reader = responseBody.getReader();
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || `请求失败: ${response.status}`);
+                }
+                
+                const reader = response.body.getReader();
                 const decoder = new TextDecoder();
-                let buffer = '';
-
-                function processStream() {
-                    reader.read().then(({ done, value }) => {
-                        if (done) {
-                            addLog('Response (Stream End)', { fullContent: currentAIContent, reasoningContent: currentReasoningContent });
-                            finalizeStream();
-                            return;
-                        }
-
-                        buffer += decoder.decode(value, { stream: true });
-                        // Process Server-Sent Events (SSE) lines
-                        let lines = buffer.split('\n');
-                        // Keep the last potentially incomplete line in the buffer
-                        buffer = lines.pop() || '';
-
-                        lines.forEach(line => {
-                            line = line.trim(); // Trim whitespace
-                            if (line.startsWith('data: ')) {
-                                const dataContent = line.substring(6).trim();
-                                if (dataContent === '[DONE]') {
-                                    // Stream finished signal from OpenAI
-                                    // We rely on reader.read() done signal primarily
-                                    return;
+                let responseText = '';
+                let allChunks = '';
+                let thinkingProcess = '';
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    allChunks += chunk;
+                    
+                    // 处理SSE格式
+                    const lines = chunk.split('\n');
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.substring(6);
+                            
+                            // 检查是否结束信号
+                            if (data === '[DONE]') continue;
+                            
+                            try {
+                                const json = JSON.parse(data);
+                                
+                                // 提取思考过程（如果有）
+                                if (elements.thinkingToggle.checked && 
+                                    json.choices && 
+                                    json.choices[0] && 
+                                    json.choices[0].thinking) {
+                                    thinkingProcess = json.choices[0].thinking;
                                 }
-                                try {
-                                    const chunk = JSON.parse(dataContent);
-                                    // Look for content delta in various possible locations
-                                    if (settings.enableReasoning) { // 修正: 仅在启用时处理 reasoning_content
-                                        const reasoningDelta = chunk.choices && chunk.choices[0]?.delta?.reasoning_content;
-                                        if (reasoningDelta !== undefined) {
-                                            currentReasoningContent += reasoningDelta; // Accumulate reasoning content
-                                        }
-                                    }
-                                    const contentDelta = chunk.choices && chunk.choices[0]?.delta?.content;
-                                    if (contentDelta !== undefined) {
-                                        currentAIContent += contentDelta; // Accumulate final content
-                                    }
-
-                                    // Update the UI with combined content
-                                    let fullContent = "";
-                                    if (settings.enableReasoning && currentReasoningContent) {
-                                        fullContent += "**思考过程：**\n" + currentReasoningContent + "\n\n";
-                                    }
-                                    if (currentAIContent) {
-                                        fullContent += "**最终回答：**\n" + currentAIContent;
-                                    }
-                                    updateAIMessageContent(fullContent);
-
-                                } catch (e) {
-                                    // Ignore empty data lines or lines that are not valid JSON
-                                    if (dataContent && dataContent !== '{}') {
-                                        console.warn('Failed to parse stream chunk:', dataContent, e);
-                                        addLog('Warning', `Stream parse error: ${e.message} on data: ${dataContent}`);
-                                    }
+                                
+                                // 提取内容
+                                if (json.choices && 
+                                    json.choices[0] && 
+                                    json.choices[0].delta && 
+                                    json.choices[0].delta.content) {
+                                    const content = json.choices[0].delta.content;
+                                    responseText += content;
+                                    updateAIMessage(aiMessage, responseText);
                                 }
-                            } else if (line) {
-                                // Handle non-SSE lines if necessary (e.g., some APIs might send plain text chunks)
-                                // console.log("Received non-SSE line:", line);
+                            } catch (e) {
+                                console.error('解析流式数据失败:', e);
                             }
-                        });
-                         scrollToBottom(); // Scroll as content arrives
-                        processStream(); // Continue reading
-                    }).catch(error => {
-                         if (error.name === 'AbortError') {
-                            addLog('Info', 'Stream reading cancelled.');
-                            // Message was already added, finalize might add partial content
-                         } else {
-                             console.error('Stream reading error:', error);
-                             addLog('Error', `Stream read error: ${error.message}`);
-                             displayMessage(`流式读取错误: ${error.message}`, 'error');
-                         }
-                        finalizeStream(); // Finalize even on error to save what we have
-                    });
-                }
-                processStream();
-            }
-
-             function updateAIMessageContent(content) {
-                 if (currentAIMessageElement) {
-                     const contentDiv = currentAIMessageElement.querySelector('.message-content');
-                     if (contentDiv) {
-                         try {
-                             // Use marked to parse Markdown, then set innerHTML
-                             // Marked sanitizes by default, which is good.
-                             contentDiv.innerHTML = marked.parse(content);
-                             // Re-apply syntax highlighting and KaTeX rendering after update
-                             renderRichContent(contentDiv);
-                         } catch (e) {
-                             console.error("Error updating AI message content:", e);
-                             contentDiv.textContent = content; // Fallback to plain text
-                         }
-                     }
-                 }
-             }
-
-            function finalizeStream() {
-                let fullContentFinal = "";
-                if (settings.enableReasoning && currentReasoningContent) { // 修正: 仅在启用时包含思考过程
-                    fullContentFinal += "**思考过程：**\n" + currentReasoningContent + "\n\n";
-                }
-                if (currentAIContent) {
-                    fullContentFinal += "**最终回答：**\n" + currentAIContent;
-                }
-                if (fullContentFinal) {
-                     // Add the complete message to history with combined content
-                     chatHistory.push({ role: 'assistant', content: fullContentFinal });
-                }
-                 // Ensure final rendering pass on the completed message
-                 if (currentAIMessageElement) {
-                      const contentDiv = currentAIMessageElement.querySelector('.message-content');
-                      if (contentDiv) {
-                          renderRichContent(contentDiv); // Final render pass
-                          // Ensure the copy button gets the final content
-                          const copyBtn = currentAIMessageElement.querySelector('.message-copy-button');
-                          if (copyBtn) {
-                             copyBtn.dataset.clipboardText = contentDiv.textContent; // Update text for copy
-                          }
-                      }
-                 }
-                currentAIMessageElement = null;
-                currentAIContent = '';
-                currentReasoningContent = ''; // Reset reasoning content accumulator
-                resetUIAfterResponse();
-                scrollToBottom();
-                 // Clean up abort controller
-                 abortController = null;
-            }
-
-            function resetUIAfterResponse() {
-                sendBtn.disabled = false;
-                userInput.disabled = false;
-                // Re-enable upload button based on settings, not just unconditionally
-                uploadImageBtn.disabled = !settings.enableImageSupport;
-                uploadImageBtn.style.display = settings.enableImageSupport ? 'flex' : 'none';
-                abortController = null; // Reset abort controller
-            }
-
-            function getHistoryContext() {
-                 const history = chatHistory.slice(-settings.historyLength); // Get last N messages
-                 // Map directly, format is already correct for text and vision messages
-                 return history;
-            }
-
-             // Modified displayMessage to handle an array of images for user messages
-             function displayMessage(text, role, imagesBase64 = []) {
-                 const messageElement = createMessageElement(text, role, imagesBase64);
-                 chatbox.appendChild(messageElement);
-                 // Render content AFTER appending to DOM
-                 renderRichContent(messageElement.querySelector('.message-content'));
-                 scrollToBottom();
-             }
-
-             // Modified createMessageElement to handle an array of images
-            function createMessageElement(text, role, imagesBase64 = []) {
-                const messageDiv = document.createElement('div');
-                messageDiv.classList.add('message', `${role}-message`);
-                 if (role === 'error') { // Add specific class for error styling if needed
-                    messageDiv.classList.add('error-message'); // You might need CSS for .error-message
-                    messageDiv.style.backgroundColor = 'var(--error-color)'; // Basic error styling
-                    messageDiv.style.color = '#fff';
-                 }
-
-                const contentDiv = document.createElement('div');
-                contentDiv.classList.add('message-content');
-
-                // Add copy button for the entire message (user or AI)
-                const copyButton = document.createElement('button');
-                copyButton.className = 'message-copy-button';
-                copyButton.innerHTML = '&#x1F4CB;'; // Clipboard icon
-                copyButton.title = '复制消息文本';
-                // Store text content directly for reliable copying
-                copyButton.dataset.clipboardText = text || "";
-                messageDiv.appendChild(copyButton);
-
-                 try {
-                     // Use Marked.js to parse Markdown content safely
-                     contentDiv.innerHTML = marked.parse(text || ""); // Handle potential null/empty text
-                 } catch (e) {
-                     console.error("Marked parsing error:", e);
-                     contentDiv.textContent = text || ""; // Fallback to plain text
-                 }
-
-                // Add images if provided (mainly for user messages)
-                if (Array.isArray(imagesBase64) && imagesBase64.length > 0 && role === 'user') {
-                    const grid = document.createElement('div');
-                    grid.className = 'user-image-grid';
-                    imagesBase64.forEach(base64 => {
-                        const img = document.createElement('img');
-                        img.src = base64;
-                        img.alt = "用户上传的图片";
-                        // Optional: Add click to enlarge functionality later
-                        grid.appendChild(img);
-                    });
-                    contentDiv.appendChild(grid); // Append image grid after text content
-                }
-
-                const timestampDiv = document.createElement('div');
-                timestampDiv.classList.add('message-timestamp');
-                timestampDiv.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                messageDiv.appendChild(contentDiv);
-                messageDiv.appendChild(timestampDiv);
-
-                return messageDiv;
-            }
-
-             function renderRichContent(element) {
-                 if (!element) return;
-
-                 // --- Render LaTeX Math using KaTeX ---
-                 // Replace block math first (e.g., $$...$$) - Marked might create divs/pre for this
-                 // A more robust approach might involve custom Marked renderers
-                 element.innerHTML = element.innerHTML.replace(/\$\$([\s\S]*?)\$\$/g, (match, capture) => {
-                     try {
-                         return katex.renderToString(capture.trim(), { throwOnError: false, displayMode: true });
-                     } catch (e) {
-                         console.error("KaTeX block rendering error:", e);
-                         return `<span style="color:var(--error-color);">[Math Error: ${e.message}]</span>`;
-                     }
-                 });
-
-                 // Replace inline math (e.g., $...$) AFTER block math
-                 element.innerHTML = element.innerHTML.replace(/(?<!\$)\$([^$]+?)\$/g, (match, capture) => {
-                     // Avoid matching escaped dollars or already processed math
-                     if (capture.includes('$')) return match; // Basic check for nested/unmatched
-                     try {
-                         return katex.renderToString(capture.trim(), { throwOnError: false, displayMode: false });
-                     } catch (e) {
-                         console.error("KaTeX inline rendering error:", e);
-                          return `<span style="color:var(--error-color); font-family: monospace;">[Math Error]</span>`;
-                     }
-                 });
-
-                 // --- Apply Syntax Highlighting using highlight.js ---
-                 element.querySelectorAll('pre code').forEach((block) => {
-                     // Ensure parent <pre> is styled for positioning
-                     const preElement = block.closest('pre');
-                     if (preElement) {
-                         preElement.style.position = 'relative'; // Needed for copy button
-
-                         // Add code block copy button if not already present
-                         if (!preElement.querySelector('.copy-code-button')) {
-                             const copyCodeButton = document.createElement('button');
-                             copyCodeButton.className = 'copy-code-button';
-                             copyCodeButton.textContent = 'Copy';
-                             copyCodeButton.title = '复制代码块';
-                             copyCodeButton.dataset.clipboardText = block.textContent; // Store text
-                             // Insert button inside the <pre> tag, but ideally before <code> for layout
-                             preElement.insertBefore(copyCodeButton, block);
-                         } else {
-                             // Update text content for existing button if content changed
-                             const copyCodeButton = preElement.querySelector('.copy-code-button');
-                             copyCodeButton.dataset.clipboardText = block.textContent;
-                         }
-                     }
-
-                      // Check if already highlighted to avoid re-processing
-                     if (!block.classList.contains('hljs-highlighted')) {
-                         try {
-                             hljs.highlightElement(block);
-                             block.classList.add('hljs-highlighted'); // Mark as highlighted
-                         } catch (e) {
-                             console.error("Highlight.js error:", e);
-                             // Optionally add an error indicator to the block
-                             block.textContent = `Highlighting Error: ${e.message}\n\n${block.textContent}`;
-                         }
-                     }
-                 });
-             }
-
-            // Handle clicks within the chatbox for copy buttons
-            function handleChatboxClick(event) {
-                 const target = event.target;
-
-                 // Handle General Message Copy Button
-                 if (target.classList.contains('message-copy-button')) {
-                     const textToCopy = target.dataset.clipboardText;
-                     copyToClipboard(textToCopy, target);
-                 }
-                 // Handle Code Block Copy Button
-                 else if (target.classList.contains('copy-code-button')) {
-                      const textToCopy = target.dataset.clipboardText;
-                      copyToClipboard(textToCopy, target);
-                 }
-             }
-
-            // Helper function for clipboard copying and button feedback
-            function copyToClipboard(text, buttonElement) {
-                if (!text) return; // Nothing to copy
-
-                navigator.clipboard.writeText(text)
-                    .then(() => {
-                        const originalText = buttonElement.classList.contains('copy-code-button') ? 'Copy' : '&#x1F4CB;';
-                         buttonElement.innerHTML = '已复制!'; // Use text for icon button too
-                         buttonElement.classList.add('copied');
-                         buttonElement.disabled = true; // Briefly disable
-
-                        setTimeout(() => {
-                             buttonElement.innerHTML = originalText;
-                             buttonElement.classList.remove('copied');
-                             buttonElement.disabled = false;
-                        }, 1500); // Revert after 1.5 seconds
-                    })
-                    .catch(err => {
-                        console.error('Failed to copy text: ', err);
-                        alert('复制失败: ' + err.message); // Notify user
-                    });
-            }
-
-            function scrollToBottom() {
-                 // Add a small delay to allow rendering engine to catch up, especially with images/rich content
-                 setTimeout(() => {
-                     chatbox.scrollTop = chatbox.scrollHeight;
-                 }, 50);
-            }
-
-            function addLog(type, data) {
-                const entry = document.createElement('details');
-                entry.className = 'log-entry';
-                 // Keep logs closed by default unless it's an error
-                 if (type === 'Error' || type === 'Warning') {
-                     entry.open = true;
-                 }
-
-                const summary = document.createElement('summary');
-                 const titleSpan = document.createElement('span');
-                 titleSpan.textContent = `${type} Log`;
-                 if (type === 'Error') titleSpan.style.color = 'var(--error-color)';
-                 if (type === 'Warning') titleSpan.style.color = '#ffc107';
-
-                 const timeSpan = document.createElement('span');
-                 timeSpan.className = 'log-timestamp';
-                 timeSpan.textContent = new Date().toLocaleString();
-                 summary.appendChild(titleSpan);
-                 summary.appendChild(timeSpan);
-
-                const content = document.createElement('div');
-                content.className = 'log-content';
-                try {
-                     // Attempt to stringify, handle potential circular references safely
-                     content.textContent = JSON.stringify(data, (key, value) => {
-                         // Basic circular reference check (might not catch all cases)
-                         // A more robust solution would involve tracking visited objects
-                         if (typeof value === 'object' && value !== null) {
-                            // Simple check, might be too aggressive
-                            // if (seen.has(value)) { return '[Circular]'; }
-                            // seen.add(value);
-                         }
-                         // Handle specific types if needed (e.g., Error object)
-                         if (value instanceof Error) {
-                             return { message: value.message, stack: value.stack, name: value.name };
-                         }
-                         return value;
-                     }, 2); // Pretty print JSON
-                } catch (e) {
-                     // Fallback for non-JSON data or stringify errors
-                     content.textContent = String(data);
-                     console.warn("Could not stringify log data:", data, e);
-                }
-
-                entry.appendChild(summary);
-                entry.appendChild(content);
-
-                logEntries.prepend(entry); // Add newest logs to the top
-
-                 // Limit number of log entries (e.g., keep last 100)
-                 const maxLogs = 100;
-                 while (logEntries.children.length > maxLogs) {
-                     logEntries.removeChild(logEntries.lastChild);
-                 }
-            }
-
-             // --- Clear Conversation ---
-             function clearConversation() {
-                 if (confirm('确定要清除当前会话的所有消息记录吗？此操作无法撤销。')) {
-                     chatHistory = []; // Clear the history array
-                     chatbox.innerHTML = ''; // Clear the chatbox UI
-                     // Display the initial welcome message again
-                     displayMessage("会话已清除。你好！", 'assistant');
-                     addLog('Info', 'Chat conversation cleared by user.');
-                 }
-             }
-
-            // --- Settings Management ---
-
-            function loadSettings() {
-                const savedSettings = localStorage.getItem('aiChatSettings_v2'); // Use a new key if format changed significantly
-                if (savedSettings) {
-                    try {
-                         const parsedSettings = JSON.parse(savedSettings);
-                         // Merge saved settings with defaults carefully, ensuring types
-                         settings = {
-                             ...settings, // Start with defaults
-                             ...parsedSettings, // Override with saved values
-                             // Ensure complex types are valid
-                             models: Array.isArray(parsedSettings.models) ? parsedSettings.models : [],
-                             customParams: (typeof parsedSettings.customParams === 'object' && parsedSettings.customParams !== null && !Array.isArray(parsedSettings.customParams)) ? parsedSettings.customParams : {},
-                             // Ensure boolean flags are boolean
-                             stream: typeof parsedSettings.stream === 'boolean' ? parsedSettings.stream : true,
-                             enableImageSupport: typeof parsedSettings.enableImageSupport === 'boolean' ? parsedSettings.enableImageSupport : false,
-                             enableReasoning: typeof parsedSettings.enableReasoning === 'boolean' ? parsedSettings.enableReasoning : false, // 新增: 处理 enableReasoning
-                             enableTemperature: typeof parsedSettings.enableTemperature === 'boolean' ? parsedSettings.enableTemperature : false,
-                             enableMaxTokens: typeof parsedSettings.enableMaxTokens === 'boolean' ? parsedSettings.enableMaxTokens : false,
-                             // Ensure numbers are numbers
-                             temperature: typeof parsedSettings.temperature === 'number' ? parsedSettings.temperature : 1.0,
-                             maxTokens: typeof parsedSettings.maxTokens === 'number' ? parsedSettings.maxTokens : 4096,
-                             historyLength: typeof parsedSettings.historyLength === 'number' ? parsedSettings.historyLength : 10,
-                             fontSize: typeof parsedSettings.fontSize === 'number' ? parsedSettings.fontSize : 16,
-                             theme: ['light', 'dark'].includes(parsedSettings.theme) ? parsedSettings.theme : 'light'
-                         };
-
-                    } catch (e) {
-                        console.error("Failed to parse saved settings:", e);
-                        addLog('Error', 'Failed to load settings from localStorage. Using defaults.');
-                         // Optionally clear corrupted settings: localStorage.removeItem('aiChatSettings_v2');
+                        }
                     }
                 }
-                 // Apply loaded/default settings to the UI elements
-                 updateSettingsUI();
-                 // Apply appearance right away
-                 applyAppearanceSettings();
-            }
-
-             // Updates the settings UI elements based on the current 'settings' object
-             function updateSettingsUI() {
-                 apiUrlInput.value = settings.apiUrl || '';
-                 apiKeyInput.value = settings.apiKey || '';
-                 streamResponseCheckbox.checked = settings.stream;
-                 enableImageSupportCheckbox.checked = settings.enableImageSupport;
-                 enableReasoningCheckbox.checked = settings.enableReasoning || false; // 新增: 设置思考过程复选框
-                 uploadImageBtn.style.display = settings.enableImageSupport ? 'flex' : 'none';
-
-                 // Temperature
-                 enableTemperatureCheckbox.checked = settings.enableTemperature;
-                 temperatureSlider.value = settings.temperature;
-                 temperatureValueSpan.textContent = parseFloat(settings.temperature).toFixed(1);
-                 toggleTemperatureControl(); // Apply disabled state based on checkbox
-
-                 // Max Tokens
-                 enableMaxTokensCheckbox.checked = settings.enableMaxTokens;
-                 maxTokensSlider.value = settings.maxTokens;
-                 maxTokensValueSpan.textContent = settings.maxTokens;
-                 toggleMaxTokensControl(); // Apply disabled state based on checkbox
-
-                 historyLengthSlider.value = settings.historyLength;
-                 historyLengthValueSpan.textContent = settings.historyLength;
-
-                 fontFamilySelect.value = settings.fontFamily;
-                 fontSizeSlider.value = settings.fontSize;
-                 fontSizeValueSpan.textContent = `${settings.fontSize}px`;
-
-                 // Theme (handled by applyAppearanceSettings)
-                 document.body.setAttribute('data-theme', settings.theme);
-                 toggleThemeBtn.textContent = settings.theme === 'dark' ? '☀️' : '🌙';
-
-                 // Update models and custom params UI separately as they have dedicated functions
-                 updateModelsUI();
-                 updateCustomParamsUI();
-                 updateSelectedModelOptions(); // Ensure dropdown reflects loaded settings
-                 selectedModelSelect.value = settings.selectedModel || ''; // Set selected model
-             }
-
-            function saveSettings() {
-                // Update settings object from UI just before saving
-                settings.apiUrl = apiUrlInput.value.trim();
-                settings.apiKey = apiKeyInput.value.trim();
-                settings.stream = streamResponseCheckbox.checked;
-                settings.enableImageSupport = enableImageSupportCheckbox.checked;
-                settings.enableReasoning = enableReasoningCheckbox.checked; // 新增: 保存思考过程设置
-                settings.enableTemperature = enableTemperatureCheckbox.checked;
-                settings.temperature = parseFloat(temperatureSlider.value);
-                settings.enableMaxTokens = enableMaxTokensCheckbox.checked;
-                settings.maxTokens = parseInt(maxTokensSlider.value, 10);
-                settings.historyLength = parseInt(historyLengthSlider.value, 10);
-                settings.selectedModel = selectedModelSelect.value;
-                settings.fontFamily = fontFamilySelect.value;
-                settings.fontSize = parseInt(fontSizeSlider.value, 10);
-                 settings.theme = document.body.getAttribute('data-theme'); // Save current theme
-
-                // Models and Custom Params are managed directly in the settings object by their functions
-
-                try {
-                    localStorage.setItem('aiChatSettings_v2', JSON.stringify(settings));
-                } catch (e) {
-                     console.error("Failed to save settings:", e);
-                     addLog('Error', 'Failed to save settings to localStorage. Storage might be full.');
-                     alert('无法保存设置。本地存储可能已满。');
+                
+                // 添加思考过程（如果有）
+                if (elements.thinkingToggle.checked && thinkingProcess) {
+                    addThinkingProcess(aiMessage, thinkingProcess);
                 }
-            }
-
-             // Applies settings that affect the UI immediately (theme, font, etc.)
-             // Also called after loading settings.
-             function applySettings() {
-                 applyAppearanceSettings();
-                 // Update button visibility based on image support setting
-                 uploadImageBtn.style.display = settings.enableImageSupport ? 'flex' : 'none';
-                 uploadImageBtn.disabled = !settings.enableImageSupport; // Also disable if not supported
-                 // Apply disabled states for Temp/Tokens sliders
-                 toggleTemperatureControl();
-                 toggleMaxTokensControl();
-                 // Other settings (API key, URL, model) are used directly when making requests
-             }
-
-            function applyAppearanceSettings() {
-                 document.body.style.fontFamily = settings.fontFamily;
-                 document.body.style.fontSize = `${settings.fontSize}px`;
-                 // Apply theme
-                 document.body.setAttribute('data-theme', settings.theme);
-                 toggleThemeBtn.textContent = settings.theme === 'dark' ? '☀️' : '🌙';
-            }
-
-            // --- Temperature & Max Tokens Control ---
-            function toggleTemperatureControl() {
-                 const enabled = enableTemperatureCheckbox.checked;
-                 temperatureContainer.classList.toggle('disabled', !enabled);
-                 temperatureSlider.disabled = !enabled;
-                 // Optional: Visually indicate default value when disabled
-                 // temperatureValueSpan.textContent = enabled ? parseFloat(temperatureSlider.value).toFixed(1) : 'Default';
-            }
-             function toggleMaxTokensControl() {
-                 const enabled = enableMaxTokensCheckbox.checked;
-                 maxTokensContainer.classList.toggle('disabled', !enabled);
-                 maxTokensSlider.disabled = !enabled;
-                 // Optional: Visually indicate default value when disabled
-                 // maxTokensValueSpan.textContent = enabled ? maxTokensSlider.value : 'Default';
-             }
-
-            // --- Model Management ---
-            function addModel() {
-                const modelName = newModelInput.value.trim();
-                if (modelName && !settings.models.includes(modelName)) {
-                    settings.models.push(modelName);
-                    newModelInput.value = '';
-                    updateModelsUI();
-                    updateSelectedModelOptions();
-                     // Auto-select if it's the first model added or if none selected
-                     if (settings.models.length === 1 || !settings.selectedModel) {
-                         selectedModelSelect.value = modelName;
-                         settings.selectedModel = modelName; // Update state immediately for save
-                     }
-                } else if (!modelName) {
-                     alert('请输入模型名称。');
-                } else {
-                    alert('该模型名称已存在。');
+                
+                // 更新日志
+                updateLogStreamEnd(logId, allChunks);
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    console.log('流式请求已中止');
+                    return;
                 }
+                throw error;
+            } finally {
+                state.streamController = null;
             }
+        }
 
-            function removeModel(modelName) {
-                settings.models = settings.models.filter(m => m !== modelName);
-                updateModelsUI();
-                updateSelectedModelOptions();
-                 // If the removed model was the selected one, update selection
-                 if (settings.selectedModel === modelName) {
-                     settings.selectedModel = settings.models.length > 0 ? settings.models[0] : '';
-                     selectedModelSelect.value = settings.selectedModel; // Update dropdown UI
-                 }
+        // 发送API请求
+        async function sendRequest(requestBody) {
+            const response = await fetch(elements.apiEndpoint.value, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${elements.apiKey.value}`
+                },
+                body: JSON.stringify(requestBody)
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error?.message || `请求失败: ${response.status}`);
             }
+            
+            return data;
+        }
 
-            function updateModelsUI() {
-                modelListDiv.innerHTML = ''; // Clear current list
-                settings.models.forEach(model => {
-                    const div = document.createElement('div');
-                    div.className = 'model-entry';
-                    // Use html encoding for display if model names could contain special chars
-                    const escapedModel = model.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                    div.innerHTML = `
-                        <input type="text" value="${escapedModel}" readonly style="flex-grow: 1; background-color: var(--ai-msg-bg);">
-                        <button class="remove-btn" data-model="${model}">移除</button> <!-- Use original name in data -->
-                    `;
-                    modelListDiv.appendChild(div);
-                });
-            }
-
-            function updateSelectedModelOptions() {
-                const currentSelectedInUI = selectedModelSelect.value; // Value currently shown in dropdown
-                selectedModelSelect.innerHTML = ''; // Clear existing options
-
-                if (settings.models.length === 0) {
-                     selectedModelSelect.innerHTML = '<option value="">请先添加模型</option>';
-                     selectedModelSelect.disabled = true;
-                     settings.selectedModel = ''; // Clear setting state if no models
-                } else {
-                    settings.models.forEach(model => {
-                        const option = document.createElement('option');
-                        option.value = model;
-                        option.textContent = model;
-                        selectedModelSelect.appendChild(option);
+        // 获取消息历史
+        function getMessageHistory() {
+            const maxContext = parseInt(elements.maxContext.value) || 10;
+            const history = [];
+            
+            // 只保留最近的消息作为上下文
+            const recentMessages = state.messages.slice(-maxContext * 2);
+            
+            for (const msg of recentMessages) {
+                if (msg.type === 'system') continue;
+                
+                const historyItem = {
+                    role: msg.type === 'user' ? 'user' : 'assistant',
+                    content: msg.text
+                };
+                
+                if (msg.type === 'user' && msg.images && msg.images.length > 0 && elements.visionToggle.checked) {
+                    historyItem.content = [];
+                    if (msg.text) {
+                        historyItem.content.push({
+                            type: 'text',
+                            text: msg.text
+                        });
+                    }
+                    
+                    msg.images.forEach(image => {
+                        historyItem.content.push({
+                            type: 'image_url',
+                            image_url: {
+                                url: image.data
+                            }
+                        });
                     });
-                     selectedModelSelect.disabled = false;
-
-                     // Determine the value to select in the dropdown
-                     let valueToSelect = '';
-                     if (settings.models.includes(settings.selectedModel)) {
-                         valueToSelect = settings.selectedModel; // Prefer value from settings state
-                     } else if (settings.models.includes(currentSelectedInUI)) {
-                          valueToSelect = currentSelectedInUI; // Fallback to current UI value if still valid
-                     } else {
-                         valueToSelect = settings.models[0]; // Default to first model if others invalid
-                     }
-
-                     selectedModelSelect.value = valueToSelect;
-                     // Ensure settings.selectedModel is synchronised with the final dropdown value
-                     // This is important if saveSettings() hasn't run yet
-                     // settings.selectedModel = valueToSelect; // Let saveSettings handle final state update
                 }
+                
+                history.push(historyItem);
             }
+            
+            return history;
+        }
 
-             function handleModelListActions(event) {
-                 if (event.target.classList.contains('remove-btn')) {
-                     const modelToRemove = event.target.dataset.model;
-                     if (modelToRemove) {
-                         removeModel(modelToRemove);
-                     }
-                 }
-             }
+        // 添加系统消息
+        function addSystemMessage(text) {
+            const messageObj = {
+                type: 'system',
+                text,
+                time: new Date().toLocaleTimeString()
+            };
+            
+            state.messages.push(messageObj);
+            
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message system-message';
+            messageElement.innerHTML = `
+                <div class="message-content">
+                    ${text}
+                    <div class="message-time">${messageObj.time}</div>
+                </div>
+            `;
+            
+            elements.chatMessages.appendChild(messageElement);
+            scrollToBottom();
+        }
 
-            // --- Custom Parameter Management ---
-            function addCustomParam() {
-                const key = newParamKeyInput.value.trim();
-                const valueStr = newParamValueInput.value.trim();
-                if (!key) {
-                     alert('请输入参数 Key。');
-                     return;
-                 }
-                 if (settings.customParams.hasOwnProperty(key)) {
-                     if (!confirm(`参数 Key "${key}" 已存在。要覆盖它的值吗？`)) {
-                        return;
-                     }
-                 }
-
-                let value;
-                try {
-                     // Attempt to parse value as JSON (allows numbers, booleans, strings with quotes, arrays, objects)
-                     value = JSON.parse(valueStr);
-                } catch (e) {
-                     alert('参数 Value 格式无效。请输入有效的 JSON 值（例如 "字符串", 123, true, false, null, ["a", 1], {"b": 2}）。无引号的字符串无效。');
-                     return; // Exit if value is not valid JSON
-                }
-
-                 settings.customParams[key] = value;
-                 newParamKeyInput.value = '';
-                 newParamValueInput.value = '';
-                 updateCustomParamsUI();
+        // 添加用户消息
+        function addUserMessage(text, images = []) {
+            const messageObj = {
+                type: 'user',
+                text,
+                images: [...images],
+                time: new Date().toLocaleTimeString()
+            };
+            
+            state.messages.push(messageObj);
+            
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message user-message';
+            
+            let imageHtml = '';
+            if (images && images.length > 0) {
+                imageHtml = '<div class="image-attachments">';
+                images.forEach(image => {
+                    imageHtml += `<img src="${image.data}" alt="${image.filename}" class="image-attachment">`;
+                });
+                imageHtml += '</div>';
             }
+            
+            messageElement.innerHTML = `
+                <div class="message-content">
+                    ${text}
+                    ${imageHtml}
+                    <div class="message-time">${messageObj.time}</div>
+                </div>
+                <div class="message-avatar">用</div>
+            `;
+            
+            elements.chatMessages.appendChild(messageElement);
+            scrollToBottom();
+            
+            return messageElement;
+        }
 
-            function removeCustomParam(key) {
-                delete settings.customParams[key];
-                updateCustomParamsUI();
+        // 添加AI消息
+        function addAIMessage(text = '') {
+            const messageObj = {
+                type: 'ai',
+                text: text,
+                time: new Date().toLocaleTimeString()
+            };
+            
+            state.messages.push(messageObj);
+            
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message ai-message';
+            messageElement.innerHTML = `
+                <div class="message-avatar">AI</div>
+                <div class="message-content">
+                    <div class="message-text">${text || '<div class="typing-indicator"></div>'}</div>
+                    <div class="message-time">${messageObj.time}</div>
+                </div>
+            `;
+            
+            elements.chatMessages.appendChild(messageElement);
+            scrollToBottom();
+            
+            return {
+                element: messageElement,
+                object: messageObj
+            };
+        }
+
+        // 更新AI消息
+        function updateAIMessage(messageObj, text) {
+            messageObj.object.text = text;
+            
+            const messageTextElement = messageObj.element.querySelector('.message-text');
+            messageTextElement.innerHTML = renderMessage(text);
+            
+            scrollToBottom();
+        }
+
+        // 添加思考过程
+        function addThinkingProcess(messageObj, thinkingText) {
+            if (!thinkingText) return;
+            
+            const messageContent = messageObj.element.querySelector('.message-content');
+            
+            // 检查是否已存在思考过程元素
+            let thinkingElement = messageContent.querySelector('.thinking-process');
+            
+            if (!thinkingElement) {
+                thinkingElement = document.createElement('div');
+                thinkingElement.className = 'thinking-process';
+                messageContent.appendChild(thinkingElement);
             }
+            
+            thinkingElement.textContent = thinkingText;
+            scrollToBottom();
+        }
 
-            function updateCustomParamsUI() {
-                customParamsListDiv.innerHTML = '';
-                for (const key in settings.customParams) {
-                     if (settings.customParams.hasOwnProperty(key)) {
-                         const div = document.createElement('div');
-                         div.className = 'param-entry';
-                         const escapedKey = key.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                         let valueDisplay = '';
-                         try {
-                            valueDisplay = JSON.stringify(settings.customParams[key]);
-                         } catch {
-                            valueDisplay = '[无法显示的值]'; // Should not happen with JSON validation
-                         }
-                         // Escape value for display in input attribute
-                         const escapedValue = valueDisplay.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+        // 渲染消息内容（代码高亮和数学公式）
+        function renderMessage(text) {
+            if (!text) return '';
+            
+            // 处理代码块
+            text = text.replace(/```(.*?)\n([\s\S]*?)```/g, function(match, language, code) {
+                return `<pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
+            });
+            
+            // 处理行内代码
+            text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+            
+            // 处理数学公式 (使用 KaTeX 或 MathJax 渲染，这里只是简单标记)
+            text = text.replace(/\$\$(.*?)\$\$/g, '<div class="math-formula">$$$1$$</div>');
+            text = text.replace(/\$(.*?)\$/g, '<span class="math-formula">$1</span>');
+            
+            // 处理换行
+            text = text.replace(/\n/g, '<br>');
+            
+            return text;
+        }
 
-                         div.innerHTML = `
-                             <input type="text" value="${escapedKey}" readonly title="${escapedKey}" style="flex: 1; background-color: var(--ai-msg-bg);">
-                             <input type="text" value='${escapedValue}' readonly title='${escapedValue}' style="flex: 2; background-color: var(--ai-msg-bg);">
-                             <button class="remove-btn" data-paramkey="${key}">移除</button>
-                         `;
-                         customParamsListDiv.appendChild(div);
-                     }
-                }
+        // HTML转义
+        function escapeHTML(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // 滚动到底部
+        function scrollToBottom() {
+            elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+        }
+
+        // 更新发送按钮状态
+        function updateSendButtonState() {
+            elements.sendButton.disabled = state.pendingMessages > 0;
+        }
+
+        // 添加日志
+        function addLog(title, requestData) {
+            const timestamp = new Date();
+            const logId = `log-${Date.now()}`;
+            
+            const logObj = {
+                id: logId,
+                title,
+                timestamp,
+                request: requestData,
+                response: null,
+                error: null
+            };
+            
+            state.logs.unshift(logObj);
+            
+            // 创建日志元素
+            const logElement = document.createElement('div');
+            logElement.className = 'log-item';
+            logElement.id = logId;
+            logElement.innerHTML = `
+                <div class="log-header" onclick="toggleLogBody('${logId}')">
+                    <div class="log-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="16"></line>
+                            <line x1="8" y1="12" x2="16" y2="12"></line>
+                        </svg>
+                        ${title}
+                    </div>
+                    <div class="log-timestamp">${timestamp.toLocaleTimeString()}</div>
+                </div>
+                <div class="log-body" id="${logId}-body">
+                    <div class="log-section">
+                        <div class="log-section-title">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="9 10 4 15 9 20"></polyline>
+                                <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
+                            </svg>
+                            请求数据
+                        </div>
+                        <pre class="log-content">${JSON.stringify(requestData, null, 2)}</pre>
+                    </div>
+                    <div class="log-section" id="${logId}-response-section" style="display: none;">
+                        <div class="log-section-title">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="15 10 20 15 15 20"></polyline>
+                                <path d="M4 4v7a4 4 0 0 0 4 4h12"></path>
+                            </svg>
+                            响应数据
+                        </div>
+                        <pre class="log-content" id="${logId}-response"></pre>
+                    </div>
+                    <div class="log-section" id="${logId}-error-section" style="display: none;">
+                        <div class="log-section-title" style="color: #e74c3c;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                            错误信息
+                        </div>
+                        <pre class="log-content" id="${logId}-error" style="color: #e74c3c;"></pre>
+                    </div>
+                </div>
+            `;
+            
+            elements.logsContainer.insertBefore(logElement, elements.logsContainer.firstChild);
+            
+            return logId;
+        }
+
+        // 更新日志响应
+        function updateLogResponse(logId, responseData) {
+            const logObj = state.logs.find(log => log.id === logId);
+            if (logObj) {
+                logObj.response = responseData;
             }
-
-             function handleCustomParamListActions(event) {
-                 if (event.target.classList.contains('remove-btn')) {
-                     const keyToRemove = event.target.dataset.paramkey;
-                     if (keyToRemove) {
-                         removeCustomParam(keyToRemove);
-                     }
-                 }
-             }
-
-             // --- Theme Toggling ---
-            function toggleTheme() {
-                const currentTheme = document.body.getAttribute('data-theme');
-                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-                settings.theme = newTheme; // Update settings state
-                applyAppearanceSettings(); // Apply the new theme immediately
-                // Let user save explicitly via Save Settings button
+            
+            const responseSection = document.getElementById(`${logId}-response-section`);
+            const responseElement = document.getElementById(`${logId}-response`);
+            
+            if (responseSection && responseElement) {
+                responseSection.style.display = 'block';
+                responseElement.textContent = JSON.stringify(responseData, null, 2);
             }
+        }
 
-        }); // End DOMContentLoaded
+        // 更新日志流式结束
+        function updateLogStreamEnd(logId, streamData) {
+            const logObj = state.logs.find(log => log.id === logId);
+            if (logObj) {
+                logObj.response = "流式响应 (已完成)";
+            }
+            
+            const responseSection = document.getElementById(`${logId}-response-section`);
+            const responseElement = document.getElementById(`${logId}-response`);
+            
+            if (responseSection && responseElement) {
+                responseSection.style.display = 'block';
+                responseElement.textContent = streamData || "流式响应 (已完成)";
+            }
+        }
+
+        // 更新日志错误
+        function updateLogError(logId, errorMessage) {
+            const logObj = state.logs.find(log => log.id === logId);
+            if (logObj) {
+                logObj.error = errorMessage;
+            }
+            
+            const errorSection = document.getElementById(`${logId}-error-section`);
+            const errorElement = document.getElementById(`${logId}-error`);
+            
+            if (errorSection && errorElement) {
+                errorSection.style.display = 'block';
+                errorElement.textContent = errorMessage;
+            }
+        }
+
+        // 切换日志主体显示/隐藏
+        window.toggleLogBody = function(logId) {
+            const logBody = document.getElementById(`${logId}-body`);
+            if (logBody) {
+                logBody.classList.toggle('open');
+            }
+        };
+
+        // 图片预览
+        function showImagePreview(src) {
+            elements.previewImage.src = src;
+            elements.imagePreview.classList.add('active');
+            elements.overlay.classList.add('active');
+        }
+
+        // 关闭图片预览
+        function closeImagePreview() {
+            elements.imagePreview.classList.remove('active');
+            elements.overlay.classList.remove('active');
+        }
+
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', init);
     </script>
-
 </body>
 </html>
