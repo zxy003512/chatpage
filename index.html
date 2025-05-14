@@ -152,6 +152,7 @@
 
         .message {
             display: flex;
+            gap: 10px; /* 给头像和气泡之间增加间距 */
             margin-bottom: 15px;
             animation: fadeIn 0.3s ease;
             max-width: 90%;
@@ -166,25 +167,23 @@
             align-self: flex-start;
         }
 
+        /* 消息气泡基础样式调整 */
         .message-content {
-            padding: 12px 16px;
-            border-radius: 18px;
+            padding: 10px 15px; /* 调整内边距 */
+            border-radius: var(--border-radius); /* 使用更统一的圆角 */
             box-shadow: var(--shadow);
-            position: relative;
-            overflow: hidden;
+            position: relative; /* 为了复制按钮的定位 */
             line-height: 1.5;
+            overflow-wrap: break-word; /* 长单词或链接换行 */
+            word-break: break-word; /* 确保单词能被打断换行 */
         }
 
         .user-message .message-content {
             background-color: var(--user-msg-bg);
-            border-top-right-radius: 4px;
-            margin-right: 10px;
         }
 
         .ai-message .message-content {
             background-color: var(--ai-msg-bg);
-            border-top-left-radius: 4px;
-            margin-left: 10px;
         }
 
         .message-avatar {
@@ -197,6 +196,7 @@
             align-items: center;
             color: white;
             font-weight: bold;
+            flex-shrink: 0; /* 防止被压缩 */
         }
 
         .ai-message .message-avatar {
@@ -210,19 +210,105 @@
             text-align: right;
         }
 
+        /* AI 等待回复时的打字点动画 */
+        .message-content.loading .message-text-area {
+            display: flex;
+            align-items: center;
+            padding-top: 8px; /* 给打字点一些垂直空间 */
+            padding-bottom: 8px;
+            min-height: 24px; /* 确保有高度 */
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            margin: 0 3px; /* 点之间的间距 */
+            background-color: var(--text-secondary);
+            border-radius: 50%;
+            opacity: 0.4;
+            animation: typing-animation 1.2s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.20s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.10s; }
+        .typing-dot:nth-child(3) { animation-delay: 0s; }
+
+        @keyframes typing-animation {
+            0%, 60%, 100% { transform: scale(0.4); opacity: 0.4; }
+            30% { transform: scale(1); opacity: 1; }
+        }
+
+
         /* 代码高亮和公式渲染样式 */
         pre {
-            background-color: #282c34;
+            position: relative; /* 为了代码块内复制按钮的定位 */
+            background-color: #282c34; /* 这是你已有的 */
             border-radius: 8px;
             padding: 10px;
+            padding-top: 35px; /* 给顶部的复制按钮留出空间 */
             overflow-x: auto;
             margin: 10px 0;
+            white-space: pre-wrap; /* 允许代码换行 */
+            word-break: break-all; /* 强制长行断开 */
         }
 
         code {
             font-family: 'Fira Code', monospace;
             color: #abb2bf;
         }
+
+        /* Markdown 解析生成的 HTML 样式 */
+        .message-text-area ul, .message-text-area ol {
+            padding-left: 20px;
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+        .message-text-area p {
+            margin-top: 0;
+            margin-bottom: 8px;
+        }
+        .message-text-area p:last-child {
+            margin-bottom: 0;
+        }
+        .message-text-area a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+        .message-text-area a:hover {
+            text-decoration: underline;
+        }
+        .message-text-area table {
+            border-collapse: collapse;
+            margin: 10px 0;
+            width: auto; /* 自适应内容宽度 */
+            max-width: 100%;
+            overflow-x: auto; /* 允许表格水平滚动 */
+            display: block; /* 强制表格容器块级显示以实现滚动 */
+        }
+        .message-text-area th, .message-text-area td {
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            text-align: left;
+        }
+        .message-text-area th {
+            background-color: var(--background-color);
+            font-weight: bold;
+        }
+        .message-text-area blockquote {
+            border-left: 4px solid var(--primary-color);
+            padding-left: 15px;
+            margin: 10px 0;
+            color: var(--text-secondary);
+        }
+        .message-text-area h1, .message-text-area h2, .message-text-area h3, .message-text-area h4, .message-text-area h5, .message-text-area h6 {
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+            font-weight: bold;
+        }
+        .message-text-area h1 { font-size: 1.5em; }
+        .message-text-area h2 { font-size: 1.3em; }
+        .message-text-area h3 { font-size: 1.1em; }
+        /* 其他标题可以根据需要调整 */
 
         .math-formula {
             padding: 5px 0;
@@ -262,6 +348,71 @@
             margin-top: 10px;
             border-left: 3px solid var(--primary-color);
         }
+        .dark-theme .thinking-process {
+             background-color: rgba(255, 255, 255, 0.05);
+        }
+
+
+        /* 复制按钮样式 */
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: rgba(0,0,0,0.08); /* 浅色背景 */
+            color: var(--text-secondary); /* 用次要文字颜色 */
+            border: 1px solid var(--border-color); /* 细边框 */
+            border-radius: 6px; /* 圆角 */
+            padding: 4px 8px;
+            font-size: 0.75rem; /* 稍小字体 */
+            cursor: pointer;
+            opacity: 0; /* 默认隐藏 */
+            transition: opacity 0.2s, background-color 0.2s;
+            z-index: 1; /* 确保在内容之上 */
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .dark-theme .copy-btn {
+            background-color: rgba(255,255,255,0.08);
+            border-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+
+
+        .message-content:hover .copy-btn {
+            opacity: 0.7; /* 悬浮时显示 */
+        }
+
+        .copy-btn:hover {
+            opacity: 1;
+            background-color: rgba(0,0,0,0.12); /* 悬浮时加深背景 */
+        }
+         .dark-theme .copy-btn:hover {
+             background-color: rgba(255,255,255,0.12);
+         }
+
+        .copy-btn svg {
+            width: 12px;
+            height: 12px;
+            fill: currentColor;
+        }
+
+        /* 代码块内的复制按钮样式调整 */
+        pre .copy-btn {
+            top: 8px; /* 调整在 pre 标签内的位置 */
+            right: 8px;
+            background-color: rgba(255,255,255,0.1);
+            color: #ccc;
+            border-color: rgba(255,255,255,0.2);
+        }
+        pre:hover .copy-btn {
+            opacity: 0.8;
+        }
+        pre .copy-btn:hover {
+            opacity: 1;
+            background-color: rgba(255,255,255,0.2);
+        }
+
 
         /* 输入区域 */
         .chat-input-container {
@@ -636,6 +787,8 @@
             overflow-x: auto;
             color: #333;
             font-family: monospace;
+            white-space: pre-wrap; /* 日志内容也允许换行 */
+            word-break: break-all;
         }
 
         .dark-theme .log-content {
@@ -665,48 +818,57 @@
             .message-content {
                 max-width: calc(100% - 50px);
             }
-            
+
             /* 手机端优化 */
             .container {
                 padding: 5px;
             }
-            
+
             header {
                 padding: 8px 10px;
                 flex-wrap: wrap;
             }
-            
+
             .header-buttons {
                 gap: 5px;
             }
-            
+
             .btn {
                 padding: 6px 10px;
                 font-size: 0.9rem;
             }
-            
+
             .message {
                 margin-bottom: 10px;
             }
-            
+
             .message-avatar {
                 width: 32px;
                 height: 32px;
                 font-size: 0.8rem;
             }
-            
+
             .message-content {
                 padding: 8px 12px;
                 font-size: 0.95rem;
             }
-            
+
             .chat-input {
                 min-height: 60px;
                 padding: 8px;
             }
-            
+
             .send-button {
                 padding: 8px 15px;
+            }
+
+            .panel {
+                 width: 100%;
+                 right: -100%;
+                 box-shadow: none; /* 手机端移除阴影 */
+            }
+            .panel.open {
+                right: 0;
             }
         }
 
@@ -722,21 +884,6 @@
             }
         }
 
-        @keyframes typing {
-            0% { background-position: 0% 0; }
-            100% { background-position: 100% 0; }
-        }
-
-        .typing-indicator {
-            display: inline-block;
-            width: 20px;
-            height: 10px;
-            margin-left: 5px;
-            background: linear-gradient(to right, var(--text-secondary) 0%, var(--text-secondary) 25%, transparent 25%, transparent 75%, var(--text-secondary) 75%, var(--text-secondary) 100%);
-            background-size: 20px 100%;
-            background-repeat: no-repeat;
-            animation: typing 1s steps(4) infinite;
-        }
 
         /* 暗幕覆盖层 */
         .overlay {
@@ -796,6 +943,18 @@
             cursor: pointer;
         }
     </style>
+    <!-- 引入 marked.js 用于 Markdown 解析 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- 强烈推荐: 引入 DOMPurify 用于 HTML 清理，防止 XSS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.3.10/purify.min.js"></script>
+    <!-- 可选: 引入 highlight.js 用于代码高亮 -->
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css"> -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script> -->
+    <!-- 可选: 引入 KaTeX 或 MathJax 用于数学公式渲染 -->
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4FgUvKtH2RaL4GinaAqt+RRDntLH3WMOaSioP1WK مرتجى" crossorigin="anonymous"> -->
+    <!-- <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-oFNzOkJrRxleF4hp4IN7JkjTyTFWHjKZGDJznhPN4G9FHtk8GAumdaLvGVgDP tev" crossorigin="anonymous"></script> -->
+    <!-- <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VF6QUSmpAIzEwQaJpgwYliElfGCAPmiro9otymtMWLMoFrm8c7ISDxyAyKt/FJpy" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script> -->
 </head>
 <body>
     <div class="container">
@@ -837,6 +996,10 @@
                         <polyline points="10 9 9 9 8 9"></polyline>
                     </svg>
                     <span>日志</span>
+                </button>
+                <button class="btn" id="clear-chat" title="清空当前对话记录">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                    <span>清空对话</span>
                 </button>
             </div>
         </header>
@@ -1052,14 +1215,68 @@
             imagePreview: document.getElementById('image-preview'),
             previewImage: document.getElementById('preview-image'),
             closePreview: document.getElementById('close-preview'),
-            modelSelect: document.getElementById('model-select')
+            modelSelect: document.getElementById('model-select'),
+            clearChatButton: document.getElementById('clear-chat')
         };
+
+
+        // 清空对话
+        function clearConversation() {
+            // 询问用户确认
+            if (!confirm("确定要清空所有对话记录吗？此操作不可撤销。")) {
+                return;
+            }
+
+            // 1. 如果有正在进行的AI回复，先停止它
+            if (state.streamController) {
+                stopStreamingRequest(); // 这会调用 abort()
+                // 注意：abort() 是异步的，streamResponse 的 finally 和 sendMessage 的 finally 会处理后续
+                // 为了确保界面立即响应清空，我们直接设置 pendingMessages 和按钮状态
+            }
+
+            // 2. 清空聊天记录状态和DOM
+            state.messages = [];
+            elements.chatMessages.innerHTML = ''; // 清空聊天界面
+            state.imageAttachments = []; // 清空已选择但未发送的图片
+            if (elements.chatInput) {
+                elements.chatInput.value = ''; // 清空输入框
+            }
+
+
+            // 3. 重置计数器和按钮状态
+            state.pendingMessages = 0; // 强制重置正在处理的消息计数
+            state.streamController = null; // 确保流控制器也被清空
+            updateSendButtonState(); // 更新发送/停止按钮的状态
+
+            // 4. 添加系统提示
+            addSystemMessage('对话已清空。');
+
+            // 5. (可选) 清理图片上传相关的系统消息 (如果存在)
+            const uploadSystemMessages = elements.chatMessages.querySelectorAll('.system-message');
+            uploadSystemMessages.forEach(msgElement => {
+                if (msgElement.textContent.includes('已上传') && msgElement.textContent.includes('图片')) {
+                    msgElement.remove();
+                }
+            });
+
+            console.log('对话已清空');
+        }
+
+        // 停止流式请求
+        function stopStreamingRequest() {
+            if (state.streamController) {
+                state.streamController.abort(); // 发出中止信号
+                // AbortError 会在 streamResponse 中被捕获并处理
+                // 无需在此处直接修改消息或按钮，让 streamResponse 的捕获逻辑处理更统一
+            }
+        }
+
 
         // 初始化
         function init() {
             // 加载设置
             loadSettings();
-            
+
             // 创建初始模型配置
             if (document.querySelectorAll('.model-config-item').length === 0) {
                 addModelConfig('gpt-4-turbo', 'GPT-4 Turbo');
@@ -1074,6 +1291,35 @@
 
             // 添加欢迎消息
             addSystemMessage('欢迎使用自定义中转API AI对话助手！请在设置中配置您的API信息。');
+
+             // 初始化 Marked 和 DOMPurify 设置
+            if (typeof marked !== 'undefined') {
+                 marked.setOptions({
+                     breaks: true,  // 将换行符 '\n' 渲染为 <br>
+                     gfm: true,     // 启用 GitHub Flavored Markdown (例如表格)
+                     // 如果需要代码高亮，可以集成 highlight.js (取消下面注释并引入 highlight.js)
+                     // highlight: function(code, lang) {
+                     //   if (typeof hljs !== 'undefined') {
+                     //     const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                     //     return hljs.highlight(code, { language, ignoreIllegals: true }).value;
+                     //   }
+                     //   return code; // 无高亮库则返回原始代码
+                     // }
+                 });
+            }
+
+            // 初始化 KaTeX 或 MathJax (如果需要，取消下面注释并引入库)
+            // if (typeof renderMathInElement !== 'undefined') {
+            //     renderMathInElement(document.body, {
+            //         delimiters: [
+            //             { left: '$$', right: '$$', display: true },
+            //             { left: '$', right: '$', display: false },
+            //         ],
+            //         throwOnError: false
+            //     });
+            // }
+            updateSendButtonState(); // 确保初始按钮状态正确
+
         }
 
         // 设置事件监听器
@@ -1107,6 +1353,10 @@
                 closeAllPanels();
             });
 
+            // 清空对话
+             elements.clearChatButton.addEventListener('click', clearConversation);
+
+
             // 添加模型
             elements.addModel.addEventListener('click', () => {
                 addModelConfig();
@@ -1116,17 +1366,37 @@
             // 添加参数
             elements.addParam.addEventListener('click', addCustomParam);
 
-            // 滑块值更新
+            // 滑块值更新和保存
             elements.temperature.addEventListener('input', () => {
                 elements.temperatureValue.textContent = elements.temperature.value;
+                saveSettings();
             });
+             elements.maxTokens.addEventListener('change', saveSettings);
+             elements.maxContext.addEventListener('change', saveSettings);
+             elements.streamToggle.addEventListener('change', saveSettings);
+             elements.visionToggle.addEventListener('change', saveSettings);
+             elements.thinkingToggle.addEventListener('change', saveSettings);
+
 
             elements.fontSize.addEventListener('input', () => {
                 const size = elements.fontSize.value;
                 elements.fontSizeValue.textContent = `${size}px`;
                 document.documentElement.style.setProperty('--font-size', `${size}px`);
-                saveSettings();
+                // 注意：改变字体大小可能需要重新渲染Markdown内容以适应新的字体
+                // 简单的做法是刷新页面或重新渲染所有消息，但这可能开销较大
+                // 一个更复杂的方法是遍历所有消息并重新渲染其内容
+                // For now, we'll just update the CSS variable.
             });
+             elements.fontSize.addEventListener('change', saveSettings); // 滑块释放时保存
+
+             elements.fontFamily.addEventListener('change', () => {
+                const font = elements.fontFamily.value;
+                document.documentElement.style.setProperty('--font-main', font);
+                saveSettings();
+             });
+             elements.apiEndpoint.addEventListener('change', saveSettings);
+             elements.apiKey.addEventListener('change', saveSettings);
+
 
             // 图片预览
             elements.closePreview.addEventListener('click', closeImagePreview);
@@ -1143,7 +1413,7 @@
                 const savedSettings = localStorage.getItem('ai-chat-settings');
                 if (savedSettings) {
                     const settings = JSON.parse(savedSettings);
-                    
+
                     // 应用设置
                     elements.apiEndpoint.value = settings.apiEndpoint || '';
                     elements.apiKey.value = settings.apiKey || '';
@@ -1151,53 +1421,71 @@
                     elements.temperatureValue.textContent = settings.temperature || 0.7;
                     elements.maxTokens.value = settings.maxTokens || 2048;
                     elements.maxContext.value = settings.maxContext || 10;
-                    elements.streamToggle.checked = settings.streamEnabled !== false;
+                    elements.streamToggle.checked = settings.streamEnabled !== false; // 默认开启流式
                     elements.visionToggle.checked = settings.visionEnabled || false;
                     elements.thinkingToggle.checked = settings.thinkingEnabled || false;
-                    
+
                     // 字体设置
                     if (settings.fontFamily) {
                         elements.fontFamily.value = settings.fontFamily;
                         document.documentElement.style.setProperty('--font-main', settings.fontFamily);
                     }
-                    
+
                     if (settings.fontSize) {
                         elements.fontSize.value = settings.fontSize;
                         elements.fontSizeValue.textContent = `${settings.fontSize}px`;
                         document.documentElement.style.setProperty('--font-size', `${settings.fontSize}px`);
                     }
-                    
+
                     // 主题
                     if (settings.darkTheme) {
                         document.body.classList.add('dark-theme');
                     }
-                    
+
                     // 加载模型配置
                     if (settings.models && settings.models.length > 0) {
-                        elements.modelConfigs.innerHTML = '';
+                        elements.modelConfigs.innerHTML = ''; // 清空默认模型配置
                         settings.models.forEach(model => {
                             addModelConfig(model.id, model.name);
                         });
-                        
+
                         // 更新模型选择器
                         updateModelSelector();
-                        
+
                         // 设置选中的模型
                         if (settings.selectedModel) {
                             elements.modelSelect.value = settings.selectedModel;
                         }
+                    } else {
+                        // 如果没有保存的模型配置，使用默认的，并在更新选择器后保存
+                         addModelConfig('gpt-4-turbo', 'GPT-4 Turbo');
+                         addModelConfig('gpt-3.5-turbo', 'GPT-3.5 Turbo');
+                         updateModelSelector();
+                         saveSettings(); // 保存默认配置
                     }
-                    
+
                     // 加载自定义参数
                     if (settings.customParams && settings.customParams.length > 0) {
-                        elements.customParams.innerHTML = '';
+                        elements.customParams.innerHTML = ''; // 清空默认参数配置
                         settings.customParams.forEach(param => {
                             addCustomParam(param.key, param.value);
                         });
                     }
+
+                } else {
+                    // 如果没有保存的设置，加载默认值并保存
+                     addModelConfig('gpt-4-turbo', 'GPT-4 Turbo');
+                     addModelConfig('gpt-3.5-turbo', 'GPT-3.5 Turbo');
+                     updateModelSelector();
+                     saveSettings(); // 保存初始默认设置
                 }
             } catch (error) {
                 console.error('加载设置失败:', error);
+                // 即使加载失败，也尝试加载默认模型并保存
+                addModelConfig('gpt-4-turbo', 'GPT-4 Turbo');
+                addModelConfig('gpt-3.5-turbo', 'gpt-3.5 Turbo'); // 修正名称
+                updateModelSelector();
+                saveSettings();
             }
         }
 
@@ -1210,22 +1498,23 @@
                     const idInput = item.querySelector('[data-type="model-id"]');
                     const nameInput = item.querySelector('[data-type="model-name"]');
                     return {
-                        id: idInput.value,
-                        name: nameInput.value
+                        id: idInput ? idInput.value : '',
+                        name: nameInput ? nameInput.value : ''
                     };
-                });
-                
+                }).filter(model => model.id && model.name); // 过滤掉空的模型项
+
                 // 获取自定义参数
                 const paramItems = document.querySelectorAll('.param-item');
                 const customParams = Array.from(paramItems).map(item => {
                     const keyInput = item.querySelector('[data-type="param-key"]');
                     const valueInput = item.querySelector('[data-type="param-value"]');
-                    return {
-                        key: keyInput.value,
-                        value: valueInput.value
-                    };
-                });
-                
+                     return {
+                         key: keyInput ? keyInput.value : '',
+                         value: valueInput ? valueInput.value : ''
+                     };
+                }).filter(param => param.key); // 过滤掉空的参数名项
+
+
                 // 创建设置对象
                 const settings = {
                     apiEndpoint: elements.apiEndpoint.value,
@@ -1243,9 +1532,11 @@
                     customParams,
                     selectedModel: elements.modelSelect.value
                 };
-                
+
                 // 保存到本地存储
                 localStorage.setItem('ai-chat-settings', JSON.stringify(settings));
+                console.log('设置已保存', settings);
+
             } catch (error) {
                 console.error('保存设置失败:', error);
             }
@@ -1260,9 +1551,9 @@
         // 切换面板
         function togglePanel(panel) {
             const isOpen = panel.classList.contains('open');
-            
+
             closeAllPanels();
-            
+
             if (!isOpen) {
                 panel.classList.add('open');
                 elements.overlay.classList.add('active');
@@ -1294,57 +1585,76 @@
                     <input type="text" class="form-control" data-type="model-name" placeholder="GPT-4 Turbo" value="${name}">
                 </div>
             `;
-            
+
             const removeButton = modelItem.querySelector('.remove-model');
             removeButton.addEventListener('click', () => {
                 modelItem.remove();
                 saveSettings();
                 updateModelSelector();
             });
-            
+
             const inputs = modelItem.querySelectorAll('input');
             inputs.forEach(input => {
                 input.addEventListener('change', () => {
                     saveSettings();
-                    updateModelSelector();
+                    updateModelSelector(); // 改变模型ID或名称时需要更新选择器
                 });
             });
-            
+
             elements.modelConfigs.appendChild(modelItem);
-            saveSettings();
+            saveSettings(); // 添加新模型时保存设置
         }
 
         // 更新模型选择器
         function updateModelSelector() {
             const modelSelect = elements.modelSelect;
             const modelItems = document.querySelectorAll('.model-config-item');
-            
+
+            // 保存当前选中的值
+            const currentSelectedValue = modelSelect.value;
+
             // 清空选择器
             modelSelect.innerHTML = '';
-            
+
+            let hasValidModel = false;
             // 添加所有模型选项
             Array.from(modelItems).forEach(item => {
                 const idInput = item.querySelector('[data-type="model-id"]');
                 const nameInput = item.querySelector('[data-type="model-name"]');
-                
-                if (idInput.value && nameInput.value) {
+
+                if (idInput && nameInput && idInput.value && nameInput.value) {
                     const option = document.createElement('option');
                     option.value = idInput.value;
                     option.textContent = nameInput.value;
                     modelSelect.appendChild(option);
+                    hasValidModel = true;
                 }
             });
-            
+
             // 如果没有模型选项，添加一个提示
-            if (modelSelect.options.length === 0) {
+            if (!hasValidModel) {
                 const option = document.createElement('option');
                 option.value = '';
                 option.textContent = '-- 请添加模型 --';
                 modelSelect.appendChild(option);
+                elements.sendButton.disabled = true; // 没有模型不能发送
+            } else {
+                //elements.sendButton.disabled = state.pendingMessages > 0; // 有模型，根据pending状态决定发送按钮
+                 // 按钮状态更新交给 updateSendButtonState
             }
-            
+
+            // 尝试恢复之前选中的模型，如果没有则选中第一个
+            if (currentSelectedValue && modelSelect.querySelector(`option[value="${currentSelectedValue}"]`)) {
+                 modelSelect.value = currentSelectedValue;
+            } else if (hasValidModel) {
+                 modelSelect.selectedIndex = 0; // 选中第一个有效模型
+            }
+
+
             // 监听模型选择变化
-            modelSelect.addEventListener('change', saveSettings);
+             modelSelect.removeEventListener('change', saveSettings); // 移除旧的，避免重复添加
+             modelSelect.addEventListener('change', saveSettings);
+             updateSendButtonState(); // 模型更改后也更新按钮状态
         }
 
         // 添加自定义参数
@@ -1353,7 +1663,7 @@
             paramItem.className = 'param-item';
             paramItem.innerHTML = `
                 <input type="text" class="form-control" data-type="param-key" placeholder="参数名" value="${key}">
-                <input type="text" class="form-control" data-type="param-value" placeholder="参数值" value="${value}">
+                <input type="text" class="form-control" data-type="param-value" placeholder="参数值 (JSON格式字符串或原始值)" value="${value}">
                 <button class="remove-param">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -1361,64 +1671,244 @@
                     </svg>
                 </button>
             `;
-            
+
             const removeButton = paramItem.querySelector('.remove-param');
             removeButton.addEventListener('click', () => {
                 paramItem.remove();
                 saveSettings();
             });
-            
+
             const inputs = paramItem.querySelectorAll('input');
             inputs.forEach(input => {
                 input.addEventListener('change', saveSettings);
             });
-            
+
             elements.customParams.appendChild(paramItem);
-            saveSettings();
+            saveSettings(); // 添加新参数时保存
         }
+
+
+        // ===== JavaScript 新增函数 =====
+
+        /**
+         * 创建一个复制按钮元素
+         * @param {string} textToCopy - 点击按钮时要复制的文本
+         * @param {string} buttonText - 按钮上初始显示的文字 (图标后的文字)
+         * @returns {HTMLButtonElement} - 创建好的按钮元素
+         */
+        function createCopyButton(textToCopy, buttonText = '复制') {
+            const btn = document.createElement('button');
+            btn.className = 'copy-btn';
+            // 使用更简洁的SVG图标
+            btn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path></svg><span>${buttonText}</span>`;
+
+            let originalButtonHTML = btn.innerHTML; // 保存原始按钮内容 (图标 + 文字)
+
+            btn.onclick = (e) => {
+                e.stopPropagation(); // 防止事件冒泡，特别是对于代码块
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    const originalSpan = btn.querySelector('span');
+                     if (originalSpan) originalSpan.textContent = '已复制!'; else btn.innerHTML = '已复制!';
+
+                    setTimeout(() => {
+                        btn.innerHTML = originalButtonHTML; // 恢复原始内容
+                    }, 1500);
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                    const originalSpan = btn.querySelector('span');
+                    if (originalSpan) originalSpan.textContent = '失败'; else btn.innerHTML = '失败';
+
+                    setTimeout(() => {
+                       btn.innerHTML = originalButtonHTML; // 恢复原始内容
+                    }, 1500);
+                });
+            };
+            return btn;
+        }
+
+        /**
+         * 渲染Markdown文本并在消息和代码块上附加复制按钮
+         * @param {string} rawText - 未经处理的原始文本 (包含Markdown)
+         * @param {HTMLElement} textContainer - 用于显示渲染后HTML的容器 (例如 .message-text-area)
+         * @param {HTMLElement} contentContainer - 整个消息内容的容器 (例如 .message-content)，用于附加全局复制按钮
+         */
+        function renderMarkdownAndAttachCopyButtons(rawText, textContainer, contentContainer) {
+            if (typeof marked === 'undefined') {
+                console.warn('marked.js 库未加载。Markdown 将作为纯文本显示。');
+                textContainer.textContent = rawText; // Fallback: 显示为纯文本
+                if (rawText && rawText.trim()) {
+                    // 在纯文本消息上添加复制全文按钮
+                    contentContainer.appendChild(createCopyButton(rawText, '复制全文'));
+                }
+                return;
+            }
+
+            // 确保 Marked 选项已设置 (在 init 中已经设置，这里可以省略或按需覆盖)
+            // marked.setOptions({...});
+
+            let html = marked.parse(rawText || ''); // 如果 rawText 是 null/undefined，则解析空字符串
+
+            // 使用 DOMPurify 清理 HTML (强烈推荐)
+            if (typeof DOMPurify !== 'undefined') {
+                 // 允许 marked 生成的常见安全标签
+                const allowedTags = ['p', 'br', 'strong', 'em', 'del', 'a', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+                // 允许 marked 生成的常见安全属性
+                const allowedAttrs = ['href', 'title', 'alt', 'src', 'class']; // 允许 a, img, code 等标签的属性
+
+                 html = DOMPurify.sanitize(html, {
+                     ALLOWED_TAGS: allowedTags,
+                     ALLOWED_ATTR: allowedAttrs,
+                     USE_PROFILES: { html: true } // 额外启用一些通用的HTML配置文件
+                 });
+            } else {
+                console.warn('DOMPurify 库未加载。来自 marked.js 的输出将直接使用，请注意潜在的XSS风险。');
+            }
+
+            textContainer.innerHTML = html;
+
+            // --- 添加复制按钮 ---
+
+            // 1. 为整个消息内容添加复制按钮 (复制的是原始Markdown文本)
+            // 先移除可能已存在的旧的“复制全文”按钮，以防重复添加 (主要针对AI消息更新时)
+            // 查找不在 <pre> 标签内部的复制按钮
+            const existingFullCopyBtn = contentContainer.querySelector(':scope > .copy-btn');
+            if (existingFullCopyBtn) {
+                existingFullCopyBtn.remove();
+            }
+            if (rawText && rawText.trim()) {
+                 // 附加到 message-content, 但不是 pre 的子级
+                 const fullCopyBtn = createCopyButton(rawText, ''); // 全文复制按钮可以只有图标
+                 contentContainer.appendChild(fullCopyBtn);
+            }
+
+
+            // 2. 为所有 <pre> (代码块) 元素添加复制按钮
+            const codeBlocks = textContainer.querySelectorAll('pre');
+            codeBlocks.forEach(preElement => {
+                // preElement 内部通常是 <code> 标签
+                const codeElement = preElement.querySelector('code');
+                // 获取要复制的纯文本内容
+                const codeText = codeElement ? (codeElement.textContent || '') : (preElement.textContent || '');
+
+                if (codeText.trim()) {
+                    // 移除可能已存在的旧的代码块复制按钮
+                    const existingCodeCopyBtn = preElement.querySelector('.copy-btn');
+                    if (existingCodeCopyBtn) {
+                        existingCodeCopyBtn.remove();
+                    }
+                    preElement.appendChild(createCopyButton(codeText, '复制'));
+                }
+            });
+
+            // 3. (可选) 为数学公式渲染 (如果使用了 KaTeX/MathJax)
+            // if (typeof renderMathInElement !== 'undefined') {
+            //     renderMathInElement(textContainer, {
+            //         delimiters: [
+            //             { left: '$$', right: '$$', display: true },
+            //             { left: '$', right: '$', display: false },
+            //         ],
+            //         throwOnError: false
+            //     });
+            // }
+        }
+
+        // ===== JavaScript 新增函数结束 =====
+
 
         // 处理图片上传
         function handleImageUpload(e) {
             const files = e.target.files;
             if (!files || files.length === 0) return;
 
-            state.imageAttachments = [];
+            state.imageAttachments = []; // 清空之前的附件
             Array.from(files).forEach(file => {
                 if (!file.type.startsWith('image/')) return;
-                
+
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const base64Data = e.target.result;
                     state.imageAttachments.push({
                         data: base64Data,
-                        filename: file.name
+                        filename: file.name // 保存文件名
                     });
-                    
-                    // 显示上传提示
+
+                    // 显示上传提示 (只显示总数)
                     const uploadCount = state.imageAttachments.length;
-                    addSystemMessage(`已上传 ${uploadCount} 张图片，将随下一条消息一起发送`);
-                    elements.visionToggle.checked = true;
+                     // 查找并更新现有的提示消息
+                     let systemMessageElement = elements.chatMessages.querySelector('.message.system-message:last-child');
+                     let isNewMessage = false;
+                     // 判断最后一个系统消息是否是图片上传提示
+                     if (!systemMessageElement || !systemMessageElement.messageObj || systemMessageElement.messageObj.type !== 'system' || !systemMessageElement.messageObj.text.includes('已上传') || !systemMessageElement.messageObj.text.includes('图片')) {
+                         systemMessageElement = addSystemMessage(''); // 添加新的系统消息元素
+                         isNewMessage = true;
+                     }
+
+                     const messageText = `已上传 ${uploadCount} 张图片，将随下一条消息一起发送。`;
+                     const messageTime = new Date().toLocaleTimeString();
+
+                     // 更新消息对象 (如果它是一个系统消息)
+                     if (systemMessageElement.messageObj && systemMessageElement.messageObj.type === 'system') {
+                         systemMessageElement.messageObj.text = messageText;
+                         systemMessageElement.messageObj.time = messageTime;
+                     } else {
+                         // 如果是新创建的消息，或者找不到对应的 messageObj，创建一个新的 messageObj
+                         const newMessageObj = {
+                              type: 'system',
+                              text: messageText,
+                              time: messageTime
+                         };
+                         state.messages.push(newMessageObj); // 系统消息理论上不计入 context，但这里为了追踪状态可以先放着
+                          // 关联 messageElement 和 messageObj (方便后续查找)
+                          systemMessageElement.messageObj = newMessageObj;
+                     }
+
+                     // 更新DOM内容
+                     // 移除旧内容和时间，重新生成
+                     const messageContentDiv = systemMessageElement.querySelector('.message-content');
+                     if(messageContentDiv) {
+                        messageContentDiv.innerHTML = `
+                            ${messageText}
+                            <div class="message-time">${messageTime}</div>
+                        `;
+                     }
+
+
+                    elements.visionToggle.checked = true; // 上传图片自动开启图像理解
                     saveSettings();
+
+                    // 如果是新消息，滚动到底部
+                    if (isNewMessage) {
+                         scrollToBottom();
+                    }
                 };
                 reader.readAsDataURL(file);
             });
-            
-            // 重置文件输入
+
+            // 重置文件输入，以便可以选择相同的文件
             e.target.value = '';
         }
 
         // 发送消息
         async function sendMessage() {
+            // 如果按钮当前是“停止”状态，则执行停止逻辑
+            const sendButtonSpan = elements.sendButton.querySelector('span');
+            if (sendButtonSpan && sendButtonSpan.textContent === '停止') {
+                stopStreamingRequest();
+                return;
+            }
+
             const message = elements.chatInput.value.trim();
-            if (message === '' && state.imageAttachments.length === 0) return;
-            
+            const hasImages = state.imageAttachments.length > 0 && elements.visionToggle.checked;
+
+            if (message === '' && !hasImages) return;
+
             // 检查设置
             if (!elements.apiEndpoint.value || !elements.apiKey.value) {
                 addSystemMessage('请先在设置中配置 API 地址和 API Key');
                 togglePanel(elements.settingsPanel);
                 return;
             }
-            
+
             // 获取选择的模型
             const selectedModelId = elements.modelSelect.value;
             if (!selectedModelId) {
@@ -1426,16 +1916,29 @@
                 togglePanel(elements.settingsPanel);
                 return;
             }
-            
+
             // 添加用户消息到聊天
             addUserMessage(message, state.imageAttachments);
-            elements.chatInput.value = '';
+            elements.chatInput.value = ''; // 清空输入框
+
+            // 清除已上传图片的系统提示消息
+            const uploadSystemMessages = elements.chatMessages.querySelectorAll('.system-message');
+             uploadSystemMessages.forEach(msgElement => {
+                 if (msgElement.messageObj && msgElement.messageObj.type === 'system' && msgElement.messageObj.text.includes('已上传') && msgElement.messageObj.text.includes('图片')) {
+                     msgElement.remove(); // 移除提示消息元素
+                     // 不需要从 state.messages 移除，因为这个类型的系统消息本来就不计入上下文
+                 }
+             });
+
+             // 清空图片附件状态 (用户消息已包含，请求发送后清空)
+            state.imageAttachments = [];
+
             state.pendingMessages++;
             updateSendButtonState();
-            
+
             // 构建请求数据
             let content = [];
-            
+
             // 添加文本内容
             if (message) {
                 content.push({
@@ -1443,22 +1946,37 @@
                     text: message
                 });
             }
-            
+
             // 添加图像内容（如果开启图像理解能力）
-            if (elements.visionToggle.checked && state.imageAttachments.length > 0) {
-                state.imageAttachments.forEach(image => {
-                    content.push({
-                        type: "image_url",
-                        image_url: {
-                            url: image.data
-                        }
-                    });
-                });
+            if (hasImages) {
+                // 注意：state.imageAttachments 此时应该已经被清空，但 addUserMessage 中复制了一份
+                // 这里应该从 addUserMessage 添加到 state.messages 的那个消息对象中获取图片
+                 const userMessageObj = state.messages[state.messages.length - 1]; // 获取最后一条（刚刚添加的）用户消息
+                 if (userMessageObj && userMessageObj.type === 'user' && userMessageObj.images && userMessageObj.images.length > 0) {
+                     userMessageObj.images.forEach(image => {
+                         content.push({
+                             type: "image_url",
+                             image_url: {
+                                 url: image.data // Base64 URL
+                             }
+                         });
+                     });
+                 } else if (state.imageAttachments.length > 0) { // 备用：如果 somehow state.imageAttachments还没清空 (理论上不应该)
+                      state.imageAttachments.forEach(image => {
+                         content.push({
+                             type: "image_url",
+                             image_url: {
+                                 url: image.data
+                             }
+                         });
+                     });
+                 }
             }
-            
+
+
             // 构建消息历史
             const messageHistory = getMessageHistory();
-            
+
             // 构建请求主体
             let requestBody = {
                 model: selectedModelId,
@@ -1472,70 +1990,105 @@
                 max_tokens: parseInt(elements.maxTokens.value),
                 stream: elements.streamToggle.checked
             };
-            
+
             // 添加自定义参数
             const customParams = document.querySelectorAll('.param-item');
             if (customParams.length > 0) {
                 Array.from(customParams).forEach(param => {
-                    const key = param.querySelector('[data-type="param-key"]').value;
-                    const value = param.querySelector('[data-type="param-value"]').value;
-                    
-                    if (key && value) {
-                        // 尝试将值转换为合适的类型
-                        try {
-                            requestBody[key] = JSON.parse(value);
-                        } catch (e) {
-                            requestBody[key] = value;
-                        }
+                    const keyInput = param.querySelector('[data-type="param-key"]');
+                    const valueInput = param.querySelector('[data-type="param-value"]');
+                    const key = keyInput ? keyInput.value.trim() : '';
+                    const valueString = valueInput ? valueInput.value.trim() : '';
+
+                    if (key) {
+                         let value;
+                         try {
+                             // 尝试将值解析为 JSON (例如布尔值, 数字, 对象, 数组)
+                             value = JSON.parse(valueString);
+                         } catch (e) {
+                             // 如果解析失败，就作为原始字符串值
+                             value = valueString;
+                         }
+                        requestBody[key] = value;
                     }
                 });
             }
-            
+
             // 日志记录请求
             const logId = addLog('发送请求', requestBody);
-            
+
             try {
                 // 发送请求
-                const aiMessage = addAIMessage('');
-                
+                 const aiMessageParts = addAIMessage(''); // 新的调用方式，获取包含各元素引用的对象
+
                 if (elements.streamToggle.checked) {
-                    streamResponse(requestBody, aiMessage, logId);
+                    streamResponse(requestBody, aiMessageParts, logId);
                 } else {
                     const response = await sendRequest(requestBody);
                     updateLogResponse(logId, response);
-                    
+
                     if (response.error) {
                         throw new Error(response.error.message || '请求失败');
                     }
-                    
-                    const aiResponse = response.choices[0].message.content;
-                    updateAIMessage(aiMessage, aiResponse);
-                    
-                    if (elements.thinkingToggle.checked && response.choices[0].thinking) {
-                        addThinkingProcess(aiMessage, response.choices[0].thinking);
+
+                    const aiResponseText = response.choices[0]?.message?.content || ''; // 安全访问内容
+                    updateAIMessage(aiMessageParts, aiResponseText);
+
+                    // 注意：addThinkingProcess 也需要 aiMessageParts.element 或其子元素
+                    if (elements.thinkingToggle.checked && response.choices[0]?.thinking) {
+                        addThinkingProcess(aiMessageParts, response.choices[0].thinking); // 调整 addThinkingProcess
                     }
                 }
             } catch (error) {
                 console.error('API 请求失败:', error);
-                addSystemMessage(`API 请求失败: ${error.message}`);
-                updateLogError(logId, error.message);
+                 const errorMessage = error.message || 'API 请求失败';
+                addSystemMessage(`API 请求失败: ${errorMessage}`);
+                updateLogError(logId, errorMessage);
+
+                 // 如果是流式请求失败，需要移除加载动画并显示错误 (非流式错误也会走这里)
+                 //aiMessageParts 对象包含了所有需要的元素引用
+                 if (aiMessageParts && aiMessageParts.contentContainer) {
+                     aiMessageParts.contentContainer.classList.remove('loading');
+                     const textContainer = aiMessageParts.textContainer;
+                     if (textContainer) {
+                         // 如果已经有部分回复，在后面追加错误信息
+                         if (aiMessageParts.object.text && aiMessageParts.object.text.trim() !== '') {
+                            updateAIMessage(aiMessageParts, aiMessageParts.object.text + `\n\n*错误: ${errorMessage}*`);
+                         } else {
+                            // 如果没有收到任何回复，直接显示错误
+                            textContainer.innerHTML = `<span style="color: red;">错误: ${errorMessage}</span>`;
+                         }
+                     }
+                     scrollToBottom();
+                 }
+
             } finally {
-                // 清除图片附件
-                state.imageAttachments = [];
+                // 清除图片附件（已在顶部清除）
                 state.pendingMessages--;
+                // state.streamController = null; // 此清理已移至 streamResponse 的 finally
                 updateSendButtonState();
             }
         }
 
         // 流式响应处理
-        async function streamResponse(requestBody, aiMessage, logId) {
+        async function streamResponse(requestBody, aiMessageParts, logId) { // 接收 aiMessageParts
+            let responseText = '';
+            let allChunks = '';
+            let thinkingProcess = '';
+            let errorOccurred = false; // 用于标记是否发生了非中止错误
+            let wasAborted = false;    // 用于标记是否是用户中止
+
+
             try {
                 // 创建控制器
                 if (state.streamController) {
-                    state.streamController.abort();
+                    state.streamController.abort(); // 中止上一个未完成的流
+                    // Note: This abort might trigger the catch block of a *previous* call to streamResponse
+                    // We need to handle the state correctly across multiple calls/aborts
                 }
                 state.streamController = new AbortController();
-                
+                const signal = state.streamController.signal;
+
                 // 创建请求
                 const response = await fetch(elements.apiEndpoint.value, {
                     method: 'POST',
@@ -1544,82 +2097,158 @@
                         'Authorization': `Bearer ${elements.apiKey.value}`
                     },
                     body: JSON.stringify(requestBody),
-                    signal: state.streamController.signal
+                    signal: signal
                 });
-                
+
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error?.message || `请求失败: ${response.status}`);
+                    errorOccurred = true;
+                     const errorData = await response.json().catch(() => ({})); // 尝试解析JSON，失败也无妨
+                    throw new Error(errorData.error?.message || `请求失败: ${response.status} ${response.statusText}`);
                 }
-                
+
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
-                let responseText = '';
-                let allChunks = '';
-                let thinkingProcess = '';
-                
+
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-                    
+
+                    // Check if the stream was aborted externally during the read operation
+                    if (signal.aborted) {
+                         wasAborted = true;
+                         console.log('Stream aborted during read operation.');
+                         reader.cancel('Stream aborted by user/system'); // Attempt to close the reader
+                         break; // Exit the loop
+                    }
+
+
                     const chunk = decoder.decode(value, { stream: true });
-                    allChunks += chunk;
-                    
+                    allChunks += chunk; // 收集所有原始块用于日志
+
                     // 处理SSE格式
                     const lines = chunk.split('\n');
                     for (const line of lines) {
                         if (line.startsWith('data: ')) {
                             const data = line.substring(6);
-                            
+
                             // 检查是否结束信号
                             if (data === '[DONE]') continue;
-                            
+
                             try {
                                 const json = JSON.parse(data);
-                                
+
                                 // 提取思考过程（如果有）
-                                if (elements.thinkingToggle.checked && 
-                                    json.choices && 
-                                    json.choices[0] && 
+                                if (elements.thinkingToggle.checked &&
+                                    json.choices &&
+                                    json.choices[0] &&
                                     json.choices[0].thinking) {
                                     thinkingProcess = json.choices[0].thinking;
+                                     // 实时更新思考过程 (如果需要的话)
+                                     addThinkingProcess(aiMessageParts, thinkingProcess);
                                 }
-                                
+
                                 // 提取内容
-                                if (json.choices && 
-                                    json.choices[0] && 
-                                    json.choices[0].delta && 
+                                if (json.choices &&
+                                    json.choices[0] &&
+                                    json.choices[0].delta &&
                                     json.choices[0].delta.content) {
                                     const content = json.choices[0].delta.content;
                                     responseText += content;
-                                    updateAIMessage(aiMessage, responseText);
+                                    updateAIMessage(aiMessageParts, responseText); // 实时更新消息
                                 }
                             } catch (e) {
-                                console.error('解析流式数据失败:', e);
+                                console.error('解析流式数据失败:', e, '原始数据:', data);
+                                // 可以在这里添加一个简单的错误提示到消息中，避免中断流
+                                // updateAIMessage(aiMessageParts, responseText + `\n[解析数据失败: ${e.message}]`);
                             }
+                        } else if (line.trim() !== '') {
+                             // 处理非SSE格式的错误信息 (某些API可能返回非200状态码的JSON错误)
+                             console.error('收到非SSE格式的行:', line);
+                             if (line.includes('"error"')) { // 尝试解析潜在的错误JSON
+                                 try {
+                                      const errorJson = JSON.parse(line);
+                                      if(errorJson.error?.message) {
+                                          errorOccurred = true;
+                                          // Store the error message, don't throw here to allow remaining stream data to be processed (if any)
+                                          state.logs.find(log => log.id === logId).error = errorJson.error.message;
+                                          console.error("Received error from API during stream:", errorJson.error.message);
+                                          // Optionally update the message with error state indicator
+                                          // updateAIMessage(aiMessageParts, responseText + `\n\n*API 错误: ${errorJson.error.message}*`);
+                                      }
+                                 } catch (e) {
+                                     // ignore parse error, treat as plain text line or continue
+                                 }
+                             }
+                             // 如果不是错误且不是SSE，可能只是空行或其他信息，可以忽略或记录
                         }
                     }
                 }
-                
-                // 添加思考过程（如果有）
+
+                // 流接收完毕
+                // 确保最后一个思考过程显示 (如果实时更新，这一步可能冗余，但保险)
                 if (elements.thinkingToggle.checked && thinkingProcess) {
-                    addThinkingProcess(aiMessage, thinkingProcess);
+                     addThinkingProcess(aiMessageParts, thinkingProcess);
                 }
-                
-                // 更新日志
-                updateLogStreamEnd(logId, allChunks);
+
+                // 如果是正常完成且没有发生错误，才更新日志响应
+                 if (!errorOccurred && !wasAborted) {
+                    updateLogStreamEnd(logId, allChunks);
+                 }
+
+
             } catch (error) {
                 if (error.name === 'AbortError') {
+                    wasAborted = true; // 标记为已中止
                     console.log('流式请求已中止');
-                    return;
+                    const abortMessage = "AI 回复已由用户停止。";
+                    // 更新AI消息框内容
+                    if (responseText && responseText.trim() !== '') { // 如果已经输出了一部分内容
+                        updateAIMessage(aiMessageParts, responseText + `\n\n*${abortMessage}*`);
+                    } else { // 如果还没输出内容，或者内容为空
+                        if (aiMessageParts && aiMessageParts.contentContainer) {
+                            aiMessageParts.contentContainer.classList.remove('loading'); // 移除加载动画
+                            if (aiMessageParts.textContainer) {
+                                aiMessageParts.textContainer.innerHTML = `<span style="color: var(--text-secondary); font-style: italic;">${abortMessage}</span>`;
+                            }
+                        }
+                    }
+                    updateLogError(logId, '用户手动停止');
+                } else {
+                    errorOccurred = true; // 标记为其他错误
+                    console.error('流式API请求失败:', error);
+                    const errorMessage = error.message || '流式API请求失败';
+                    if (responseText) {
+                        updateAIMessage(aiMessageParts, responseText + `\n\n*错误: ${errorMessage}*`);
+                    } else {
+                        updateAIMessage(aiMessageParts, `错误: ${errorMessage}`);
+                    }
+                    updateLogError(logId, errorMessage);
                 }
-                throw error;
             } finally {
-                state.streamController = null;
+                state.streamController = null; // 清理当前流的控制器
+                // 移除加载动画 (如果之前有且没有被正常移除)
+                if (aiMessageParts && aiMessageParts.contentContainer && aiMessageParts.contentContainer.classList.contains('loading')) {
+                    aiMessageParts.contentContainer.classList.remove('loading');
+                    // 如果是因为中止且没有内容，确保打字点消失并显示提示
+                    if (wasAborted && (!responseText || responseText.trim() === '')) {
+                       if (aiMessageParts.textContainer) {
+                           aiMessageParts.textContainer.innerHTML = `<span style="color: var(--text-secondary); font-style: italic;">AI 回复已由用户停止。</span>`;
+                       }
+                    } else if (errorOccurred && (!responseText || responseText.trim() === '')) {
+                        // 如果是其他错误且没有内容
+                        const logEntry = state.logs.find(log => log.id === logId);
+                        const errText = logEntry?.error || '加载失败';
+                        if (aiMessageParts.textContainer) {
+                            aiMessageParts.textContainer.innerHTML = `<span style="color: red;">${errText}</span>`;
+                        }
+                    }
+                }
+                // sendMessage的finally会处理pendingMessages和按钮状态更新
             }
         }
 
-        // 发送API请求
+
+        // 发送API请求 (非流式)
         async function sendRequest(requestBody) {
             const response = await fetch(elements.apiEndpoint.value, {
                 method: 'POST',
@@ -1629,13 +2258,14 @@
                 },
                 body: JSON.stringify(requestBody)
             });
-            
+
             const data = await response.json();
-            
+
             if (!response.ok) {
-                throw new Error(data.error?.message || `请求失败: ${response.status}`);
+                 // 即使响应不是OK,如果API返回了错误详情，也包含在抛出的错误中
+                throw new Error(data.error?.message || `请求失败: ${response.status} ${response.statusText}`);
             }
-            
+
             return data;
         }
 
@@ -1643,40 +2273,68 @@
         function getMessageHistory() {
             const maxContext = parseInt(elements.maxContext.value) || 10;
             const history = [];
-            
+
+            // 过滤掉系统消息和空的AI消息
+            const relevantMessages = state.messages.filter(msg =>
+                 msg.type !== 'system' && (msg.type === 'user' || msg.text.trim() !== '')
+            );
+
             // 只保留最近的消息作为上下文
-            const recentMessages = state.messages.slice(-maxContext * 2);
-            
+            // 保留 maxContext 对 (用户+AI) 消息，所以取最后 2 * maxContext 条相关消息
+            const recentMessages = relevantMessages.slice(-maxContext * 2);
+
             for (const msg of recentMessages) {
-                if (msg.type === 'system') continue;
-                
+
                 const historyItem = {
                     role: msg.type === 'user' ? 'user' : 'assistant',
-                    content: msg.text
+                    content: msg.text // 初始使用文本内容
                 };
-                
+
+                // 如果是用户消息且有图片，并且开启了视觉能力，将内容格式化为数组
                 if (msg.type === 'user' && msg.images && msg.images.length > 0 && elements.visionToggle.checked) {
-                    historyItem.content = [];
-                    if (msg.text) {
-                        historyItem.content.push({
+                    let contentArray = [];
+                     // 添加文本部分
+                    if (msg.text.trim()) { // 只有当有文本时才添加文本content
+                        contentArray.push({
                             type: 'text',
-                            text: msg.text
+                            text: msg.text.trim()
                         });
                     }
-                    
+
+                     // 添加图片部分
                     msg.images.forEach(image => {
-                        historyItem.content.push({
+                        contentArray.push({
                             type: 'image_url',
                             image_url: {
                                 url: image.data
                             }
                         });
                     });
+
+                    // 如果只有图片没有文本，contentArray 将只有图片对象
+                    // 如果有文本和图片，contentArray 将包含文本和图片对象
+                    // 如果只有文本没有图片，contentArray 将只有文本对象 (通过上面的 if(msg.text.trim()) 逻辑处理)
+
+                    // 如果 contentArray 非空，替换 historyItem 的 content
+                    if (contentArray.length > 0) {
+                        historyItem.content = contentArray;
+                    } else if (msg.text.trim() === '') {
+                         // 如果既没有文本也没有图片，这条用户消息应该被过滤掉 (相关消息过滤器已处理)
+                         // 如果过滤失效，这里避免添加空content的用户消息
+                         continue;
+                    }
+                    // 否则 (只有文本没有图片)，historyItem.content 仍然是 msg.text
+                } else if (msg.type === 'user' && msg.text.trim() === '') {
+                     // 只有图片没有文本的用户消息，但视觉能力未开启，也应该被过滤掉
+                     continue;
+                } else if (msg.type === 'ai' && msg.text.trim() === '') {
+                     // 空的AI消息也应该被过滤掉 (相关消息过滤器已处理)
+                     continue;
                 }
-                
+
                 history.push(historyItem);
             }
-            
+
             return history;
         }
 
@@ -1687,20 +2345,25 @@
                 text,
                 time: new Date().toLocaleTimeString()
             };
-            
-            state.messages.push(messageObj);
-            
+
+            // 系统消息不计入上下文，所以不推入 state.messages (除非是图片上传提示，但也不影响上下文)
+
             const messageElement = document.createElement('div');
             messageElement.className = 'message system-message';
+             // 关联 messageElement 和 messageObj (方便在 handleImageUpload 中查找和更新)
+            messageElement.messageObj = messageObj;
+
             messageElement.innerHTML = `
                 <div class="message-content">
                     ${text}
                     <div class="message-time">${messageObj.time}</div>
                 </div>
             `;
-            
+
             elements.chatMessages.appendChild(messageElement);
             scrollToBottom();
+
+             return messageElement; // 返回元素以便后续更新 (如图片上传提示)
         }
 
         // 添加用户消息
@@ -1708,128 +2371,149 @@
             const messageObj = {
                 type: 'user',
                 text,
-                images: [...images],
+                images: images ? [...images] : [], // 确保复制数组，而不是引用
                 time: new Date().toLocaleTimeString()
             };
-            
+
             state.messages.push(messageObj);
-            
+
             const messageElement = document.createElement('div');
             messageElement.className = 'message user-message';
-            
+
             let imageHtml = '';
             if (images && images.length > 0) {
                 imageHtml = '<div class="image-attachments">';
                 images.forEach(image => {
-                    imageHtml += `<img src="${image.data}" alt="${image.filename}" class="image-attachment">`;
+                    // 使用原始文件名作为 alt 文本，如果可用
+                    imageHtml += `<img src="${image.data}" alt="${image.filename || '用户上传图片'}" class="image-attachment">`;
                 });
                 imageHtml += '</div>';
             }
-            
+
+            // 修改HTML结构，为Markdown渲染的文本创建一个专用容器 .message-text-area
             messageElement.innerHTML = `
                 <div class="message-content">
-                    ${text}
+                    <div class="message-text-area"></div> <!-- Markdown渲染区域 -->
                     ${imageHtml}
                     <div class="message-time">${messageObj.time}</div>
                 </div>
                 <div class="message-avatar">用</div>
             `;
-            
+
+            const messageTextContainer = messageElement.querySelector('.message-text-area');
+            const messageContentContainer = messageElement.querySelector('.message-content');
+
+            // 使用新的渲染函数处理文本
+            renderMarkdownAndAttachCopyButtons(text, messageTextContainer, messageContentContainer);
+
             elements.chatMessages.appendChild(messageElement);
             scrollToBottom();
-            
-            return messageElement;
+
+            // 返回包含元素引用的对象,方便后续操作（如果需要）
+            return {
+                element: messageElement,
+                object: messageObj,
+                textContainer: messageTextContainer,
+                contentContainer: messageContentContainer
+            };
         }
 
         // 添加AI消息
-        function addAIMessage(text = '') {
+        function addAIMessage(text = '') { // text 参数通常在初始调用时为空
             const messageObj = {
                 type: 'ai',
-                text: text,
+                text: text, // 初始文本，通常在流式传输时会更新
                 time: new Date().toLocaleTimeString()
             };
-            
+
             state.messages.push(messageObj);
-            
+
             const messageElement = document.createElement('div');
             messageElement.className = 'message ai-message';
+
+            // 修改HTML结构，为Markdown渲染的文本创建一个专用容器 .message-text-area
+            // 并为打字点动画准备好 .message-text-area
             messageElement.innerHTML = `
                 <div class="message-avatar">AI</div>
                 <div class="message-content">
-                    <div class="message-text">${text || '<div class="typing-indicator"></div>'}</div>
+                    <div class="message-text-area"></div> <!-- Markdown渲染/打字点区域 -->
                     <div class="message-time">${messageObj.time}</div>
                 </div>
             `;
-            
+
+            const messageTextContainer = messageElement.querySelector('.message-text-area');
+            const messageContentContainer = messageElement.querySelector('.message-content');
+
+            if (!text) { // 如果初始文本为空，则显示加载动画
+                messageContentContainer.classList.add('loading');
+                messageTextContainer.innerHTML = `
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                `;
+            } else {
+                // 如果初始就有文本 (例如系统消息用此函数添加),则直接渲染
+                renderMarkdownAndAttachCopyButtons(text, messageTextContainer, messageContentContainer);
+            }
+
             elements.chatMessages.appendChild(messageElement);
             scrollToBottom();
-            
+
+            // 返回包含元素引用的对象，方便 updateAIMessage 更新
             return {
                 element: messageElement,
-                object: messageObj
+                object: messageObj,
+                textContainer: messageTextContainer,
+                contentContainer: messageContentContainer
             };
         }
 
         // 更新AI消息
-        function updateAIMessage(messageObj, text) {
-            messageObj.object.text = text;
-            
-            const messageTextElement = messageObj.element.querySelector('.message-text');
-            messageTextElement.innerHTML = renderMessage(text);
-            
+        function updateAIMessage(aiMessageParts, newText) {
+             if (!aiMessageParts || !aiMessageParts.object) {
+                 console.error("无效的 aiMessageParts 对象", aiMessageParts);
+                 return;
+             }
+            aiMessageParts.object.text = newText; // 更新存储的原始文本
+
+            // 移除加载状态 (如果之前有)
+            aiMessageParts.contentContainer.classList.remove('loading');
+
+            // 使用新的渲染函数处理更新的文本
+            renderMarkdownAndAttachCopyButtons(newText, aiMessageParts.textContainer, aiMessageParts.contentContainer);
+
+            // 实时滚动到底部可能导致用户无法阅读，可以考虑仅在用户接近底部时滚动
+            // 但对于流式输出，通常期望自动滚动
             scrollToBottom();
         }
 
         // 添加思考过程
-        function addThinkingProcess(messageObj, thinkingText) {
-            if (!thinkingText) return;
-            
-            const messageContent = messageObj.element.querySelector('.message-content');
-            
+        function addThinkingProcess(aiMessageParts, thinkingText) {
+            if (!thinkingText || !elements.thinkingToggle.checked || !aiMessageParts || !aiMessageParts.element) return;
+
+            const messageContent = aiMessageParts.element.querySelector('.message-content');
+             if (!messageContent) return;
+
             // 检查是否已存在思考过程元素
             let thinkingElement = messageContent.querySelector('.thinking-process');
-            
+
             if (!thinkingElement) {
                 thinkingElement = document.createElement('div');
                 thinkingElement.className = 'thinking-process';
-                messageContent.appendChild(thinkingElement);
+                // 思考过程元素应该添加到消息内容（message-content）的末尾，但在时间戳之前
+                const timeElement = messageContent.querySelector('.message-time');
+                if (timeElement) {
+                    messageContent.insertBefore(thinkingElement, timeElement);
+                } else {
+                    // 如果没有时间戳（不应该发生），就直接append
+                    messageContent.appendChild(thinkingElement);
+                }
             }
-            
-            thinkingElement.textContent = thinkingText;
+
+            thinkingElement.textContent = thinkingText; // 思考过程通常是纯文本
             scrollToBottom();
         }
 
-        // 渲染消息内容（代码高亮和数学公式）
-        function renderMessage(text) {
-            if (!text) return '';
-            
-            // 处理代码块
-            text = text.replace(/```(.*?)\n([\s\S]*?)```/g, function(match, language, code) {
-                return `<pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
-            });
-            
-            // 处理行内代码
-            text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-            
-            // 处理数学公式 (使用 KaTeX 或 MathJax 渲染，这里只是简单标记)
-            text = text.replace(/\$\$(.*?)\$\$/g, '<div class="math-formula">$$$1$$</div>');
-            text = text.replace(/\$(.*?)\$/g, '<span class="math-formula">$1</span>');
-            
-            // 处理换行
-            text = text.replace(/\n/g, '<br>');
-            
-            return text;
-        }
-
-        // HTML转义
-        function escapeHTML(unsafe) {
-            return unsafe
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
 
         // 滚动到底部
         function scrollToBottom() {
@@ -1838,14 +2522,29 @@
 
         // 更新发送按钮状态
         function updateSendButtonState() {
-            elements.sendButton.disabled = state.pendingMessages > 0;
+            const sendButton = elements.sendButton;
+            const hasValidModel = elements.modelSelect.value !== '';
+
+            // 定义SVG图标字符串
+            const sendSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
+            const stopSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>`;
+
+            if (state.streamController && state.pendingMessages > 0) { // 正在流式输出
+                sendButton.innerHTML = `<span>停止</span>${stopSvg}`;
+                sendButton.disabled = false; // "停止"按钮应该总是可用的
+                sendButton.title = "停止AI回复";
+            } else { // 非流式输出，或没有 pending message
+                sendButton.innerHTML = `<span>发送</span>${sendSvg}`;
+                sendButton.disabled = state.pendingMessages > 0 || !hasValidModel;
+                sendButton.title = "发送消息";
+            }
         }
 
         // 添加日志
         function addLog(title, requestData) {
             const timestamp = new Date();
             const logId = `log-${Date.now()}`;
-            
+
             const logObj = {
                 id: logId,
                 title,
@@ -1854,15 +2553,15 @@
                 response: null,
                 error: null
             };
-            
-            state.logs.unshift(logObj);
-            
+
+            state.logs.unshift(logObj); // 新日志放在前面
+
             // 创建日志元素
             const logElement = document.createElement('div');
             logElement.className = 'log-item';
             logElement.id = logId;
             logElement.innerHTML = `
-                <div class="log-header" onclick="toggleLogBody('${logId}')">
+                <div class="log-header" onclick="window.toggleLogBody('${logId}')">
                     <div class="log-title">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10"></circle>
@@ -1907,9 +2606,9 @@
                     </div>
                 </div>
             `;
-            
+
             elements.logsContainer.insertBefore(logElement, elements.logsContainer.firstChild);
-            
+
             return logId;
         }
 
@@ -1919,10 +2618,10 @@
             if (logObj) {
                 logObj.response = responseData;
             }
-            
+
             const responseSection = document.getElementById(`${logId}-response-section`);
             const responseElement = document.getElementById(`${logId}-response`);
-            
+
             if (responseSection && responseElement) {
                 responseSection.style.display = 'block';
                 responseElement.textContent = JSON.stringify(responseData, null, 2);
@@ -1934,14 +2633,25 @@
             const logObj = state.logs.find(log => log.id === logId);
             if (logObj) {
                 logObj.response = "流式响应 (已完成)";
+                if (streamData) {
+                     try {
+                         // 尝试解析完整的流数据作为 JSON (如果API最后提供了汇总)
+                         // 或者简单地保存为字符串，更可靠
+                         logObj.response = streamData; // 保存原始数据
+                     } catch (e) {
+                         // 如果解析失败，保存原始流数据
+                         logObj.response = streamData;
+                     }
+                }
             }
-            
+
             const responseSection = document.getElementById(`${logId}-response-section`);
             const responseElement = document.getElementById(`${logId}-response`);
-            
+
             if (responseSection && responseElement) {
                 responseSection.style.display = 'block';
-                responseElement.textContent = streamData || "流式响应 (已完成)";
+                 // 显示保存的响应数据
+                responseElement.textContent = typeof logObj.response === 'string' ? logObj.response : JSON.stringify(logObj.response, null, 2);
             }
         }
 
@@ -1951,13 +2661,18 @@
             if (logObj) {
                 logObj.error = errorMessage;
             }
-            
+
             const errorSection = document.getElementById(`${logId}-error-section`);
             const errorElement = document.getElementById(`${logId}-error`);
-            
+
             if (errorSection && errorElement) {
                 errorSection.style.display = 'block';
                 errorElement.textContent = errorMessage;
+                 // 更新日志标题颜色
+                 const logTitleElement = document.getElementById(logId)?.querySelector('.log-title');
+                 if (logTitleElement) {
+                     logTitleElement.style.color = '#e74c3c';
+                 }
             }
         }
 
@@ -1981,6 +2696,7 @@
             elements.imagePreview.classList.remove('active');
             elements.overlay.classList.remove('active');
         }
+
 
         // 初始化应用
         document.addEventListener('DOMContentLoaded', init);
