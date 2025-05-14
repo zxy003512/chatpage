@@ -950,11 +950,22 @@
     <!-- 可选: 引入 highlight.js 用于代码高亮 -->
     <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css"> -->
     <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script> -->
-    <!-- 可选: 引入 KaTeX 或 MathJax 用于数学公式渲染 -->
-    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4FgUvKtH2RaL4GinaAqt+RRDntLH3WMOaSioP1WK مرتجى" crossorigin="anonymous"> -->
-    <!-- <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-oFNzOkJrRxleF4hp4IN7JkjTyTFWHjKZGDJznhPN4G9FHtk8GAumdaLvGVgDP tev" crossorigin="anonymous"></script> -->
-    <!-- <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VF6QUSmpAIzEwQaJpgwYliElfGCAPmiro9otymtMWLMoFrm8c7ISDxyAyKt/FJpy" crossorigin="anonymous"
-        onload="renderMathInElement(document.body);"></script> -->
+
+    <!-- 添加 MathJax 3 的引用和配置 -->
+    <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']], // 定义行内公式的界定符，例如 $E=mc^2$
+        displayMath: [['$$', '$$'], ['\\[', '\\]']], // 定义块级公式的界定符，例如 $$ \sum f(x) $$
+        processEscapes: true // 允许使用 \$ 来显示美元符号本身
+      },
+      svg: {
+        fontCache: 'global' // 使用全局缓存以提高性能
+      }
+    };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
 </head>
 <body>
     <div class="container">
@@ -1308,16 +1319,8 @@
                  });
             }
 
-            // 初始化 KaTeX 或 MathJax (如果需要，取消下面注释并引入库)
-            // if (typeof renderMathInElement !== 'undefined') {
-            //     renderMathInElement(document.body, {
-            //         delimiters: [
-            //             { left: '$$', right: '$$', display: true },
-            //             { left: '$', right: '$', display: false },
-            //         ],
-            //         throwOnError: false
-            //     });
-            // }
+            // MathJax 配置已在head中完成，无需在此处再次配置或调用 auto-render
+
             updateSendButtonState(); // 确保初始按钮状态正确
 
         }
@@ -1475,7 +1478,7 @@
                 } else {
                     // 如果没有保存的设置，加载默认值并保存
                      addModelConfig('gpt-4-turbo', 'GPT-4 Turbo');
-                     addModelConfig('gpt-3.5-turbo', 'GPT-3.5 Turbo');
+                     addModelConfig('gpt-3.5-turbo', 'gpt-3.5 Turbo'); // 修正名称
                      updateModelSelector();
                      saveSettings(); // 保存初始默认设置
                 }
@@ -1727,89 +1730,67 @@
         }
 
         /**
-         * 渲染Markdown文本并在消息和代码块上附加复制按钮
-         * @param {string} rawText - 未经处理的原始文本 (包含Markdown)
+         * 渲染Markdown文本并在消息和代码块上附加复制按钮，然后渲染数学公式
+         * @param {string} rawText - 未经处理的原始文本 (包含Markdown和TeX公式)
          * @param {HTMLElement} textContainer - 用于显示渲染后HTML的容器 (例如 .message-text-area)
          * @param {HTMLElement} contentContainer - 整个消息内容的容器 (例如 .message-content)，用于附加全局复制按钮
          */
-        function renderMarkdownAndAttachCopyButtons(rawText, textContainer, contentContainer) {
+        async function renderMarkdownAndAttachCopyButtons(rawText, textContainer, contentContainer) {
             if (typeof marked === 'undefined') {
                 console.warn('marked.js 库未加载。Markdown 将作为纯文本显示。');
-                textContainer.textContent = rawText; // Fallback: 显示为纯文本
+                textContainer.innerHTML = rawText.replace(/\n/g, '<br>'); // 简单处理换行
                 if (rawText && rawText.trim()) {
-                    // 在纯文本消息上添加复制全文按钮
-                    contentContainer.appendChild(createCopyButton(rawText, '复制全文'));
+                    // 确保消息内容容器的复制按钮只添加一次或被正确替换
+                    const existingFullCopyBtn = contentContainer.querySelector(':scope > .copy-btn:not(pre .copy-btn)');
+                    if (existingFullCopyBtn) existingFullCopyBtn.remove();
+                    contentContainer.appendChild(createCopyButton(rawText, ''));
                 }
-                return;
-            }
-
-            // 确保 Marked 选项已设置 (在 init 中已经设置，这里可以省略或按需覆盖)
-            // marked.setOptions({...});
-
-            let html = marked.parse(rawText || ''); // 如果 rawText 是 null/undefined，则解析空字符串
-
-            // 使用 DOMPurify 清理 HTML (强烈推荐)
-            if (typeof DOMPurify !== 'undefined') {
-                 // 允许 marked 生成的常见安全标签
-                const allowedTags = ['p', 'br', 'strong', 'em', 'del', 'a', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
-                // 允许 marked 生成的常见安全属性
-                const allowedAttrs = ['href', 'title', 'alt', 'src', 'class']; // 允许 a, img, code 等标签的属性
-
-                 html = DOMPurify.sanitize(html, {
-                     ALLOWED_TAGS: allowedTags,
-                     ALLOWED_ATTR: allowedAttrs,
-                     USE_PROFILES: { html: true } // 额外启用一些通用的HTML配置文件
-                 });
+                // 对于纯文本，MathJax 也会尝试处理，如果包含 $...$ 等
             } else {
-                console.warn('DOMPurify 库未加载。来自 marked.js 的输出将直接使用，请注意潜在的XSS风险。');
-            }
+                let html = marked.parse(rawText || '');
 
-            textContainer.innerHTML = html;
-
-            // --- 添加复制按钮 ---
-
-            // 1. 为整个消息内容添加复制按钮 (复制的是原始Markdown文本)
-            // 先移除可能已存在的旧的“复制全文”按钮，以防重复添加 (主要针对AI消息更新时)
-            // 查找不在 <pre> 标签内部的复制按钮
-            const existingFullCopyBtn = contentContainer.querySelector(':scope > .copy-btn');
-            if (existingFullCopyBtn) {
-                existingFullCopyBtn.remove();
-            }
-            if (rawText && rawText.trim()) {
-                 // 附加到 message-content, 但不是 pre 的子级
-                 const fullCopyBtn = createCopyButton(rawText, ''); // 全文复制按钮可以只有图标
-                 contentContainer.appendChild(fullCopyBtn);
-            }
-
-
-            // 2. 为所有 <pre> (代码块) 元素添加复制按钮
-            const codeBlocks = textContainer.querySelectorAll('pre');
-            codeBlocks.forEach(preElement => {
-                // preElement 内部通常是 <code> 标签
-                const codeElement = preElement.querySelector('code');
-                // 获取要复制的纯文本内容
-                const codeText = codeElement ? (codeElement.textContent || '') : (preElement.textContent || '');
-
-                if (codeText.trim()) {
-                    // 移除可能已存在的旧的代码块复制按钮
-                    const existingCodeCopyBtn = preElement.querySelector('.copy-btn');
-                    if (existingCodeCopyBtn) {
-                        existingCodeCopyBtn.remove();
-                    }
-                    preElement.appendChild(createCopyButton(codeText, '复制'));
+                if (typeof DOMPurify !== 'undefined') {
+                    const allowedTags = ['p', 'br', 'strong', 'em', 'del', 'a', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+                    const allowedAttrs = ['href', 'title', 'alt', 'src', 'class'];
+                    html = DOMPurify.sanitize(html, {
+                        ALLOWED_TAGS: allowedTags,
+                        ALLOWED_ATTR: allowedAttrs,
+                        USE_PROFILES: { html: true }
+                    });
                 }
-            });
+                textContainer.innerHTML = html;
 
-            // 3. (可选) 为数学公式渲染 (如果使用了 KaTeX/MathJax)
-            // if (typeof renderMathInElement !== 'undefined') {
-            //     renderMathInElement(textContainer, {
-            //         delimiters: [
-            //             { left: '$$', right: '$$', display: true },
-            //             { left: '$', right: '$', display: false },
-            //         ],
-            //         throwOnError: false
-            //     });
-            // }
+                // --- 添加复制按钮 ---
+                const existingFullCopyBtn = contentContainer.querySelector(':scope > .copy-btn:not(pre .copy-btn)');
+                if (existingFullCopyBtn) existingFullCopyBtn.remove();
+                if (rawText && rawText.trim()) {
+                    contentContainer.appendChild(createCopyButton(rawText, ''));
+                }
+
+                const codeBlocks = textContainer.querySelectorAll('pre');
+                codeBlocks.forEach(preElement => {
+                    const codeElement = preElement.querySelector('code');
+                    const codeText = codeElement ? (codeElement.textContent || '') : (preElement.textContent || '');
+                    if (codeText.trim()) {
+                        const existingCodeCopyBtn = preElement.querySelector('.copy-btn');
+                        if (existingCodeCopyBtn) existingCodeCopyBtn.remove();
+                        preElement.appendChild(createCopyButton(codeText, '复制'));
+                    }
+                });
+            }
+
+            // --- 使用 MathJax 渲染数学公式 ---
+            if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
+                try {
+                    // 让 MathJax 处理这个容器内的公式
+                    await MathJax.typesetPromise([textContainer]);
+                    // console.log('MathJax typesetting complete for a message.');
+                } catch (err) {
+                    console.error('MathJax typesetting error:', err);
+                }
+            } else {
+                // console.warn('MathJax not available or typesetPromise not found.');
+            }
         }
 
         // ===== JavaScript 新增函数结束 =====
@@ -1918,7 +1899,7 @@
             }
 
             // 添加用户消息到聊天
-            addUserMessage(message, state.imageAttachments);
+            await addUserMessage(message, state.imageAttachments); // 确保用户消息渲染（包括公式）后再继续
             elements.chatInput.value = ''; // 清空输入框
 
             // 清除已上传图片的系统提示消息
@@ -1951,22 +1932,13 @@
             if (hasImages) {
                 // 注意：state.imageAttachments 此时应该已经被清空，但 addUserMessage 中复制了一份
                 // 这里应该从 addUserMessage 添加到 state.messages 的那个消息对象中获取图片
-                 const userMessageObj = state.messages[state.messages.length - 1]; // 获取最后一条（刚刚添加的）用户消息
-                 if (userMessageObj && userMessageObj.type === 'user' && userMessageObj.images && userMessageObj.images.length > 0) {
+                 const userMessageObj = state.messages.find(msg => msg.type === 'user' && msg.text === message && msg.images?.length > 0); // 获取刚刚添加的带有图片的用户消息
+                 if (userMessageObj && userMessageObj.images && userMessageObj.images.length > 0) {
                      userMessageObj.images.forEach(image => {
                          content.push({
                              type: "image_url",
                              image_url: {
                                  url: image.data // Base64 URL
-                             }
-                         });
-                     });
-                 } else if (state.imageAttachments.length > 0) { // 备用：如果 somehow state.imageAttachments还没清空 (理论上不应该)
-                      state.imageAttachments.forEach(image => {
-                         content.push({
-                             type: "image_url",
-                             image_url: {
-                                 url: image.data
                              }
                          });
                      });
@@ -2017,12 +1989,12 @@
             // 日志记录请求
             const logId = addLog('发送请求', requestBody);
 
-            try {
-                // 发送请求
-                 const aiMessageParts = addAIMessage(''); // 新的调用方式，获取包含各元素引用的对象
+            // 添加AI消息占位符
+            const aiMessageParts = addAIMessage('');
 
+            try {
                 if (elements.streamToggle.checked) {
-                    streamResponse(requestBody, aiMessageParts, logId);
+                    await streamResponse(requestBody, aiMessageParts, logId); // 添加 await
                 } else {
                     const response = await sendRequest(requestBody);
                     updateLogResponse(logId, response);
@@ -2032,7 +2004,7 @@
                     }
 
                     const aiResponseText = response.choices[0]?.message?.content || ''; // 安全访问内容
-                    updateAIMessage(aiMessageParts, aiResponseText);
+                    await updateAIMessage(aiMessageParts, aiResponseText, true); // 添加 await，并将 renderMathNow 设为 true
 
                     // 注意：addThinkingProcess 也需要 aiMessageParts.element 或其子元素
                     if (elements.thinkingToggle.checked && response.choices[0]?.thinking) {
@@ -2053,7 +2025,8 @@
                      if (textContainer) {
                          // 如果已经有部分回复，在后面追加错误信息
                          if (aiMessageParts.object.text && aiMessageParts.object.text.trim() !== '') {
-                            updateAIMessage(aiMessageParts, aiMessageParts.object.text + `\n\n*错误: ${errorMessage}*`);
+                            // 使用 updateAIMessage 来处理 Markdown 和可能的公式渲染
+                            await updateAIMessage(aiMessageParts, aiMessageParts.object.text + `\n\n*错误: ${errorMessage}*`, true); // 添加 await
                          } else {
                             // 如果没有收到任何回复，直接显示错误
                             textContainer.innerHTML = `<span style="color: red;">错误: ${errorMessage}</span>`;
@@ -2154,7 +2127,8 @@
                                     json.choices[0].delta.content) {
                                     const content = json.choices[0].delta.content;
                                     responseText += content;
-                                    updateAIMessage(aiMessageParts, responseText); // 实时更新消息
+                                    // 实时更新消息，但不渲染数学公式
+                                    await updateAIMessage(aiMessageParts, responseText, false); // 添加 await，renderMathNow 设为 false
                                 }
                             } catch (e) {
                                 console.error('解析流式数据失败:', e, '原始数据:', data);
@@ -2184,7 +2158,12 @@
                     }
                 }
 
-                // 流接收完毕
+                // 流接收完毕后，如果成功且有内容，进行最终的 Markdown 解析、复制按钮处理和数学公式渲染
+                if (!errorOccurred && !wasAborted && responseText) {
+                    // 调用 updateAIMessage，并让它这次渲染数学公式
+                    await updateAIMessage(aiMessageParts, responseText, true); // 添加 await，renderMathNow 设为 true
+                }
+
                 // 确保最后一个思考过程显示 (如果实时更新，这一步可能冗余，但保险)
                 if (elements.thinkingToggle.checked && thinkingProcess) {
                      addThinkingProcess(aiMessageParts, thinkingProcess);
@@ -2203,7 +2182,7 @@
                     const abortMessage = "AI 回复已由用户停止。";
                     // 更新AI消息框内容
                     if (responseText && responseText.trim() !== '') { // 如果已经输出了一部分内容
-                        updateAIMessage(aiMessageParts, responseText + `\n\n*${abortMessage}*`);
+                        await updateAIMessage(aiMessageParts, responseText + `\n\n*${abortMessage}*`, true); // 添加 await
                     } else { // 如果还没输出内容，或者内容为空
                         if (aiMessageParts && aiMessageParts.contentContainer) {
                             aiMessageParts.contentContainer.classList.remove('loading'); // 移除加载动画
@@ -2218,9 +2197,15 @@
                     console.error('流式API请求失败:', error);
                     const errorMessage = error.message || '流式API请求失败';
                     if (responseText) {
-                        updateAIMessage(aiMessageParts, responseText + `\n\n*错误: ${errorMessage}*`);
+                        await updateAIMessage(aiMessageParts, responseText + `\n\n*错误: ${errorMessage}*`, true); // 添加 await
                     } else {
-                        updateAIMessage(aiMessageParts, `错误: ${errorMessage}`);
+                         // 如果没有收到任何回复，直接显示错误
+                         if (aiMessageParts && aiMessageParts.contentContainer) {
+                             aiMessageParts.contentContainer.classList.remove('loading');
+                             if (aiMessageParts.textContainer) {
+                                 aiMessageParts.textContainer.innerHTML = `<span style="color: red;">错误: ${errorMessage}</span>`;
+                             }
+                         }
                     }
                     updateLogError(logId, errorMessage);
                 }
@@ -2367,11 +2352,11 @@
         }
 
         // 添加用户消息
-        function addUserMessage(text, images = []) {
+        async function addUserMessage(text, images = []) { // 在函数声明前添加 async
             const messageObj = {
                 type: 'user',
                 text,
-                images: images ? [...images] : [], // 确保复制数组，而不是引用
+                images: images ? [...images] : [],
                 time: new Date().toLocaleTimeString()
             };
 
@@ -2404,7 +2389,7 @@
             const messageContentContainer = messageElement.querySelector('.message-content');
 
             // 使用新的渲染函数处理文本
-            renderMarkdownAndAttachCopyButtons(text, messageTextContainer, messageContentContainer);
+            await renderMarkdownAndAttachCopyButtons(text, messageTextContainer, messageContentContainer); // 添加 await
 
             elements.chatMessages.appendChild(messageElement);
             scrollToBottom();
@@ -2444,7 +2429,7 @@
             const messageTextContainer = messageElement.querySelector('.message-text-area');
             const messageContentContainer = messageElement.querySelector('.message-content');
 
-            if (!text) { // 如果初始文本为空，则显示加载动画
+            if (!text) { // 如果初始文本为空, 则显示加载动画
                 messageContentContainer.classList.add('loading');
                 messageTextContainer.innerHTML = `
                     <span class="typing-dot"></span>
@@ -2453,8 +2438,10 @@
                 `;
             } else {
                 // 如果初始就有文本 (例如系统消息用此函数添加),则直接渲染
-                renderMarkdownAndAttachCopyButtons(text, messageTextContainer, messageContentContainer);
+                // 注意：这里直接渲染可能不包含MathJax渲染，如果需要，应该调用 updateAIMessage
+                messageTextContainer.innerHTML = text; // 简单添加文本
             }
+
 
             elements.chatMessages.appendChild(messageElement);
             scrollToBottom();
@@ -2469,21 +2456,86 @@
         }
 
         // 更新AI消息
-        function updateAIMessage(aiMessageParts, newText) {
-             if (!aiMessageParts || !aiMessageParts.object) {
-                 console.error("无效的 aiMessageParts 对象", aiMessageParts);
-                 return;
-             }
+        async function updateAIMessage(aiMessageParts, newText, renderMathNow = true) { // 添加 async 和 renderMathNow 参数
+            if (!aiMessageParts || !aiMessageParts.object) {
+                console.error("无效的 aiMessageParts 对象", aiMessageParts);
+                return;
+            }
             aiMessageParts.object.text = newText; // 更新存储的原始文本
 
             // 移除加载状态 (如果之前有)
             aiMessageParts.contentContainer.classList.remove('loading');
 
-            // 使用新的渲染函数处理更新的文本
-            renderMarkdownAndAttachCopyButtons(newText, aiMessageParts.textContainer, aiMessageParts.contentContainer);
+            // Markdown 解析和复制按钮逻辑
+            let html = '';
+            if (typeof marked === 'undefined') {
+                html = (newText || '').replace(/\n/g, '<br>'); // Fallback to simple line breaks
+            } else {
+                // Parse Markdown
+                html = marked.parse(newText || '');
+            }
 
-            // 实时滚动到底部可能导致用户无法阅读，可以考虑仅在用户接近底部时滚动
-            // 但对于流式输出，通常期望自动滚动
+            // DOMPurify 清理 (强烈推荐)
+            if (typeof DOMPurify !== 'undefined') {
+                const allowedTags = ['p', 'br', 'strong', 'em', 'del', 'a', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+                const allowedAttrs = ['href', 'title', 'alt', 'src', 'class']; // Include class for MathJax elements
+                html = DOMPurify.sanitize(html, {
+                    ALLOWED_TAGS: allowedTags,
+                    ALLOWED_ATTR: allowedAttrs,
+                    USE_PROFILES: { html: true }
+                });
+            } else {
+                 console.warn('DOMPurify 库未加载。来自 marked.js 的输出将直接使用，请注意潜在的XSS风险。');
+            }
+
+            // 更新DOM文本内容
+            aiMessageParts.textContainer.innerHTML = html;
+
+            // --- 添加复制按钮 ---
+            // 移除旧的全文复制按钮 (如果存在)
+            const existingFullCopyBtn = aiMessageParts.contentContainer.querySelector(':scope > .copy-btn:not(pre .copy-btn)');
+            if (existingFullCopyBtn) {
+                 existingFullCopyBtn.remove();
+            }
+            // 添加新的全文复制按钮
+             if (newText && newText.trim()) {
+                 // 附加到 message-content, 但不是 pre 的子级
+                 const fullCopyBtn = createCopyButton(newText, ''); // 全文复制按钮可以只有图标
+                 aiMessageParts.contentContainer.appendChild(fullCopyBtn);
+            }
+
+            // 为代码块添加复制按钮
+            const codeBlocks = aiMessageParts.textContainer.querySelectorAll('pre');
+            codeBlocks.forEach(preElement => {
+                const codeElement = preElement.querySelector('code');
+                const codeText = codeElement ? (codeElement.textContent || '') : (preElement.textContent || '');
+
+                if (codeText.trim()) {
+                    // 移除可能已存在的旧的代码块复制按钮
+                    const existingCodeCopyBtn = preElement.querySelector('.copy-btn');
+                    if (existingCodeCopyBtn) {
+                        existingCodeCopyBtn.remove();
+                    }
+                    preElement.appendChild(createCopyButton(codeText, '复制'));
+                }
+            });
+            // --- End of Markdown and copy button logic ---
+
+
+            // --- 使用 MathJax 渲染数学公式 ---
+            if (renderMathNow && typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
+                try {
+                     // 确保 MathJax 只处理当前消息的容器
+                    await MathJax.typesetPromise([aiMessageParts.textContainer]);
+                    // console.log('MathJax typesetting complete for updated AI message.');
+                } catch (err) {
+                    console.error('MathJax typesetting error in updateAIMessage:', err);
+                }
+            } else {
+                 // console.warn('MathJax not available or typesetPromise not found, or rendering deferred.');
+            }
+
+            // 滚动到底部
             scrollToBottom();
         }
 
@@ -2533,10 +2585,12 @@
                 sendButton.innerHTML = `<span>停止</span>${stopSvg}`;
                 sendButton.disabled = false; // "停止"按钮应该总是可用的
                 sendButton.title = "停止AI回复";
-            } else { // 非流式输出，或没有 pending message
+            } else { // 非流式输出, 或没有 pending message
                 sendButton.innerHTML = `<span>发送</span>${sendSvg}`;
-                sendButton.disabled = state.pendingMessages > 0 || !hasValidModel;
-                sendButton.title = "发送消息";
+                // sendButton.disabled = state.pendingMessages > 0 || !hasValidModel;
+                // 只有在没有pending message且有模型可选时才启用发送
+                 sendButton.disabled = state.pendingMessages > 0 || !hasValidModel || elements.chatInput.value.trim() === '' && state.imageAttachments.length === 0;
+                 sendButton.title = sendButton.disabled && !hasValidModel ? "请在设置中配置模型" : "发送消息";
             }
         }
 
@@ -2632,17 +2686,8 @@
         function updateLogStreamEnd(logId, streamData) {
             const logObj = state.logs.find(log => log.id === logId);
             if (logObj) {
-                logObj.response = "流式响应 (已完成)";
-                if (streamData) {
-                     try {
-                         // 尝试解析完整的流数据作为 JSON (如果API最后提供了汇总)
-                         // 或者简单地保存为字符串，更可靠
-                         logObj.response = streamData; // 保存原始数据
-                     } catch (e) {
-                         // 如果解析失败，保存原始流数据
-                         logObj.response = streamData;
-                     }
-                }
+                // 保存原始数据或标记为流式完成
+                logObj.response = streamData || "流式响应 (已完成)";
             }
 
             const responseSection = document.getElementById(`${logId}-response-section`);
@@ -2700,6 +2745,10 @@
 
         // 初始化应用
         document.addEventListener('DOMContentLoaded', init);
+
+        // 监听输入框内容和图片附件变化，更新发送按钮状态
+        elements.chatInput.addEventListener('input', updateSendButtonState);
+        elements.imageInput.addEventListener('change', updateSendButtonState); // handleImageUpload 内部会调用 change
     </script>
 </body>
 </html>
