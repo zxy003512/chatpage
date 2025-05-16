@@ -210,6 +210,17 @@
             text-align: right;
         }
 
+        /* 新增：markdown渲染区域样式，用于控制公式等内容的溢出 */
+        .message-text-area {
+            /* 允许内容过宽时横向滚动 */
+            overflow-x: auto;
+            /* 给可能的滚动条留出空间，可选 */
+            padding-bottom: 5px;
+            /* 其他样式，例如清除浮动等 */
+            clear: both;
+        }
+
+
         /* AI 等待回复时的打字点动画 */
         .message-content.loading .message-text-area {
             display: flex;
@@ -312,7 +323,7 @@
 
         .math-formula {
             padding: 5px 0;
-            overflow-x: auto;
+            overflow-x: auto; /* 确保公式本身容器也可以滚动 */
         }
 
         /* 图片附件样式 */
@@ -1231,6 +1242,102 @@
         };
 
 
+        // === 新增：聊天记录持久化函数 ===
+        function saveChatHistory() {
+            try {
+                localStorage.setItem('ai-chat-history', JSON.stringify(state.messages));
+                // console.log('Chat history saved.'); //调试时可以取消注释
+            } catch (error) {
+                console.error('Failed to save chat history:', error);
+            }
+        }
+
+        async function renderMessageDOM(messageObj) {
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${messageObj.type}-message`;
+
+            let messageTextForRender = messageObj.text || "";
+            let imagesForRender = messageObj.images || [];
+            let timeForRender = messageObj.time || new Date().toLocaleTimeString(); // 兼容旧的没有时间的记录
+
+            if (messageObj.type === 'user') {
+                let imageHtml = '';
+                if (imagesForRender.length > 0) {
+                    imageHtml = '<div class="image-attachments">';
+                    imagesForRender.forEach(image => {
+                        imageHtml += `<img src="${image.data}" alt="${image.filename || 'User uploaded image'}" class="image-attachment">`;
+                    });
+                    imageHtml += '</div>';
+                }
+                messageElement.innerHTML = `
+                    <div class="message-content">
+                        <div class="message-text-area"></div>
+                        ${imageHtml}
+                        <div class="message-time">${timeForRender}</div>
+                    </div>
+                    <div class="message-avatar">用</div>
+                `;
+                const textContainer = messageElement.querySelector('.message-text-area');
+                const contentContainer = messageElement.querySelector('.message-content');
+                // 加载时，消息已经是完整的，直接渲染 Markdown 和 MathJax
+                await renderMarkdownAndAttachCopyButtons(messageTextForRender, textContainer, contentContainer);
+
+            } else if (messageObj.type === 'ai') {
+                messageElement.innerHTML = `
+                    <div class="message-avatar">AI</div>
+                    <div class="message-content">
+                        <div class="message-text-area"></div>
+                        <div class="message-time">${timeForRender}</div>
+                    </div>
+                `;
+                const textContainer = messageElement.querySelector('.message-text-area');
+                const contentContainer = messageElement.querySelector('.message-content');
+                // AI 消息加载时也是完整的
+                await renderMarkdownAndAttachCopyButtons(messageTextForRender, textContainer, contentContainer);
+
+            } else if (messageObj.type === 'system') {
+                // 系统消息通常比较简单，直接设置文本，如果需要 Markdown 也用 renderMarkdownAndAttachCopyButtons
+                 let sanitizedText = messageTextForRender;
+                 if (typeof DOMPurify !== 'undefined') {
+                     sanitizedText = DOMPurify.sanitize(messageTextForRender);
+                 }
+                messageElement.innerHTML = `
+                    <div class="message-content">
+                        ${sanitizedText}
+                        <div class="message-time">${timeForRender}</div>
+                    </div>
+                `;
+                messageElement.messageObj = messageObj; // 和 addSystemMessage 保持一致
+            } else {
+                return; // 未知类型的消息，跳过
+            }
+            elements.chatMessages.appendChild(messageElement);
+        }
+
+        async function loadChatHistory() {
+            try {
+                const savedHistory = localStorage.getItem('ai-chat-history');
+                if (savedHistory) {
+                    const messagesToLoad = JSON.parse(savedHistory);
+                    state.messages = []; // 先清空内存中的 messages
+                    elements.chatMessages.innerHTML = ''; // 清空聊天界面上的现有消息
+
+                    for (const messageObj of messagesToLoad) {
+                        state.messages.push(messageObj); // 将加载的消息重新加入 state.messages
+                        await renderMessageDOM(messageObj); // 重新渲染到界面
+                    }
+                    // console.log('Chat history loaded and rendered.'); //调试时可以取消注释
+                    scrollToBottom();
+                }
+            } catch (error) {
+                console.error('Failed to load chat history:', error);
+                state.messages = []; // 如果加载失败，确保 messages 是空的
+                elements.chatMessages.innerHTML = '';
+            }
+        }
+        // === 结束：聊天记录持久化函数 ===
+
+
         // 清空对话
         function clearConversation() {
             // 询问用户确认
@@ -1247,6 +1354,8 @@
 
             // 2. 清空聊天记录状态和DOM
             state.messages = [];
+            localStorage.removeItem('ai-chat-history'); // 新增：从 localStorage 清除
+
             elements.chatMessages.innerHTML = ''; // 清空聊天界面
             state.imageAttachments = []; // 清空已选择但未发送的图片
             if (elements.chatInput) {
@@ -1265,7 +1374,7 @@
             // 5. (可选) 清理图片上传相关的系统消息 (如果存在)
             const uploadSystemMessages = elements.chatMessages.querySelectorAll('.system-message');
             uploadSystemMessages.forEach(msgElement => {
-                if (msgElement.textContent.includes('已上传') && msgElement.textContent.includes('图片')) {
+                if (msgElement.messageObj && msgElement.messageObj.type === 'system' && msgElement.messageObj.text.includes('已上传') && msgElement.messageObj.text.includes('图片')) {
                     msgElement.remove();
                 }
             });
@@ -1278,30 +1387,26 @@
             if (state.streamController) {
                 state.streamController.abort(); // 发出中止信号
                 // AbortError 会在 streamResponse 中被捕获并处理
-                // 无需在此处直接修改消息或按钮，让 streamResponse 的捕获逻辑处理更统一
+                // 无需在此处直接修改消息或按钮, 让 streamResponse 的捕获逻辑处理更统一
             }
         }
 
 
         // 初始化
-        function init() {
+        async function init() { // <--- 加上 async
             // 加载设置
-            loadSettings();
+            loadSettings(); // loadSettings 会处理模型选择的加载
 
-            // 创建初始模型配置
-            if (document.querySelectorAll('.model-config-item').length === 0) {
-                addModelConfig('gpt-4-turbo', 'GPT-4 Turbo');
-                addModelConfig('gpt-3.5-turbo', 'GPT-3.5 Turbo');
-            }
-
-            // 更新模型选择器
-            updateModelSelector();
+            // 新增：加载聊天记录
+            await loadChatHistory(); // <--- 加上 await
 
             // 添加事件监听器
             setupEventListeners();
 
-            // 添加欢迎消息
-            addSystemMessage('欢迎使用自定义中转API AI对话助手！请在设置中配置您的API信息。');
+            // 添加欢迎消息 (只有在没有聊天记录时才添加)
+            if (state.messages.length === 0) { // <--- 只有在聊天记录为空时显示欢迎语
+                addSystemMessage('欢迎使用自定义中转API AI对话助手！请在设置中配置您的API信息。');
+            }
 
              // 初始化 Marked 和 DOMPurify 设置
             if (typeof marked !== 'undefined') {
@@ -1323,6 +1428,10 @@
 
             updateSendButtonState(); // 确保初始按钮状态正确
 
+            // 如果是第一次加载且没有任何已保存的设置，保存一下当前的默认设置
+            if (!localStorage.getItem('ai-chat-settings')) {
+                saveSettings();
+            }
         }
 
         // 设置事件监听器
@@ -1363,7 +1472,7 @@
             // 添加模型
             elements.addModel.addEventListener('click', () => {
                 addModelConfig();
-                updateModelSelector();
+                // updateModelSelector(); // saveSettings 会调用 updateModelSelector
             });
 
             // 添加参数
@@ -1372,8 +1481,10 @@
             // 滑块值更新和保存
             elements.temperature.addEventListener('input', () => {
                 elements.temperatureValue.textContent = elements.temperature.value;
-                saveSettings();
+                // saveSettings(); // Save on release
             });
+             elements.temperature.addEventListener('change', saveSettings); // Save on release
+
              elements.maxTokens.addEventListener('change', saveSettings);
              elements.maxContext.addEventListener('change', saveSettings);
              elements.streamToggle.addEventListener('change', saveSettings);
@@ -1414,81 +1525,94 @@
         function loadSettings() {
             try {
                 const savedSettings = localStorage.getItem('ai-chat-settings');
+                let settings = {}; // Start with an empty object
+
                 if (savedSettings) {
-                    const settings = JSON.parse(savedSettings);
-
-                    // Apply settings
-                    elements.apiEndpoint.value = settings.apiEndpoint || '';
-                    elements.apiKey.value = settings.apiKey || '';
-                    elements.temperature.value = settings.temperature || 0.7;
-                    elements.temperatureValue.textContent = settings.temperature || 0.7;
-                    elements.maxTokens.value = settings.maxTokens || 2048;
-                    elements.maxContext.value = settings.maxContext || 10;
-                    elements.streamToggle.checked = settings.streamEnabled !== false; // Default to streaming
-                    elements.visionToggle.checked = settings.visionEnabled || false;
-                    elements.thinkingToggle.checked = settings.thinkingEnabled || false;
-
-                    // Font settings
-                    if (settings.fontFamily) {
-                        elements.fontFamily.value = settings.fontFamily;
-                        document.documentElement.style.setProperty('--font-main', settings.fontFamily);
-                    }
-
-                    if (settings.fontSize) {
-                        elements.fontSize.value = settings.fontSize;
-                        elements.fontSizeValue.textContent = `${settings.fontSize}px`;
-                        document.documentElement.style.setProperty('--font-size', `${settings.fontSize}px`);
-                    }
-
-                    // Theme
-                    if (settings.darkTheme) {
-                        document.body.classList.add('dark-theme');
-                    }
-
-                    // Load model configs
-                    if (settings.models && settings.models.length > 0) {
-                        elements.modelConfigs.innerHTML = ''; // Clear default model configs
-                        settings.models.forEach(model => {
-                            addModelConfig(model.id, model.name);
-                        });
-
-                        // Update model selector
-                        updateModelSelector();
-
-                        // Set selected model
-                        if (settings.selectedModel) {
-                            elements.modelSelect.value = settings.selectedModel;
-                        }
-                    } else {
-                        // If no saved model configs, use defaults and save after updating selector
-                         addModelConfig('gpt-4-turbo', 'GPT-4 Turbo');
-                         addModelConfig('gpt-3.5-turbo', 'gpt-3.5 Turbo'); // Correct name
-                         updateModelSelector();
-                         saveSettings(); // Save default config
-                    }
-
-                    // Load custom params
-                    if (settings.customParams && settings.customParams.length > 0) {
-                        elements.customParams.innerHTML = ''; // Clear default param configs
-                        settings.customParams.forEach(param => {
-                            addCustomParam(param.key, param.value);
-                        });
-                    }
-
-                } else {
-                    // If no saved settings, load defaults and save
-                     addModelConfig('gpt-4-turbo', 'GPT-4 Turbo');
-                     addModelConfig('gpt-3.5-turbo', 'gpt-3.5 Turbo'); // Correct name
-                     updateModelSelector();
-                     saveSettings(); // Save initial default settings
+                    settings = JSON.parse(savedSettings);
                 }
+
+                // Get previously selected model ID before clearing model configs
+                let previouslySelectedModelId = settings.selectedModel || null;
+
+
+                // Load model configs (clear existing first)
+                elements.modelConfigs.innerHTML = '';
+                if (settings.models && settings.models.length > 0) {
+                    settings.models.forEach(model => {
+                        addModelConfig(model.id, model.name);
+                    });
+                } else {
+                    // If no saved model configs, add defaults
+                    addModelConfig('gpt-4-turbo', 'GPT-4 Turbo');
+                    addModelConfig('gpt-3.5-turbo', 'GPT-3.5 Turbo'); // Correct name
+                }
+                updateModelSelector(); // Update the <select> element
+
+
+                // Restore previously selected model after the selector is updated
+                if (previouslySelectedModelId && elements.modelSelect.querySelector(`option[value="${previouslySelectedModelId}"]`)) {
+                     elements.modelSelect.value = previouslySelectedModelId;
+                } else if (elements.modelSelect.options.length > 0 && elements.modelSelect.options[0].value) {
+                     // If previous model ID is invalid or not found, select the first valid model
+                    elements.modelSelect.value = elements.modelSelect.options[0].value;
+                }
+
+
+                // Apply other settings
+                elements.apiEndpoint.value = settings.apiEndpoint || '';
+                elements.apiKey.value = settings.apiKey || '';
+                elements.temperature.value = settings.temperature || 0.7;
+                elements.temperatureValue.textContent = elements.temperature.value; // Ensure display matches value
+                elements.maxTokens.value = settings.maxTokens || 2048;
+                elements.maxContext.value = settings.maxContext || 10;
+                elements.streamToggle.checked = settings.streamEnabled !== false; // Default to streaming
+                elements.visionToggle.checked = settings.visionEnabled || false;
+                elements.thinkingToggle.checked = settings.thinkingEnabled || false;
+
+                // Font settings
+                if (settings.fontFamily) {
+                    elements.fontFamily.value = settings.fontFamily;
+                    document.documentElement.style.setProperty('--font-main', settings.fontFamily);
+                }
+
+                if (settings.fontSize) {
+                    elements.fontSize.value = settings.fontSize;
+                    elements.fontSizeValue.textContent = `${settings.fontSize}px`;
+                    document.documentElement.style.setProperty('--font-size', `${settings.fontSize}px`);
+                }
+
+                // Theme
+                if (settings.darkTheme) {
+                    document.body.classList.add('dark-theme');
+                } else {
+                     document.body.classList.remove('dark-theme');
+                }
+
+                // Load custom params (clear existing first)
+                 elements.customParams.innerHTML = '';
+                if (settings.customParams && settings.customParams.length > 0) {
+                    settings.customParams.forEach(param => {
+                        addCustomParam(param.key, param.value);
+                    });
+                }
+
+                 console.log('Settings loaded', settings);
+
+
             } catch (error) {
                 console.error('Failed to load settings:', error);
-                // Even if loading fails, try to load default models and save
+                // If loading fails, try to load default models and params and save them
+                elements.modelConfigs.innerHTML = ''; // Clean up in case of partial load
                 addModelConfig('gpt-4-turbo', 'GPT-4 Turbo');
-                addModelConfig('gpt-3.5-turbo', 'gpt-3.5 Turbo'); // Correct name
+                addModelConfig('gpt-3.5-turbo', 'GPT-3.5 Turbo'); // Correct name
                 updateModelSelector();
-                saveSettings();
+                 if (elements.modelSelect.options.length > 0 && elements.modelSelect.options[0].value) {
+                    elements.modelSelect.value = elements.modelSelect.options[0].value;
+                 }
+
+                elements.customParams.innerHTML = ''; // Clean up custom params
+
+                saveSettings(); // Save the default settings
             }
         }
 
@@ -1501,8 +1625,8 @@
                     const idInput = item.querySelector('[data-type="model-id"]');
                     const nameInput = item.querySelector('[data-type="model-name"]');
                     return {
-                        id: idInput ? idInput.value : '',
-                        name: nameInput ? nameInput.value : ''
+                        id: idInput ? idInput.value.trim() : '',
+                        name: nameInput ? nameInput.value.trim() : ''
                     };
                 }).filter(model => model.id && model.name); // Filter out empty model entries
 
@@ -1512,19 +1636,19 @@
                     const keyInput = item.querySelector('[data-type="param-key"]');
                     const valueInput = item.querySelector('[data-type="param-value"]');
                      return {
-                         key: keyInput ? keyInput.value : '',
-                         value: valueInput ? valueInput.value : ''
+                         key: keyInput ? keyInput.value.trim() : '',
+                         value: valueInput ? valueInput.value.trim() : '' // Save as string, parsing happens during request
                      };
                 }).filter(param => param.key); // Filter out empty param name entries
 
 
                 // Create settings object
                 const settings = {
-                    apiEndpoint: elements.apiEndpoint.value,
-                    apiKey: elements.apiKey.value,
-                    temperature: elements.temperature.value,
-                    maxTokens: elements.maxTokens.value,
-                    maxContext: elements.maxContext.value,
+                    apiEndpoint: elements.apiEndpoint.value.trim(),
+                    apiKey: elements.apiKey.value.trim(),
+                    temperature: parseFloat(elements.temperature.value),
+                    maxTokens: parseInt(elements.maxTokens.value) || 2048, // Use default if parse fails
+                    maxContext: parseInt(elements.maxContext.value) || 10, // Use default if parse fails
                     streamEnabled: elements.streamToggle.checked,
                     visionEnabled: elements.visionToggle.checked,
                     thinkingEnabled: elements.thinkingToggle.checked,
@@ -1533,12 +1657,12 @@
                     darkTheme: document.body.classList.contains('dark-theme'),
                     models,
                     customParams,
-                    selectedModel: elements.modelSelect.value
+                    selectedModel: elements.modelSelect.value // Save the currently selected model ID
                 };
 
                 // Save to local storage
                 localStorage.setItem('ai-chat-settings', JSON.stringify(settings));
-                console.log('Settings saved', settings);
+                // console.log('Settings saved', settings);
 
             } catch (error) {
                 console.error('Failed to save settings:', error);
@@ -1592,20 +1716,20 @@
             const removeButton = modelItem.querySelector('.remove-model');
             removeButton.addEventListener('click', () => {
                 modelItem.remove();
-                saveSettings();
-                updateModelSelector();
+                saveSettings(); // Save settings after removing
+                updateModelSelector(); // Update selector after removing
             });
 
             const inputs = modelItem.querySelectorAll('input');
             inputs.forEach(input => {
                 input.addEventListener('change', () => {
-                    saveSettings();
+                    saveSettings(); // Save settings on input change
                     updateModelSelector(); // Update selector when model ID or name changes
                 });
             });
 
             elements.modelConfigs.appendChild(modelItem);
-            saveSettings(); // Save settings when a new model is added
+            saveSettings(); // Save settings when a new model is added initially
         }
 
         // Update model selector
@@ -1613,7 +1737,7 @@
             const modelSelect = elements.modelSelect;
             const modelItems = document.querySelectorAll('.model-config-item');
 
-            // Save current selected value
+            // Save current selected value before clearing
             const currentSelectedValue = modelSelect.value;
 
             // Clear selector
@@ -1625,10 +1749,10 @@
                 const idInput = item.querySelector('[data-type="model-id"]');
                 const nameInput = item.querySelector('[data-type="model-name"]');
 
-                if (idInput && nameInput && idInput.value && nameInput.value) {
+                if (idInput && nameInput && idInput.value.trim() && nameInput.value.trim()) {
                     const option = document.createElement('option');
-                    option.value = idInput.value;
-                    option.textContent = nameInput.value;
+                    option.value = idInput.value.trim();
+                    option.textContent = nameInput.value.trim();
                     modelSelect.appendChild(option);
                     hasValidModel = true;
                 }
@@ -1640,10 +1764,6 @@
                 option.value = '';
                 option.textContent = '-- 请添加模型 --';
                 modelSelect.appendChild(option);
-                //elements.sendButton.disabled = true; // Disable send if no models
-            } else {
-                //elements.sendButton.disabled = state.pendingMessages > 0; // If models exist, disable based on pending status
-                 // Button state is handled by updateSendButtonState
             }
 
             // Try to restore previously selected model, otherwise select the first one
@@ -1651,13 +1771,19 @@
                  modelSelect.value = currentSelectedValue;
             } else if (hasValidModel) {
                  modelSelect.selectedIndex = 0; // Select the first valid model
+            } else {
+                // If no valid models are available, ensure the value is empty
+                modelSelect.value = '';
             }
 
 
             // Listen for model selection change
-             modelSelect.removeEventListener('change', saveSettings); // Remove old listener to avoid duplicates
-             modelSelect.addEventListener('change', saveSettings);
+             // Remove old listener first to prevent multiple listeners
+             modelSelect.removeEventListener('change', saveSettings);
+             modelSelect.addEventListener('change', saveSettings); // Add listener
+
              updateSendButtonState(); // Update button state after model change
+             saveSettings(); // Save the newly selected model or lack thereof
         }
 
         // Add custom parameter
@@ -1678,16 +1804,16 @@
             const removeButton = paramItem.querySelector('.remove-param');
             removeButton.addEventListener('click', () => {
                 paramItem.remove();
-                saveSettings();
+                saveSettings(); // Save after removing
             });
 
             const inputs = paramItem.querySelectorAll('input');
             inputs.forEach(input => {
-                input.addEventListener('change', saveSettings);
+                input.addEventListener('change', saveSettings); // Save on input change
             });
 
             elements.customParams.appendChild(paramItem);
-            saveSettings(); // Save when a new parameter is added
+            saveSettings(); // Save when a new parameter is added initially
         }
 
 
@@ -1736,57 +1862,83 @@
          * @param {HTMLElement} contentContainer - The main message content container (e.g., .message-content) for attaching the global copy button
          */
         async function renderMarkdownAndAttachCopyButtons(rawText, textContainer, contentContainer) {
+             if (!textContainer || !contentContainer) {
+                 console.error("Invalid containers for rendering.");
+                 return;
+             }
+
             if (typeof marked === 'undefined') {
                 console.warn('marked.js library not loaded. Markdown will be displayed as plain text.');
-                textContainer.innerHTML = rawText.replace(/\n/g, '<br>'); // Simple line break handling
+                textContainer.innerHTML = (rawText || '').replace(/\n/g, '<br>'); // Simple line break handling
+                // Only add message-level copy button if there's text
                 if (rawText && rawText.trim()) {
                     // Ensure the copy button for message content is added only once or replaced correctly
                     const existingFullCopyBtn = contentContainer.querySelector(':scope > .copy-btn:not(pre .copy-btn)');
                     if (existingFullCopyBtn) existingFullCopyBtn.remove();
-                    contentContainer.appendChild(createCopyButton(rawText, ''));
+                    contentContainer.appendChild(createCopyButton(rawText, '')); // Icon-only button
                 }
-                // For plain text, MathJax might still attempt to process it if it contains $...$ etc.
+                // For plain text, MathJax might still attempt to process it if it contains $...$ etc., which is fine.
             } else {
                 let html = marked.parse(rawText || '');
 
+                // Sanitize HTML
                 if (typeof DOMPurify !== 'undefined') {
-                    const allowedTags = ['p', 'br', 'strong', 'em', 'del', 'a', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
-                    const allowedAttrs = ['href', 'title', 'alt', 'src', 'class'];
+                    // Allow MathJax elements generated by MathJax (like span with specific classes)
+                    const allowedTags = ['p', 'br', 'strong', 'em', 'del', 'a', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'div']; // Added span, div
+                    // Include data attributes needed by MathJax, and style for MathJax elements
+                    const allowedAttrs = ['href', 'title', 'alt', 'src', 'class', 'style', 'role', 'aria-hidden', 'data-mathml', 'data-math-variant', 'data-global-font']; // Added MathJax attributes
                     html = DOMPurify.sanitize(html, {
                         ALLOWED_TAGS: allowedTags,
                         ALLOWED_ATTR: allowedAttrs,
                         USE_PROFILES: { html: true }
                     });
+                } else {
+                     console.warn('DOMPurify library not loaded. Output from marked.js will be used directly. Be aware of potential XSS risks.');
                 }
                 textContainer.innerHTML = html;
 
                 // --- Add Copy Buttons ---
+                // Remove old full message copy button (if it exists)
                 const existingFullCopyBtn = contentContainer.querySelector(':scope > .copy-btn:not(pre .copy-btn)');
-                if (existingFullCopyBtn) existingFullCopyBtn.remove();
-                if (rawText && rawText.trim()) {
-                    contentContainer.appendChild(createCopyButton(rawText, ''));
+                if (existingFullCopyBtn) {
+                     existingFullCopyBtn.remove();
+                }
+                // Add new full message copy button (only if there's text)
+                 if (rawText && rawText.trim()) {
+                     // Append to message-content, but not a child of pre
+                     const fullCopyBtn = createCopyButton(rawText, ''); // Full message copy button can be icon-only
+                     contentContainer.appendChild(fullCopyBtn);
                 }
 
+
+                // Add copy buttons to code blocks
                 const codeBlocks = textContainer.querySelectorAll('pre');
                 codeBlocks.forEach(preElement => {
                     const codeElement = preElement.querySelector('code');
                     const codeText = codeElement ? (codeElement.textContent || '') : (preElement.textContent || '');
                     if (codeText.trim()) {
+                        // Remove potentially existing old code block copy button
                         const existingCodeCopyBtn = preElement.querySelector('.copy-btn');
-                        if (existingCodeCopyBtn) existingCodeCopyBtn.remove();
+                        if (existingCodeCopyBtn) {
+                            existingCodeCopyBtn.remove();
+                        }
                         preElement.appendChild(createCopyButton(codeText, '复制'));
                     }
                 });
             }
 
             // --- Render MathJax formulas ---
+            // Check if MathJax is loaded and ready
             if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
                 try {
-                    // Let MathJax process formulas within this container
+                     // Use typesetPromise to process formulas within the specific text container element
+                     // This is more efficient than processing the whole document or chat area.
                     await MathJax.typesetPromise([textContainer]);
                     // console.log('MathJax typesetting complete for a message.');
                 } catch (err) {
                     console.error('MathJax typesetting error:', err);
+                    // Optionally display an error message within the container if MathJax fails
+                    // textContainer.innerHTML += '<p style="color: red;">[数学公式渲染失败]</p>';
                 }
             } else {
                 // console.warn('MathJax not available or typesetPromise not found.');
@@ -1810,11 +1962,15 @@
 
             state.imageAttachments = []; // Clear previous attachments
             let processedCount = 0; // Track processed files
+            const totalFiles = files.length;
 
             Array.from(files).forEach(file => {
+                // Basic file type check
                 if (!file.type.startsWith('image/')) {
-                    processedCount++; // Count non-image files as processed (but ignored)
-                    if (processedCount === files.length) {
+                    console.warn(`Skipping non-image file: ${file.name}`);
+                    processedCount++;
+                     // Check if all files are processed
+                    if (processedCount === totalFiles) {
                          updateUploadNotice(); // Update notice after all files processed
                          updateSendButtonState();
                     }
@@ -1829,18 +1985,20 @@
                     img.onload = function() {
                         // Create a canvas and draw the image onto it
                         const canvas = document.createElement('canvas');
+                        // Maintain aspect ratio if resizing is desired, but here we'll keep original dimensions for simplicity before converting
                         canvas.width = img.width;
                         canvas.height = img.height;
                         const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0);
+                        ctx.drawImage(img, 0, 0, img.width, img.height);
 
                         // Export as WebP data URL (quality 0-1)
-                        const webpDataUrl = canvas.toDataURL('image/webp', 0.8); // You can adjust the quality (e.g., 0.7, 0.9)
+                        // Using a quality of 0.8 is a good balance between size and quality
+                        const webpDataUrl = canvas.toDataURL('image/webp', 0.8);
 
                         // Push the WebP data URL to attachments state
                         state.imageAttachments.push({
                             data: webpDataUrl,
-                            filename: file.name.replace(/\.\w+$/, '.webp') // Optional: change filename suffix for clarity
+                            filename: file.name.replace(/\.\w+$/, '') + '.webp' // Change filename suffix for clarity
                         });
 
                         processedCount++; // Increment processed count
@@ -1849,17 +2007,21 @@
                         updateUploadNotice();
 
                         // Check if all files are processed
-                        if (processedCount === files.length) {
-                            elements.visionToggle.checked = true; // Automatically enable vision if images are attached
-                            saveSettings();
+                        if (processedCount === totalFiles) {
+                            // Automatically enable vision if images are attached AND it wasn't already enabled
+                            // This prevents disabling vision if user uploads images again while it was on
+                            if (!elements.visionToggle.checked) {
+                                elements.visionToggle.checked = true;
+                                saveSettings(); // Save the setting change
+                            }
                             updateSendButtonState(); // Update send button state after processing all images
                         }
                     };
 
                     img.onerror = function() {
-                        console.error(`Failed to load image: ${file.name}`);
+                        console.error(`Failed to load or process image: ${file.name}`);
                         processedCount++; // Count failed image as processed
-                         if (processedCount === files.length) {
+                         if (processedCount === totalFiles) {
                             updateUploadNotice();
                             updateSendButtonState();
                         }
@@ -1878,9 +2040,10 @@
         // Function to update the image upload system notice
         function updateUploadNotice() {
             // Clear any existing image upload system messages first
+            // We identify these messages by a flag or unique content
             elements.chatMessages.querySelectorAll('.message.system-message').forEach(msgElement => {
-                if (msgElement.messageObj && msgElement.messageObj.type === 'system' && msgElement.messageObj.text.includes('已上传') && msgElement.messageObj.text.includes('图片')) {
-                    msgElement.remove();
+                if (msgElement.messageObj && msgElement.messageObj.isUploadNotice) {
+                     msgElement.remove();
                 }
             });
 
@@ -1888,7 +2051,11 @@
 
             if (uploadCount > 0) {
                 const messageText = `已上传 ${uploadCount} 张图片，将随下一条消息一起发送。`;
-                 addSystemMessage(messageText); // This will create and add the new message element
+                 const noticeElement = addSystemMessage(messageText); // This will create and add the new message element
+                 // Add a flag to the message object stored on the element
+                 if (noticeElement && noticeElement.messageObj) {
+                      noticeElement.messageObj.isUploadNotice = true;
+                 }
             }
              // If uploadCount is 0, no notice is added (or existing ones were removed)
         }
@@ -1913,7 +2080,7 @@
             }
 
             // Check settings
-            if (!elements.apiEndpoint.value || !elements.apiKey.value) {
+            if (!elements.apiEndpoint.value.trim() || !elements.apiKey.value.trim()) {
                 addSystemMessage('请先在设置中配置 API 地址和 API Key');
                 togglePanel(elements.settingsPanel);
                 return;
@@ -1977,11 +2144,11 @@
                 messages: messageHistory.concat([
                     {
                         role: "user",
-                        content: content
+                        content: content.length > 0 ? content : message // Use array content if images or text, otherwise just text (should be handled by initial check)
                     }
                 ]),
-                temperature: parseFloat(elements.temperature.value),
-                max_tokens: parseInt(elements.maxTokens.value),
+                temperature: parseFloat(elements.temperature.value) || 0.7, // Use default if parse fails
+                max_tokens: parseInt(elements.maxTokens.value) || 2048, // Use default if parse fails
                 stream: elements.streamToggle.checked
             };
 
@@ -1994,7 +2161,7 @@
                     const key = keyInput ? keyInput.value.trim() : '';
                     const valueString = valueInput ? valueInput.value.trim() : '';
 
-                    if (key) {
+                    if (key && valueString !== '') { // Only add if key is not empty and value is not an empty string
                          let value;
                          try {
                              // Try to parse the value as JSON (e.g., boolean, number, object, array)
@@ -2007,6 +2174,19 @@
                     }
                 });
             }
+
+             // Add tool_choice if thinking process is enabled
+             if (elements.thinkingToggle.checked && !requestBody.tool_choice && !requestBody.tools) {
+                 // This is a simplified example, you might need to adjust based on API specifics.
+                 // Some APIs might require defining tools first. This assumes the API supports
+                 // a simple 'tool_choice: "tool"' or similar to enable thinking.
+                 // This part might need customization based on the *actual* thinking process implementation of the API.
+                 // console.warn("Thinking process is enabled, but no 'tool_choice' or 'tools' parameter was provided. This might not work depending on the API.");
+                 // Example: If the API uses a specific tool name for thinking:
+                 // requestBody.tool_choice = { type: "function", function: { name: "thinking_tool_name" } };
+                 // Or simply a flag if the API supports it this way.
+             }
+
 
             // Log the request
             const logId = addLog('Sending Request', requestBody);
@@ -2028,9 +2208,11 @@
                     const aiResponseText = response.choices[0]?.message?.content || ''; // Safely access content
                     await updateAIMessage(aiMessageParts, aiResponseText, true); // Add await, set renderMathNow to true
 
-                    // Note: addThinkingProcess also needs aiMessageParts.element or its child elements
+                    // Check for thinking process in non-streaming response
+                    // This assumes the API provides thinking info in the main response body for non-streaming.
+                    // The exact structure might vary. This is a placeholder logic.
                     if (elements.thinkingToggle.checked && response.choices[0]?.thinking) {
-                        addThinkingProcess(aiMessageParts, response.choices[0].thinking); // Adjust addThinkingProcess
+                         addThinkingProcess(aiMessageParts, response.choices[0].thinking);
                     }
                 }
             } catch (error) {
@@ -2039,13 +2221,13 @@
                 addSystemMessage(`API Request failed: ${errorMessage}`);
                 updateLogError(logId, errorMessage);
 
-                 // If streaming request failed, remove loading animation and display error (non-streaming errors will also come here)
+                 // If request failed, remove loading animation and display error
                  // aiMessageParts object contains all necessary element references
                  if (aiMessageParts && aiMessageParts.contentContainer) {
                      aiMessageParts.contentContainer.classList.remove('loading');
                      const textContainer = aiMessageParts.textContainer;
                      if (textContainer) {
-                         // If there's already partial reply, append error message
+                         // If there's already partial reply (only applicable if it somehow got updated before error), append error message
                          if (aiMessageParts.object.text && aiMessageParts.object.text.trim() !== '') {
                             // Use updateAIMessage to handle Markdown and potential formula rendering
                             await updateAIMessage(aiMessageParts, aiMessageParts.object.text + `\n\n*Error: ${errorMessage}*`, true); // Add await
@@ -2068,7 +2250,7 @@
         // Stream response handling
         async function streamResponse(requestBody, aiMessageParts, logId) { // Receive aiMessageParts
             let responseText = '';
-            let allChunks = '';
+            let allRawChunks = ''; // Collect all raw data chunks for logging
             let thinkingProcess = '';
             let errorOccurred = false; // Flag for non-abort errors
             let wasAborted = false;    // Flag for user abort
@@ -2076,10 +2258,15 @@
 
             try {
                 // Create controller
+                // Abort previous unfinished stream if it exists
                 if (state.streamController) {
-                    state.streamController.abort(); // Abort previous unfinished stream
-                    // Note: This abort might trigger the catch block of a *previous* call to streamResponse
-                    // We need to handle the state correctly across multiple calls/aborts
+                    try {
+                         state.streamController.abort('New request initiated');
+                         // Wait a brief moment for the previous stream's catch/finally to potentially run
+                         await new Promise(resolve => setTimeout(resolve, 50));
+                    } catch (e) {
+                        console.warn("Error aborting previous stream:", e);
+                    }
                 }
                 state.streamController = new AbortController();
                 const signal = state.streamController.signal;
@@ -2112,78 +2299,92 @@
                     if (signal.aborted) {
                          wasAborted = true;
                          console.log('Stream aborted during read operation.');
-                         reader.cancel('Stream aborted by user/system'); // Attempt to close the reader
+                         // No need to call reader.cancel() as abort() handles it
                          break; // Exit the loop
                     }
 
-
                     const chunk = decoder.decode(value, { stream: true });
-                    allChunks += chunk; // Collect all raw chunks for logging
+                    allRawChunks += chunk; // Collect all raw chunks for logging
 
-                    // Process SSE format
-                    const lines = chunk.split('\n');
+                    // Process SSE format (data: ...)
+                    // Split by potential newlines within the chunk
+                    const lines = (allRawChunks).split('\n');
+
+                    // Keep the last line if it doesn't end with '\n' (might be an incomplete line)
+                    allRawChunks = lines.pop();
+
                     for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            const data = line.substring(6);
+                        const trimmedLine = line.trim();
+                        if (trimmedLine.startsWith('data: ')) {
+                            const data = trimmedLine.substring(6).trim(); // Trim data payload too
 
-                            // Check for end signal
-                            if (data === '[DONE]') continue;
+                            // Check for end signal (case-insensitive and flexible)
+                            if (data.toUpperCase() === '[DONE]') continue;
 
                             try {
                                 const json = JSON.parse(data);
 
                                 // Extract thinking process (if available)
-                                if (elements.thinkingToggle.checked &&
-                                    json.choices &&
-                                    json.choices[0] &&
-                                    json.choices[0].thinking) {
-                                    thinkingProcess = json.choices[0].thinking;
-                                     // Update thinking process in real-time (if needed)
+                                // This assumes thinking process comes in separate chunks or a specific field
+                                if (elements.thinkingToggle.checked && json.thinking) { // Example: API sends { "thinking": "..." }
+                                     thinkingProcess = json.thinking; // Assuming thinking is cumulative or the latest is best
                                      addThinkingProcess(aiMessageParts, thinkingProcess);
                                 }
-
-                                // Extract content
-                                if (json.choices &&
-                                    json.choices[0] &&
-                                    json.choices[0].delta &&
-                                    json.choices[0].delta.content) {
-                                    const content = json.choices[0].delta.content;
-                                    responseText += content;
-                                    // Update message in real-time, but DO NOT render MathJax formulas yet
-                                    await updateAIMessage(aiMessageParts, responseText, false); // Add await, set renderMathNow to false
+                                // Handle OpenAI-style chunk structure
+                                if (json.choices && json.choices[0] && json.choices[0].delta) {
+                                     // Check for content delta
+                                     if (json.choices[0].delta.content) {
+                                         const content = json.choices[0].delta.content;
+                                         responseText += content;
+                                         // Update message in real-time. Do NOT render MathJax yet for performance during streaming.
+                                         await updateAIMessage(aiMessageParts, responseText, false); // Add await, set renderMathNow to false
+                                     }
+                                      // Check for tool_calls delta (relevant if thinking is tied to tools)
+                                     if (json.choices[0].delta.tool_calls) {
+                                         // This part is complex and depends heavily on how the API signals thinking via tools.
+                                         // For many APIs, thinking might just be a dedicated field like 'thinking' or 'debug_info'.
+                                         // If thinking is actually tool output, you'd need logic here to process tool_calls delta.
+                                         // Assuming thinking is a separate field for simplicity as implemented above.
+                                     }
                                 }
+
+
                             } catch (e) {
                                 console.error('Failed to parse stream data:', e, 'Raw data:', data);
                                 // Can add a simple error message to the message here, without interrupting the stream
                                 // updateAIMessage(aiMessageParts, responseText + `\n[Failed to parse data: ${e.message}]`);
                             }
-                        } else if (line.trim() !== '') {
-                             // Handle non-SSE format error messages (some APIs might return non-200 status JSON errors)
-                             console.error('Received non-SSE line:', line);
-                             if (line.includes('"error"')) { // Try to parse potential error JSON
-                                 try {
-                                      const errorJson = JSON.parse(line);
-                                      if(errorJson.error?.message) {
-                                          errorOccurred = true;
-                                          // Store the error message, don't throw here to allow remaining stream data to be processed (if any)
-                                          state.logs.find(log => log.id === logId).error = errorJson.error.message;
-                                          console.error("Received error from API during stream:", errorJson.error.message);
-                                          // Optionally update the message with error state indicator
-                                          // updateAIMessage(aiMessageParts, responseText + `\n\n*API Error: ${errorJson.error.message}*`);
-                                      }
-                                 } catch (e) {
-                                     // ignore parse error, treat as plain text line or continue
-                                 }
-                             }
-                             // If not an error and not SSE, could be empty lines or other info, can ignore or log
+                        } else if (trimmedLine !== '') {
+                             // Handle non-SSE format error messages or other non-data lines
+                             console.log('Received non-SSE data line:', trimmedLine);
+                             // You might inspect 'trimmedLine' for specific error patterns if your API sends them this way
                         }
                     }
                 }
 
+                // Append any remaining raw chunk data (should be empty if stream was proper SSE)
+                if (allRawChunks.trim() !== '') {
+                    console.warn("Remaining raw stream data after loop:", allRawChunks);
+                    // You might decide to append this as a warning or error message
+                }
+
+
                 // After stream is complete, if successful and there was content, do final Markdown parsing, copy button handling, and MathJax rendering
-                if (!errorOccurred && !wasAborted && responseText) {
+                if (!errorOccurred && !wasAborted && responseText.trim()) {
                     // Call updateAIMessage, and tell it to render MathJax this time
                     await updateAIMessage(aiMessageParts, responseText, true); // Add await, set renderMathNow to true
+                } else if (!errorOccurred && !wasAborted && !responseText.trim()) {
+                     // If stream finished successfully but yielded no visible text (e.g., just thinking process)
+                     // Ensure loading state is removed and potentially add a message indicating no response.
+                     if (aiMessageParts && aiMessageParts.contentContainer && aiMessageParts.contentContainer.classList.contains('loading')) {
+                          aiMessageParts.contentContainer.classList.remove('loading');
+                          if (aiMessageParts.textContainer && aiMessageParts.textContainer.innerHTML.trim() === '') {
+                                // If the text area is still empty (no content or thinking rendered), add a placeholder
+                                if (!aiMessageParts.textContainer.querySelector('.thinking-process')) { // Don't add placeholder if thinking was shown
+                                    aiMessageParts.textContainer.innerHTML = `<span style="color: var(--text-secondary); font-style: italic;">没有生成文本回复。</span>`;
+                                }
+                          }
+                     }
                 }
 
                 // Ensure the last thinking process is displayed (might be redundant if updated real-time, but safer)
@@ -2193,7 +2394,7 @@
 
                 // If completed normally and no error occurred, update the log response
                  if (!errorOccurred && !wasAborted) {
-                    updateLogStreamEnd(logId, allChunks);
+                    updateLogStreamEnd(logId, allRawChunks); // Log the collected raw chunks
                  }
 
 
@@ -2203,14 +2404,21 @@
                     console.log('Streaming request aborted');
                     const abortMessage = "AI 回复已由用户停止。";
                     // Update AI message content
+                    // Ensure loading state is removed regardless of content presence
+                    if (aiMessageParts && aiMessageParts.contentContainer) {
+                        aiMessageParts.contentContainer.classList.remove('loading');
+                    }
                     if (responseText && responseText.trim() !== '') { // If some content was already output
-                        await updateAIMessage(aiMessageParts, responseText + `\n\n*${abortMessage}*`, true); // Add await
+                        await updateAIMessage(aiMessageParts, responseText + `\n\n*${abortMessage}*`, true); // Add await, render final state including MathJax
                     } else { // If no content was output yet, or content is empty
-                        if (aiMessageParts && aiMessageParts.contentContainer) {
-                            aiMessageParts.contentContainer.classList.remove('loading'); // Remove loading animation
-                            if (aiMessageParts.textContainer) {
-                                aiMessageParts.textContainer.innerHTML = `<span style="color: var(--text-secondary); font-style: italic;">${abortMessage}</span>`;
-                            }
+                        if (aiMessageParts && aiMessageParts.textContainer) {
+                             // Only set innerHTML if it's still the loading state or completely empty
+                             if (aiMessageParts.textContainer.querySelector('.typing-dot') || aiMessageParts.textContainer.innerHTML.trim() === '') {
+                                 aiMessageParts.textContainer.innerHTML = `<span style="color: var(--text-secondary); font-style: italic;">${abortMessage}</span>`;
+                             } else {
+                                 // Append if there's already something else in the text area
+                                 aiMessageParts.textContainer.innerHTML += `<p style="color: var(--text-secondary); font-style: italic;">${abortMessage}</p>`;
+                             }
                         }
                     }
                     updateLogError(logId, '用户手动停止');
@@ -2218,14 +2426,20 @@
                     errorOccurred = true; // Mark as other error
                     console.error('Streaming API request failed:', error);
                     const errorMessage = error.message || 'Streaming API request failed';
-                    if (responseText) {
-                        await updateAIMessage(aiMessageParts, responseText + `\n\n*Error: ${errorMessage}*`, true); // Add await
-                    } else {
-                         // If no reply received, display error directly
-                         if (aiMessageParts && aiMessageParts.contentContainer) {
-                             aiMessageParts.contentContainer.classList.remove('loading');
-                             if (aiMessageParts.textContainer) {
-                                 aiMessageParts.textContainer.innerHTML = `<span style="color: red;">Error: ${errorMessage}</span>`;
+                    // Ensure loading state is removed
+                    if (aiMessageParts && aiMessageParts.contentContainer) {
+                        aiMessageParts.contentContainer.classList.remove('loading');
+                    }
+                    if (responseText) { // If some content was output before the error
+                        await updateAIMessage(aiMessageParts, responseText + `\n\n*Error: ${errorMessage}*`, true); // Add await, render final state
+                    } else { // If no content received before error
+                         // Only set innerHTML if it's still the loading state or completely empty
+                         if (aiMessageParts && aiMessageParts.textContainer) {
+                             if (aiMessageParts.textContainer.querySelector('.typing-dot') || aiMessageParts.textContainer.innerHTML.trim() === '') {
+                                aiMessageParts.textContainer.innerHTML = `<span style="color: red;">Error: ${errorMessage}</span>`;
+                             } else {
+                                 // Append if there's already something else
+                                 aiMessageParts.textContainer.innerHTML += `<p style="color: red;">Error: ${errorMessage}</p>`;
                              }
                          }
                     }
@@ -2233,24 +2447,11 @@
                 }
             } finally {
                 state.streamController = null; // Clean up controller for the current stream
-                // Remove loading animation (if it was there and not removed normally)
-                if (aiMessageParts && aiMessageParts.contentContainer && aiMessageParts.contentContainer.classList.contains('loading')) {
-                    aiMessageParts.contentContainer.classList.remove('loading');
-                    // If aborted and no content, ensure typing dots are gone and show message
-                    if (wasAborted && (!responseText || responseText.trim() === '')) {
-                       if (aiMessageParts.textContainer) {
-                           aiMessageParts.textContainer.innerHTML = `<span style="color: var(--text-secondary); font-style: italic;">AI 回复已由用户停止。</span>`;
-                       }
-                    } else if (errorOccurred && (!responseText || responseText.trim() === '')) {
-                        // If other error and no content
-                        const logEntry = state.logs.find(log => log.id === logId);
-                        const errText = logEntry?.error || 'Loading failed';
-                        if (aiMessageParts.textContainer) {
-                            aiMessageParts.textContainer.innerHTML = `<span style="color: red;">${errText}</span>`;
-                        }
-                    }
-                }
-                // sendMessage's finally will handle pendingMessages and button state update
+                // The `finally` block in `sendMessage` will handle `pendingMessages` and button state.
+                // We just need to ensure the loading indicator is gone here if it wasn't removed earlier.
+                 if (aiMessageParts && aiMessageParts.contentContainer && aiMessageParts.contentContainer.classList.contains('loading')) {
+                     aiMessageParts.contentContainer.classList.remove('loading');
+                 }
             }
         }
 
@@ -2266,11 +2467,15 @@
                 body: JSON.stringify(requestBody)
             });
 
-            const data = await response.json();
+            // Always attempt to parse JSON response, even on non-OK status
+            const data = await response.json().catch(() => {
+                // If JSON parsing fails, throw an error based on status
+                 throw new Error(`Request failed: ${response.status} ${response.statusText || 'Unknown Error'}`);
+            });
 
             if (!response.ok) {
-                 // Even if response is not OK, if API returns error details, include them in the thrown error
-                throw new Error(data.error?.message || `Request failed: ${response.status} ${response.statusText}`);
+                 // If response is not OK and we got JSON, use the API's error message if available
+                throw new Error(data.error?.message || data.message || `Request failed: ${response.status} ${response.statusText}`);
             }
 
             return data;
@@ -2283,37 +2488,39 @@
 
             // Filter out system messages and empty AI messages
             const relevantMessages = state.messages.filter(msg =>
-                 msg.type !== 'system' && (msg.type === 'user' || (msg.type === 'ai' && msg.text.trim() !== ''))
+                 msg.type !== 'system' && (msg.type === 'user' || (msg.type === 'ai' && msg.text && msg.text.trim() !== ''))
             );
-
 
             // Only keep the most recent messages as context
             // Keep up to maxContext pairs (user+AI), so take the last 2 * maxContext relevant messages
-            const recentMessages = relevantMessages.slice(-maxContext * 2);
+            // Or simply the last maxContext messages regardless of pair, depending on API context window size.
+            // Let's stick to the last `maxContext` RELEVANT messages as per original logic intent.
+             const recentMessages = relevantMessages.slice(-maxContext);
+
 
             for (const msg of recentMessages) {
 
-                // If it's an empty user message without images, skip it
-                if (msg.type === 'user' && msg.text.trim() === '' && (!msg.images || msg.images.length === 0)) {
+                // If it's an empty user message without images, skip it (already handled by filter, double check)
+                if (msg.type === 'user' && (!msg.text || msg.text.trim() === '') && (!msg.images || msg.images.length === 0)) {
                     continue;
                 }
 
-                 // If it's an empty AI message, skip it (already handled by filter, but double check)
-                 if (msg.type === 'ai' && msg.text.trim() === '') {
+                 // If it's an empty AI message, skip it (already handled by filter, double check)
+                 if (msg.type === 'ai' && (!msg.text || msg.text.trim() === '')) {
                      continue;
                  }
 
 
                 const historyItem = {
                     role: msg.type === 'user' ? 'user' : 'assistant',
-                    content: msg.text // Initial text content
+                    content: msg.text || '' // Ensure content is at least an empty string
                 };
 
                 // If it's a user message with images and vision is enabled, format content as an array
                 if (msg.type === 'user' && msg.images && msg.images.length > 0 && elements.visionToggle.checked) {
                     let contentArray = [];
-                     // Add text part if present
-                    if (msg.text.trim()) {
+                     // Add text part if present and not just whitespace
+                    if (msg.text && msg.text.trim()) {
                         contentArray.push({
                             type: 'text',
                             text: msg.text.trim()
@@ -2330,21 +2537,24 @@
                         });
                     });
 
-                    // If contentArray is not empty, replace historyItem's content
+                    // If contentArray has items, replace historyItem's content
                     if (contentArray.length > 0) {
                         historyItem.content = contentArray;
                     } else {
-                        // This case should ideally not happen after the initial filter/check
-                        // It means a user message had images but no text and vision is enabled.
-                        // If it only had images, contentArray would have image objects.
-                        // If it had text and images, contentArray would have both.
-                        // The only way contentArray is empty here is if msg.text was empty and msg.images was empty (already filtered)
-                        // or if msg.images was not an array or empty array (less likely based on handleImageUpload)
-                         console.warn("User message had images but contentArray was empty:", msg);
-                         continue; // Skip this message to avoid empty content
+                        // This case should ideally not happen for messages that passed the initial filter
+                        // It would mean a user message had images but no text, and vision was enabled,
+                        // but the image processing failed or resulted in no valid image data.
+                        console.warn("User message filtered for history had images, but contentArray was empty:", msg);
+                        // Decide how to handle this: either send an empty message, or skip the message.
+                        // Skipping might break turns, sending empty might cause API errors.
+                        // Based on current logic, if contentArray is empty, historyItem.content remains ''. API might handle { content: '' } or { content: [] } differently.
+                        // Let's ensure content is at least null or [] if no valid parts could be added.
+                        // If text was empty and images failed, contentArray would be [], so historyItem.content should become []
+                        historyItem.content = []; // Send empty array if no text and no valid images
                     }
                 }
-                 // If it's a user message with text but no images, or vision disabled, historyItem.content remains msg.text
+                 // If it's a user message with text but no images, or vision disabled, historyItem.content remains msg.text (string)
+                 // If it's an AI message, historyItem.content is msg.text (string)
 
 
                 history.push(historyItem);
@@ -2353,12 +2563,14 @@
             return history;
         }
 
+
         // Add system message
         function addSystemMessage(text) {
             const messageObj = {
                 type: 'system',
-                text,
-                time: new Date().toLocaleTimeString()
+                text: text, // Store raw text
+                time: new Date().toLocaleTimeString(),
+                // No 'isUploadNotice' here, it will be added if needed by updateUploadNotice
             };
 
             // System messages are generally not included in context, so don't push to state.messages
@@ -2369,9 +2581,14 @@
              // Link messageElement to messageObj for easy lookup (useful for updates like upload notice)
             messageElement.messageObj = messageObj;
 
+            // System messages usually don't need markdown/MathJax, just sanitize for safety
+             let sanitizedText = text;
+             if (typeof DOMPurify !== 'undefined') {
+                 sanitizedText = DOMPurify.sanitize(text);
+             }
             messageElement.innerHTML = `
                 <div class="message-content">
-                    ${text}
+                    ${sanitizedText}
                     <div class="message-time">${messageObj.time}</div>
                 </div>
             `;
@@ -2386,12 +2603,13 @@
         async function addUserMessage(text, images = []) { // Add async keyword
             const messageObj = {
                 type: 'user',
-                text,
+                text, // Store raw text
                 images: images ? [...images] : [], // Store a copy of images at the time of sending
                 time: new Date().toLocaleTimeString()
             };
 
             state.messages.push(messageObj);
+            saveChatHistory(); // 新增：保存聊天记录
 
             const messageElement = document.createElement('div');
             messageElement.className = 'message user-message';
@@ -2425,7 +2643,7 @@
             elements.chatMessages.appendChild(messageElement);
             scrollToBottom();
 
-            // Return an object with element references for later use (if needed)
+            // Return an object with element references for later use (if needed by update functions)
             return {
                 element: messageElement,
                 object: messageObj,
@@ -2470,7 +2688,13 @@
             } else {
                 // If there's initial text (e.g., system messages added with this function), render directly
                 // Note: Directly setting innerHTML here might not include MathJax rendering. If needed, use updateAIMessage.
-                messageTextContainer.innerHTML = text; // Simple text addition
+                // For AI messages, we should always use updateAIMessage to handle potential markdown/MathJax
+                 updateAIMessage({ // Pass a dummy aiMessageParts object if needed, or adjust updateAIMessage
+                     element: messageElement,
+                     object: messageObj,
+                     textContainer: messageTextContainer,
+                     contentContainer: messageContentContainer
+                 }, text, true); // Set renderMathNow to true for initial text
             }
 
 
@@ -2488,8 +2712,8 @@
 
         // Update AI message
         async function updateAIMessage(aiMessageParts, newText, renderMathNow = true) { // Add async and renderMathNow parameters
-            if (!aiMessageParts || !aiMessageParts.object) {
-                console.error("Invalid aiMessageParts object", aiMessageParts);
+            if (!aiMessageParts || !aiMessageParts.object || !aiMessageParts.textContainer || !aiMessageParts.contentContainer) {
+                console.error("Invalid aiMessageParts object passed to updateAIMessage", aiMessageParts);
                 return;
             }
             aiMessageParts.object.text = newText; // Update stored raw text
@@ -2497,76 +2721,14 @@
             // Remove loading state (if it was there)
             aiMessageParts.contentContainer.classList.remove('loading');
 
-            // Markdown parsing and copy button logic
-            let html = '';
-            if (typeof marked === 'undefined') {
-                html = (newText || '').replace(/\n/g, '<br>'); // Fallback to simple line breaks
-            } else {
-                // Parse Markdown
-                html = marked.parse(newText || '');
+            // Use the render function which handles Markdown, Copy Buttons, and MathJax
+            await renderMarkdownAndAttachCopyButtons(newText, aiMessageParts.textContainer, aiMessageParts.contentContainer);
+
+            if (renderMathNow) { // <--- When this is the final update (or initial load)
+                saveChatHistory(); // <--- 新增：保存聊天记录
             }
 
-            // DOMPurify sanitize (highly recommended)
-            if (typeof DOMPurify !== 'undefined') {
-                const allowedTags = ['p', 'br', 'strong', 'em', 'del', 'a', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
-                const allowedAttrs = ['href', 'title', 'alt', 'src', 'class']; // Include class for MathJax elements
-                html = DOMPurify.sanitize(html, {
-                    ALLOWED_TAGS: allowedTags,
-                    ALLOWED_ATTR: allowedAttrs,
-                    USE_PROFILES: { html: true }
-                });
-            } else {
-                 console.warn('DOMPurify library not loaded. Output from marked.js will be used directly. Be aware of potential XSS risks.');
-            }
-
-            // Update DOM text content
-            aiMessageParts.textContainer.innerHTML = html;
-
-            // --- Add Copy Buttons ---
-            // Remove old full message copy button (if it exists)
-            const existingFullCopyBtn = aiMessageParts.contentContainer.querySelector(':scope > .copy-btn:not(pre .copy-btn)');
-            if (existingFullCopyBtn) {
-                 existingFullCopyBtn.remove();
-            }
-            // Add new full message copy button
-             if (newText && newText.trim()) {
-                 // Append to message-content, but not a child of pre
-                 const fullCopyBtn = createCopyButton(newText, ''); // Full message copy button can be icon-only
-                 aiMessageParts.contentContainer.appendChild(fullCopyBtn);
-            }
-
-            // Add copy buttons to code blocks
-            const codeBlocks = aiMessageParts.textContainer.querySelectorAll('pre');
-            codeBlocks.forEach(preElement => {
-                const codeElement = preElement.querySelector('code');
-                const codeText = codeElement ? (codeElement.textContent || '') : (preElement.textContent || '');
-
-                if (codeText.trim()) {
-                    // Remove potentially existing old code block copy button
-                    const existingCodeCopyBtn = preElement.querySelector('.copy-btn');
-                    if (existingCodeCopyBtn) {
-                        existingCodeCopyBtn.remove();
-                    }
-                    preElement.appendChild(createCopyButton(codeText, '复制'));
-                }
-            });
-            // --- End of Markdown and copy button logic ---
-
-
-            // --- Render MathJax formulas ---
-            if (renderMathNow && typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
-                try {
-                     // Ensure MathJax only processes the container of the current message
-                    await MathJax.typesetPromise([aiMessageParts.textContainer]);
-                    // console.log('MathJax typesetting complete for updated AI message.');
-                } catch (err) {
-                    console.error('MathJax typesetting error in updateAIMessage:', err);
-                }
-            } else {
-                 // console.warn('MathJax not available or typesetPromise not found, or rendering deferred.');
-            }
-
-            // Scroll to bottom
+            // Scroll to bottom (moved here to ensure it happens after rendering updates)
             scrollToBottom();
         }
 
@@ -2593,14 +2755,24 @@
                 }
             }
 
-            thinkingElement.textContent = thinkingText; // Thinking process is usually plain text
+             // Sanitize thinking text just in case
+             let sanitizedThinking = thinkingText;
+             if (typeof DOMPurify !== 'undefined') {
+                 // Allow basic formatting within thinking process if needed, or keep it plain
+                 sanitizedThinking = DOMPurify.sanitize(thinkingText, { ALLOWED_TAGS: ['br', 'b', 'i', 'em', 'strong'] });
+             }
+
+            thinkingElement.textContent = sanitizedThinking; // Thinking process is usually plain text, use textContent
             scrollToBottom();
         }
 
 
         // Scroll to bottom
         function scrollToBottom() {
-            elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+             // Use a slight delay to allow DOM rendering/MathJax typesetting before scrolling
+             setTimeout(() => {
+                 elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+             }, 50); // Adjust delay if needed
         }
 
         // Update send button state
@@ -2615,20 +2787,34 @@
             const sendSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
             const stopSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>`;
 
-            if (state.streamController && state.pendingMessages > 0) { // Streaming in progress
+            // Determine if a request is currently being sent (streaming or non-streaming)
+            const isRequestPending = state.pendingMessages > 0;
+
+
+            if (state.streamController && isRequestPending) { // Streaming in progress (and counter indicates pending)
                 sendButton.innerHTML = `<span>停止</span>${stopSvg}`;
                 sendButton.disabled = false; // "Stop" button should always be enabled
                 sendButton.title = "停止AI回复";
+                sendButton.style.backgroundColor = '#e74c3c'; // Optional: Red color for Stop button
+                 sendButton.style.color = 'white'; // Ensure text is readable
             } else { // Not streaming, or no pending messages
                 sendButton.innerHTML = `<span>发送</span>${sendSvg}`;
-                // Enable send button only if there's a valid model AND either text input or images (with vision enabled)
-                sendButton.disabled = !hasValidModel || (!hasInput && !(hasImages && visionEnabled));
+                // Enable send button only if there's a valid model AND (text input OR (images AND vision enabled))
+                const canSend = hasValidModel && (hasInput || (hasImages && visionEnabled));
+                sendButton.disabled = !canSend || isRequestPending; // Also disable if non-streaming request is pending
+
+                 // Restore default button style
+                 sendButton.style.backgroundColor = ''; // Reset to CSS variable
+                 sendButton.style.color = ''; // Reset to CSS variable
 
                  if (!hasValidModel) {
                      sendButton.title = "请在设置中配置模型";
                  } else if (!hasInput && !(hasImages && visionEnabled)) {
                      sendButton.title = "请输入文本或上传图片";
-                 } else {
+                 } else if (isRequestPending) {
+                     sendButton.title = "等待当前回复完成...";
+                 }
+                 else {
                      sendButton.title = "发送消息";
                  }
             }
@@ -2650,10 +2836,33 @@
 
             state.logs.unshift(logObj); // Add new log at the beginning
 
+            // Keep log history limited (e.g., last 50 logs)
+            if (state.logs.length > 50) {
+                 state.logs = state.logs.slice(0, 50);
+                 // Remove corresponding DOM elements
+                 const logsToRemoveCount = elements.logsContainer.children.length - 50;
+                 for(let i = 0; i < logsToRemoveCount; i++) {
+                     if(elements.logsContainer.lastChild) {
+                          elements.logsContainer.removeChild(elements.logsContainer.lastChild);
+                     }
+                 }
+            }
+
+
             // Create log element
             const logElement = document.createElement('div');
             logElement.className = 'log-item';
             logElement.id = logId;
+
+            let requestDataDisplay = 'Error serializing request data';
+            try {
+                 requestDataDisplay = JSON.stringify(requestData, null, 2);
+            } catch (e) {
+                 console.error("Failed to stringify request data for log:", e, requestData);
+                 requestDataDisplay += `: ${e.message}`;
+            }
+
+
             logElement.innerHTML = `
                 <div class="log-header" onclick="window.toggleLogBody('${logId}')">
                     <div class="log-title">
@@ -2675,7 +2884,7 @@
                             </svg>
                             请求数据
                         </div>
-                        <pre class="log-content">${JSON.stringify(requestData, null, 2)}</pre>
+                        <pre class="log-content">${requestDataDisplay}</pre>
                     </div>
                     <div class="log-section" id="${logId}-response-section" style="display: none;">
                         <div class="log-section-title">
@@ -2706,7 +2915,7 @@
             return logId;
         }
 
-        // Update log response
+        // Update log response (for non-streaming)
         function updateLogResponse(logId, responseData) {
             const logObj = state.logs.find(log => log.id === logId);
             if (logObj) {
@@ -2718,7 +2927,14 @@
 
             if (responseSection && responseElement) {
                 responseSection.style.display = 'block';
-                responseElement.textContent = JSON.stringify(responseData, null, 2);
+                 let responseDataDisplay = 'Error serializing response data';
+                 try {
+                     responseDataDisplay = JSON.stringify(responseData, null, 2);
+                 } catch (e) {
+                     console.error("Failed to stringify response data for log:", e, responseData);
+                     responseDataDisplay += `: ${e.message}`;
+                 }
+                responseElement.textContent = responseDataDisplay;
             }
         }
 
@@ -2735,7 +2951,7 @@
 
             if (responseSection && responseElement) {
                 responseSection.style.display = 'block';
-                 // Display saved response data
+                 // Display saved response data (it's the raw stream text)
                 responseElement.textContent = typeof logObj.response === 'string' ? logObj.response : JSON.stringify(logObj.response, null, 2);
             }
         }
@@ -2766,6 +2982,10 @@
             const logBody = document.getElementById(`${logId}-body`);
             if (logBody) {
                 logBody.classList.toggle('open');
+                 // Scroll log panel to make the opened log visible if needed
+                 if (logBody.classList.contains('open')) {
+                    logBody.parentElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                 }
             }
         };
 
@@ -2788,7 +3008,7 @@
 
         // Listen for input box content and image attachment changes, update send button state
         elements.chatInput.addEventListener('input', updateSendButtonState);
-        elements.imageInput.addEventListener('change', updateSendButtonState); // updateSendButtonState is called inside handleImageUpload now
+        // elements.imageInput change listener is handled by handleImageUpload calling updateSendButtonState
     </script>
 </body>
 </html>
