@@ -1245,7 +1245,9 @@
         // === 新增：聊天记录持久化函数 ===
         function saveChatHistory() {
             try {
-                localStorage.setItem('ai-chat-history', JSON.stringify(state.messages));
+                // 保存前过滤掉系统消息，或者只保存需要持久化的类型
+                const historyToSave = state.messages.filter(msg => msg.type !== 'system' || msg.isUploadNotice); // 示例：只保存非系统消息或带isUploadNotice标记的系统消息
+                localStorage.setItem('ai-chat-history', JSON.stringify(historyToSave));
                 // console.log('Chat history saved.'); //调试时可以取消注释
             } catch (error) {
                 console.error('Failed to save chat history:', error);
@@ -1308,6 +1310,10 @@
                     </div>
                 `;
                 messageElement.messageObj = messageObj; // 和 addSystemMessage 保持一致
+                 // 增加 class 方便识别和清理
+                if (messageObj.isUploadNotice) {
+                    messageElement.classList.add('upload-notice-message');
+                }
             } else {
                 return; // 未知类型的消息，跳过
             }
@@ -1323,8 +1329,11 @@
                     elements.chatMessages.innerHTML = ''; // 清空聊天界面上的现有消息
 
                     for (const messageObj of messagesToLoad) {
-                        state.messages.push(messageObj); // 将加载的消息重新加入 state.messages
-                        await renderMessageDOM(messageObj); // 重新渲染到界面
+                         // 重新创建messageObj，确保引用独立，避免messageElement.messageObj的副作用
+                         const clonedMessageObj = {...messageObj};
+                         if (clonedMessageObj.images) clonedMessageObj.images = [...clonedMessageObj.images]; // Deep clone images if necessary
+                        state.messages.push(clonedMessageObj); // 将加载的消息重新加入 state.messages
+                        await renderMessageDOM(clonedMessageObj); // 重新渲染到界面
                     }
                     // console.log('Chat history loaded and rendered.'); //调试时可以取消注释
                     scrollToBottom();
@@ -1372,12 +1381,14 @@
             addSystemMessage('对话已清空。');
 
             // 5. (可选) 清理图片上传相关的系统消息 (如果存在)
-            const uploadSystemMessages = elements.chatMessages.querySelectorAll('.system-message');
-            uploadSystemMessages.forEach(msgElement => {
-                if (msgElement.messageObj && msgElement.messageObj.type === 'system' && msgElement.messageObj.text.includes('已上传') && msgElement.messageObj.text.includes('图片')) {
-                    msgElement.remove();
-                }
-            });
+            // 在 clearConversation 开始时清空 DOM，所以这里不需要额外清理 DOM 了
+            // 但如果 clearConversation 逻辑变化，可能需要保留这个
+            // const uploadSystemMessages = elements.chatMessages.querySelectorAll('.system-message');
+            // uploadSystemMessages.forEach(msgElement => {
+            //     if (msgElement.messageObj && msgElement.messageObj.isUploadNotice) {
+            //         msgElement.remove();
+            //     }
+            // });
 
             console.log('对话已清空');
         }
@@ -1404,9 +1415,17 @@
             setupEventListeners();
 
             // 添加欢迎消息 (只有在没有聊天记录时才添加)
-            if (state.messages.length === 0) { // <--- 只有在聊天记录为空时显示欢迎语
-                addSystemMessage('欢迎使用自定义中转API AI对话助手！请在设置中配置您的API信息。');
+            // 检查加载后的 state.messages 长度
+            // 检查加载后的DOM中是否有消息元素 (排除可能是系统消息)
+            const messageElements = elements.chatMessages.querySelectorAll('.message:not(.system-message)');
+            if (messageElements.length === 0) {
+                 // 只有在加载的历史记录中没有用户或AI消息时才显示欢迎语
+                 addSystemMessage('欢迎使用自定义中转API AI对话助手！请在设置中配置您的API信息。');
+            } else {
+                // 如果加载了历史记录，确保上次可能存在的上传提示被清除，重新生成当前的（如果还有未发送的图片）
+                updateUploadNotice(); // 这会清除旧的并根据 state.imageAttachments 重新添加
             }
+
 
              // 初始化 Marked 和 DOMPurify 设置
             if (typeof marked !== 'undefined') {
@@ -1429,9 +1448,10 @@
             updateSendButtonState(); // 确保初始按钮状态正确
 
             // 如果是第一次加载且没有任何已保存的设置，保存一下当前的默认设置
-            if (!localStorage.getItem('ai-chat-settings')) {
-                saveSettings();
-            }
+            // loadSettings 函数已经在 catch 块中处理了加载失败（包括首次没有的情况），并会保存默认设置，所以这里不再需要额外检查
+            // if (!localStorage.getItem('ai-chat-settings')) {
+            //     saveSettings();
+            // }
         }
 
         // 设置事件监听器
@@ -1471,24 +1491,26 @@
 
             // 添加模型
             elements.addModel.addEventListener('click', () => {
-                addModelConfig();
-                // updateModelSelector(); // saveSettings 会调用 updateModelSelector
+                addModelConfig(); // addModelConfig internally calls saveSettings and updateModelSelector
             });
 
             // 添加参数
-            elements.addParam.addEventListener('click', addCustomParam);
+            elements.addParam.addEventListener('click', addCustomParam); // addCustomParam internally calls saveSettings
 
             // 滑块值更新和保存
             elements.temperature.addEventListener('input', () => {
                 elements.temperatureValue.textContent = elements.temperature.value;
-                // saveSettings(); // Save on release
+                // saveSettings is called on 'change' which is typically on mouseup for range inputs
             });
              elements.temperature.addEventListener('change', saveSettings); // Save on release
 
              elements.maxTokens.addEventListener('change', saveSettings);
              elements.maxContext.addEventListener('change', saveSettings);
              elements.streamToggle.addEventListener('change', saveSettings);
-             elements.visionToggle.addEventListener('change', saveSettings);
+             elements.visionToggle.addEventListener('change', () => {
+                 saveSettings(); // Save the state
+                 updateSendButtonState(); // Update button based on vision state
+             });
              elements.thinkingToggle.addEventListener('change', saveSettings);
 
 
@@ -1511,6 +1533,9 @@
              elements.apiEndpoint.addEventListener('change', saveSettings);
              elements.apiKey.addEventListener('change', saveSettings);
 
+            // Model select change listener - crucial for saving the selected model
+             elements.modelSelect.addEventListener('change', saveSettings);
+
 
             // Image preview
             elements.closePreview.addEventListener('click', closeImagePreview);
@@ -1532,53 +1557,113 @@
                 }
 
                 // Get previously selected model ID before clearing model configs
+                // 我们将在更新选择器后使用这个值
                 let previouslySelectedModelId = settings.selectedModel || null;
 
 
                 // Load model configs (clear existing first)
                 elements.modelConfigs.innerHTML = '';
+                // Prevent save/updateModelSelector calls within the loop for initial load efficiency
+                const tempSaveSettings = saveSettings;
+                const tempUpdateModelSelector = updateModelSelector;
+                saveSettings = () => {}; // Temporarily disable saveSettings
+                updateModelSelector = () => {}; // Temporarily disable updateModelSelector
+
                 if (settings.models && settings.models.length > 0) {
                     settings.models.forEach(model => {
-                        addModelConfig(model.id, model.name);
+                        // Re-enable save/updateModelSelector temporarily for the call, or manually create elements
+                        // Manual creation is better for load performance
+                         const modelItem = document.createElement('div');
+                         modelItem.className = 'model-config-item';
+                         modelItem.innerHTML = `
+                            <div class="model-header">
+                                <div class="model-title">模型配置</div>
+                                <button class="remove-model">删除</button>
+                            </div>
+                            <div class="form-group">
+                                <label>模型 ID</label>
+                                <input type="text" class="form-control" data-type="model-id" placeholder="gpt-4-turbo" value="${model.id || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label>模型名称</label>
+                                <input type="text" class="form-control" data-type="model-name" placeholder="GPT-4 Turbo" value="${model.name || ''}">
+                            </div>
+                        `;
+                         elements.modelConfigs.appendChild(modelItem);
+
+                          // Add event listeners directly for saving AFTER loading is complete
+                         const removeButton = modelItem.querySelector('.remove-model');
+                         removeButton.addEventListener('click', () => {
+                             modelItem.remove();
+                             tempSaveSettings(); // Use the original saveSettings
+                             tempUpdateModelSelector(); // Use the original updateModelSelector
+                         });
+                         const inputs = modelItem.querySelectorAll('input');
+                         inputs.forEach(input => {
+                             input.addEventListener('change', tempSaveSettings);
+                         });
                     });
                 } else {
-                    // If no saved model configs, add defaults
+                    // If no saved model configs, add defaults using the helper function
+                    // Now safe to use helper function as temp functions are restored later
+                    tempSaveSettings = saveSettings; // Store original
+                    tempUpdateModelSelector = updateModelSelector; // Store original
+                    saveSettings = () => {}; // Disable again for default additions
+                    updateModelSelector = () => {}; // Disable again
+
                     addModelConfig('gpt-4-turbo', 'GPT-4 Turbo');
-                    addModelConfig('gpt-3.5-turbo', 'GPT-3.5 Turbo'); // Correct name
+                    addModelConfig('gpt-3.5-turbo', 'GPT-3.5 Turbo');
+
+                    saveSettings = tempSaveSettings; // Restore original
+                    updateModelSelector = tempUpdateModelSelector; // Restore original
                 }
-                updateModelSelector(); // Update the <select> element
+
+                 // Restore original functions before calling updateModelSelector
+                saveSettings = tempSaveSettings;
+                updateModelSelector = tempUpdateModelSelector;
+
+                updateModelSelector(); // Ensure in-memory state matches DOM and selector is populated <--- Important
 
 
-                // Restore previously selected model after the selector is updated
+                // Restore previously selected model after the selector is populated
                 if (previouslySelectedModelId && elements.modelSelect.querySelector(`option[value="${previouslySelectedModelId}"]`)) {
                      elements.modelSelect.value = previouslySelectedModelId;
                 } else if (elements.modelSelect.options.length > 0 && elements.modelSelect.options[0].value) {
                      // If previous model ID is invalid or not found, select the first valid model
                     elements.modelSelect.value = elements.modelSelect.options[0].value;
                 }
+                // state.selectedModel = elements.modelSelect.value; // Update global state
 
 
                 // Apply other settings
                 elements.apiEndpoint.value = settings.apiEndpoint || '';
                 elements.apiKey.value = settings.apiKey || '';
-                elements.temperature.value = settings.temperature || 0.7;
+                elements.temperature.value = settings.temperature !== undefined ? settings.temperature : 0.7;
                 elements.temperatureValue.textContent = elements.temperature.value; // Ensure display matches value
-                elements.maxTokens.value = settings.maxTokens || 2048;
-                elements.maxContext.value = settings.maxContext || 10;
-                elements.streamToggle.checked = settings.streamEnabled !== false; // Default to streaming
-                elements.visionToggle.checked = settings.visionEnabled || false;
-                elements.thinkingToggle.checked = settings.thinkingEnabled || false;
+                elements.maxTokens.value = settings.maxTokens !== undefined ? settings.maxTokens : 2048;
+                elements.maxContext.value = settings.maxContext !== undefined ? settings.maxContext : 10;
+                elements.streamToggle.checked = settings.streamEnabled !== undefined ? settings.streamEnabled : true; // Default to streaming
+                elements.visionToggle.checked = settings.visionEnabled !== undefined ? settings.visionEnabled : false;
+                elements.thinkingToggle.checked = settings.thinkingEnabled !== undefined ? settings.thinkingEnabled : false;
 
                 // Font settings
                 if (settings.fontFamily) {
                     elements.fontFamily.value = settings.fontFamily;
                     document.documentElement.style.setProperty('--font-main', settings.fontFamily);
+                } else {
+                    // If no saved font, apply the default value from the select box
+                    document.documentElement.style.setProperty('--font-main', elements.fontFamily.value);
                 }
 
                 if (settings.fontSize) {
                     elements.fontSize.value = settings.fontSize;
                     elements.fontSizeValue.textContent = `${settings.fontSize}px`;
                     document.documentElement.style.setProperty('--font-size', `${settings.fontSize}px`);
+                } else {
+                    // If no saved font size, apply the default value from the slider
+                    elements.fontSize.value = 16; // Ensure slider value is default
+                    elements.fontSizeValue.textContent = `${elements.fontSize.value}px`;
+                    document.documentElement.style.setProperty('--font-size', `${elements.fontSize.value}px`);
                 }
 
                 // Theme
@@ -1590,29 +1675,76 @@
 
                 // Load custom params (clear existing first)
                  elements.customParams.innerHTML = '';
+                 // Prevent save/updateModelSelector calls within the loop for initial load efficiency
+                const tempSaveSettingsParams = saveSettings;
+                saveSettings = () => {}; // Temporarily disable saveSettings
+
                 if (settings.customParams && settings.customParams.length > 0) {
                     settings.customParams.forEach(param => {
-                        addCustomParam(param.key, param.value);
+                         // Manually create elements is better for load performance
+                         const paramItem = document.createElement('div');
+                         paramItem.className = 'param-item';
+                         paramItem.innerHTML = `
+                            <input type="text" class="form-control" data-type="param-key" placeholder="参数名" value="${param.key || ''}">
+                            <input type="text" class="form-control" data-type="param-value" placeholder="参数值 (JSON格式字符串或原始值)" value="${param.value || ''}">
+                            <button class="remove-param">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        `;
+                        elements.customParams.appendChild(paramItem);
+
+                         // Add event listeners directly for saving AFTER loading is complete
+                         const removeButton = paramItem.querySelector('.remove-param');
+                         removeButton.addEventListener('click', () => {
+                             paramItem.remove();
+                             tempSaveSettingsParams(); // Use the original saveSettings
+                         });
+                         const inputs = paramItem.querySelectorAll('input');
+                         inputs.forEach(input => {
+                             input.addEventListener('change', tempSaveSettingsParams);
+                         });
                     });
                 }
 
-                 console.log('Settings loaded', settings);
+                 // Restore original function
+                saveSettings = tempSaveSettingsParams;
+
+
+                 // console.log('Settings loaded', settings); // 调试时可以打开
 
 
             } catch (error) {
                 console.error('Failed to load settings:', error);
-                // If loading fails, try to load default models and params and save them
-                elements.modelConfigs.innerHTML = ''; // Clean up in case of partial load
-                addModelConfig('gpt-4-turbo', 'GPT-4 Turbo');
-                addModelConfig('gpt-3.5-turbo', 'GPT-3.5 Turbo'); // Correct name
-                updateModelSelector();
-                 if (elements.modelSelect.options.length > 0 && elements.modelSelect.options[0].value) {
-                    elements.modelSelect.value = elements.modelSelect.options[0].value;
-                 }
+                // 如果加载失败，尝试加载默认模型和参数并保存它们
+                elements.modelConfigs.innerHTML = ''; // 清理以防部分加载
+                addModelConfig('gpt-4-turbo', 'GPT-4 Turbo'); // These call save/update internally now
+                addModelConfig('gpt-3.5-turbo', 'GPT-3.5 Turbo');
+                // updateModelSelector() and saveSettings() are called by addModelConfig
+                // If addModelConfig is modified not to call them internally, call them here once after defaults added
 
-                elements.customParams.innerHTML = ''; // Clean up custom params
+                elements.customParams.innerHTML = ''; // 清理自定义参数
+                // No default custom params are added by addCustomParam, so nothing more to do here
 
-                saveSettings(); // Save the default settings
+                // 应用一些基本默认值到UI
+                elements.temperature.value = 0.7;
+                elements.temperatureValue.textContent = '0.7';
+                elements.maxTokens.value = 2048;
+                elements.maxContext.value = 10;
+                elements.streamToggle.checked = true;
+                elements.visionToggle.checked = false;
+                elements.thinkingToggle.checked = false;
+                document.body.classList.remove('dark-theme');
+                elements.fontFamily.value = elements.fontFamily.options[0].value;
+                document.documentElement.style.setProperty('--font-main', elements.fontFamily.value);
+                elements.fontSize.value = 16;
+                elements.fontSizeValue.textContent = '16px';
+                document.documentElement.style.setProperty('--font-size', '16px');
+
+
+                saveSettings(); // 加载失败后，保存当前的（可能是默认的）设置状态
             }
         }
 
@@ -1637,9 +1769,9 @@
                     const valueInput = item.querySelector('[data-type="param-value"]');
                      return {
                          key: keyInput ? keyInput.value.trim() : '',
-                         value: valueInput ? valueInput.value.trim() : '' // Save as string, parsing happens during request
+                         value: valueInput ? valueInput.value.trim() : ''
                      };
-                }).filter(param => param.key); // Filter out empty param name entries
+                }).filter(param => param.key);
 
 
                 // Create settings object
@@ -1647,22 +1779,21 @@
                     apiEndpoint: elements.apiEndpoint.value.trim(),
                     apiKey: elements.apiKey.value.trim(),
                     temperature: parseFloat(elements.temperature.value),
-                    maxTokens: parseInt(elements.maxTokens.value) || 2048, // Use default if parse fails
-                    maxContext: parseInt(elements.maxContext.value) || 10, // Use default if parse fails
+                    maxTokens: parseInt(elements.maxTokens.value) || 2048,
+                    maxContext: parseInt(elements.maxContext.value) || 10,
                     streamEnabled: elements.streamToggle.checked,
                     visionEnabled: elements.visionToggle.checked,
                     thinkingEnabled: elements.thinkingToggle.checked,
                     fontFamily: elements.fontFamily.value,
-                    fontSize: elements.fontSize.value,
+                    fontSize: elements.fontSize.value, // 保存的是数值字符串
                     darkTheme: document.body.classList.contains('dark-theme'),
-                    models,
+                    models, // 保存模型配置列表
                     customParams,
-                    selectedModel: elements.modelSelect.value // Save the currently selected model ID
+                    selectedModel: elements.modelSelect.value // <--- 新增：保存当前选中的模型ID
                 };
 
-                // Save to local storage
                 localStorage.setItem('ai-chat-settings', JSON.stringify(settings));
-                // console.log('Settings saved', settings);
+                // console.log('Settings saved', settings); // 调试时可以打开
 
             } catch (error) {
                 console.error('Failed to save settings:', error);
@@ -1730,6 +1861,7 @@
 
             elements.modelConfigs.appendChild(modelItem);
             saveSettings(); // Save settings when a new model is added initially
+            updateModelSelector(); // Update selector when a new model is added initially
         }
 
         // Update model selector
@@ -1764,23 +1896,21 @@
                 option.value = '';
                 option.textContent = '-- 请添加模型 --';
                 modelSelect.appendChild(option);
-            }
-
-            // Try to restore previously selected model, otherwise select the first one
-            if (currentSelectedValue && modelSelect.querySelector(`option[value="${currentSelectedValue}"]`)) {
-                 modelSelect.value = currentSelectedValue;
-            } else if (hasValidModel) {
-                 modelSelect.selectedIndex = 0; // Select the first valid model
+                 modelSelect.value = ''; // Ensure value is empty if no models
             } else {
-                // If no valid models are available, ensure the value is empty
-                modelSelect.value = '';
+                // Try to restore previously selected model, otherwise select the first one
+                if (currentSelectedValue && modelSelect.querySelector(`option[value="${currentSelectedValue}"]`)) {
+                     modelSelect.value = currentSelectedValue;
+                } else {
+                     modelSelect.selectedIndex = 0; // Select the first valid model
+                }
             }
 
 
-            // Listen for model selection change
-             // Remove old listener first to prevent multiple listeners
-             modelSelect.removeEventListener('change', saveSettings);
-             modelSelect.addEventListener('change', saveSettings); // Add listener
+            // Listen for model selection change (This is already done in setupEventListeners, remove duplicate if any)
+             // We need this listener here inside the function if it might be called before setupEventListeners
+             // But the better pattern is to have one listener in setupEventListeners.
+             // Removing the duplicate listener part if it was added elsewhere.
 
              updateSendButtonState(); // Update button state after model change
              saveSettings(); // Save the newly selected model or lack thereof
@@ -1884,9 +2014,9 @@
                 // Sanitize HTML
                 if (typeof DOMPurify !== 'undefined') {
                     // Allow MathJax elements generated by MathJax (like span with specific classes)
-                    const allowedTags = ['p', 'br', 'strong', 'em', 'del', 'a', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'div']; // Added span, div
+                    const allowedTags = ['p', 'br', 'strong', 'em', 'del', 'a', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'div', 'mjx-container', 'mjx-assistive-mml', 'mjx-math', 'mjx-mrow', 'mjx-mfrac', 'mjx-num', 'mjx-den', 'mjx-sqrt', 'mjx-root', 'mjx-mn', 'mjx-mo', 'mjx-mi', 'mjx-mtext', 'mjx-mstyle', 'mjx-merror', 'mjx-mfenced', 'mjx-mtd', 'mjx-mtr', 'mjx-mtable', 'mjx-labels', 'mjx-box', 'mjx-char']; // Added common MathJax tags
                     // Include data attributes needed by MathJax, and style for MathJax elements
-                    const allowedAttrs = ['href', 'title', 'alt', 'src', 'class', 'style', 'role', 'aria-hidden', 'data-mathml', 'data-math-variant', 'data-global-font']; // Added MathJax attributes
+                    const allowedAttrs = ['href', 'title', 'alt', 'src', 'class', 'style', 'role', 'aria-hidden', 'data-mathml', 'data-math-variant', 'data-global-font', 'tabindex']; // Added MathJax attributes
                     html = DOMPurify.sanitize(html, {
                         ALLOWED_TAGS: allowedTags,
                         ALLOWED_ATTR: allowedAttrs,
@@ -1933,8 +2063,13 @@
                 try {
                      // Use typesetPromise to process formulas within the specific text container element
                      // This is more efficient than processing the whole document or chat area.
-                    await MathJax.typesetPromise([textContainer]);
-                    // console.log('MathJax typesetting complete for a message.');
+                    // Check if the element is still in the DOM before typesetting
+                    if (textContainer.isConnected) {
+                       await MathJax.typesetPromise([textContainer]);
+                       // console.log('MathJax typesetting complete for a message.');
+                    } else {
+                       // console.log('Skipping MathJax typesetting for removed element.');
+                    }
                 } catch (err) {
                     console.error('MathJax typesetting error:', err);
                     // Optionally display an error message within the container if MathJax fails
@@ -1993,13 +2128,23 @@
 
                         // Export as WebP data URL (quality 0-1)
                         // Using a quality of 0.8 is a good balance between size and quality
-                        const webpDataUrl = canvas.toDataURL('image/webp', 0.8);
+                        try {
+                           const webpDataUrl = canvas.toDataURL('image/webp', 0.8);
 
-                        // Push the WebP data URL to attachments state
-                        state.imageAttachments.push({
-                            data: webpDataUrl,
-                            filename: file.name.replace(/\.\w+$/, '') + '.webp' // Change filename suffix for clarity
-                        });
+                           // Push the WebP data URL to attachments state
+                           state.imageAttachments.push({
+                               data: webpDataUrl,
+                               filename: file.name.replace(/\.\w+$/, '') + '.webp' // Change filename suffix for clarity
+                           });
+                        } catch (e) {
+                            console.error(`Failed to convert image to WebP: ${file.name}`, e);
+                            // Fallback: Use original dataUrl if WebP conversion fails
+                             state.imageAttachments.push({
+                                data: dataUrl,
+                                filename: file.name
+                             });
+                        }
+
 
                         processedCount++; // Increment processed count
 
@@ -2019,7 +2164,7 @@
                     };
 
                     img.onerror = function() {
-                        console.error(`Failed to load or process image: ${file.name}`);
+                        console.error(`Failed to load image for processing: ${file.name}`);
                         processedCount++; // Count failed image as processed
                          if (processedCount === totalFiles) {
                             updateUploadNotice();
@@ -2040,11 +2185,12 @@
         // Function to update the image upload system notice
         function updateUploadNotice() {
             // Clear any existing image upload system messages first
-            // We identify these messages by a flag or unique content
-            elements.chatMessages.querySelectorAll('.message.system-message').forEach(msgElement => {
-                if (msgElement.messageObj && msgElement.messageObj.isUploadNotice) {
+            // We identify these messages by the unique class added during addSystemMessage for notices
+            elements.chatMessages.querySelectorAll('.message.system-message.upload-notice-message').forEach(msgElement => {
+                 // Ensure it's a notice related to the *current* imageAttachments state (optional check)
+                 // if (msgElement.messageObj && msgElement.messageObj.isUploadNotice) {
                      msgElement.remove();
-                }
+                 // }
             });
 
             const uploadCount = state.imageAttachments.length;
@@ -2052,9 +2198,10 @@
             if (uploadCount > 0) {
                 const messageText = `已上传 ${uploadCount} 张图片，将随下一条消息一起发送。`;
                  const noticeElement = addSystemMessage(messageText); // This will create and add the new message element
-                 // Add a flag to the message object stored on the element
+                 // Add a flag to the message object stored on the element and the element itself for easy lookup
                  if (noticeElement && noticeElement.messageObj) {
                       noticeElement.messageObj.isUploadNotice = true;
+                       noticeElement.classList.add('upload-notice-message'); // Add class to the element
                  }
             }
              // If uploadCount is 0, no notice is added (or existing ones were removed)
@@ -2128,7 +2275,7 @@
                     content.push({
                         type: "image_url",
                         image_url: {
-                            url: image.data // Base64 URL (should now be WebP)
+                            url: image.data // Base64 URL (should now be WebP or original)
                         }
                     });
                  });
@@ -2144,7 +2291,8 @@
                 messages: messageHistory.concat([
                     {
                         role: "user",
-                        content: content.length > 0 ? content : message // Use array content if images or text, otherwise just text (should be handled by initial check)
+                        // Content should always be an array if vision is enabled, even if only text exists
+                        content: elements.visionToggle.checked || currentImageAttachments.length > 0 ? content : (message || '') // If vision or images, send array; otherwise send string (or empty string if no text)
                     }
                 ]),
                 temperature: parseFloat(elements.temperature.value) || 0.7, // Use default if parse fails
@@ -2176,15 +2324,14 @@
             }
 
              // Add tool_choice if thinking process is enabled
+             // This part is highly dependent on the API's implementation of thinking process.
+             // Assuming 'thinking' is a special mode or tool name the API understands.
+             // This might need adjustment based on your specific API.
              if (elements.thinkingToggle.checked && !requestBody.tool_choice && !requestBody.tools) {
-                 // This is a simplified example, you might need to adjust based on API specifics.
-                 // Some APIs might require defining tools first. This assumes the API supports
-                 // a simple 'tool_choice: "tool"' or similar to enable thinking.
-                 // This part might need customization based on the *actual* thinking process implementation of the API.
-                 // console.warn("Thinking process is enabled, but no 'tool_choice' or 'tools' parameter was provided. This might not work depending on the API.");
-                 // Example: If the API uses a specific tool name for thinking:
-                 // requestBody.tool_choice = { type: "function", function: { name: "thinking_tool_name" } };
-                 // Or simply a flag if the API supports it this way.
+                 // console.warn("Thinking process is enabled, but no specific tool_choice or tools are configured. This might not work depending on the API.");
+                 // If your API uses a specific tool for thinking, you might add it here:
+                 // requestBody.tools = [{ type: "function", function: { name: "thinking_tool" } }];
+                 // requestBody.tool_choice = { type: "function", function: { name: "thinking_tool" } };
              }
 
 
@@ -2192,7 +2339,7 @@
             const logId = addLog('Sending Request', requestBody);
 
             // Add AI message placeholder
-            const aiMessageParts = addAIMessage('');
+            const aiMessageParts = addAIMessage(''); // Placeholder initially empty
 
             try {
                 if (elements.streamToggle.checked) {
@@ -2205,15 +2352,45 @@
                         throw new Error(response.error.message || 'Request failed');
                     }
 
-                    const aiResponseText = response.choices[0]?.message?.content || ''; // Safely access content
-                    await updateAIMessage(aiMessageParts, aiResponseText, true); // Add await, set renderMathNow to true
+                    // Safely access content - check for tool_calls first if thinking is enabled and uses tools
+                    let aiResponseContent = '';
+                     if (elements.thinkingToggle.checked && response.choices[0]?.message?.tool_calls) {
+                         // Assuming thinking process comes as tool calls in non-streaming
+                         aiResponseContent = "思考过程: (API返回了tool_calls，需要解析)"; // Placeholder, implement tool_calls parsing if needed
+                         // Example parsing (very basic):
+                         // response.choices[0].message.tool_calls.forEach(tc => {
+                         //     aiResponseContent += `\nTool: ${tc.function.name}\nArgs: ${tc.function.arguments}`;
+                         // });
+                         // Actual tool output needs to be handled by calling the tool and sending the output back to the API
+                         // For a simple thinking display, the API might provide a dedicated field (like response.thinking)
+                         if (response.thinking) { // Check if API returns a 'thinking' field
+                             aiResponseContent = response.thinking;
+                         } else if (response.choices[0]?.thinking) { // Check if API returns thinking inside choices
+                             aiResponseContent = response.choices[0].thinking;
+                         } else {
+                             aiResponseContent = JSON.stringify(response.choices[0]?.message?.tool_calls, null, 2); // Display raw tool calls if no dedicated field
+                         }
 
-                    // Check for thinking process in non-streaming response
+                     } else {
+                         // Default content is text
+                         aiResponseContent = response.choices[0]?.message?.content || ''; // Safely access content
+                     }
+
+
+                    await updateAIMessage(aiMessageParts, aiResponseContent, true); // Add await, set renderMathNow to true
+
+                    // Check for thinking process in non-streaming response (redundant if handled above, but double check)
                     // This assumes the API provides thinking info in the main response body for non-streaming.
                     // The exact structure might vary. This is a placeholder logic.
-                    if (elements.thinkingToggle.checked && response.choices[0]?.thinking) {
+                    // If thinking was handled via tool_calls content above, this might not be needed.
+                    // If thinking is a separate field like response.thinking or response.choices[0].thinking:
+                    if (elements.thinkingToggle.checked && response.thinking && typeof response.thinking === 'string') {
+                         addThinkingProcess(aiMessageParts, response.thinking);
+                    } else if (elements.thinkingToggle.checked && response.choices[0]?.thinking && typeof response.choices[0].thinking === 'string') {
                          addThinkingProcess(aiMessageParts, response.choices[0].thinking);
                     }
+
+
                 }
             } catch (error) {
                 console.error('API Request failed:', error);
@@ -2227,14 +2404,14 @@
                      aiMessageParts.contentContainer.classList.remove('loading');
                      const textContainer = aiMessageParts.textContainer;
                      if (textContainer) {
-                         // If there's already partial reply (only applicable if it somehow got updated before error), append error message
-                         if (aiMessageParts.object.text && aiMessageParts.object.text.trim() !== '') {
-                            // Use updateAIMessage to handle Markdown and potential formula rendering
-                            await updateAIMessage(aiMessageParts, aiMessageParts.object.text + `\n\n*Error: ${errorMessage}*`, true); // Add await
-                         } else {
-                            // If no reply received, display error directly
-                            textContainer.innerHTML = `<span style="color: red;">Error: ${errorMessage}</span>`;
-                         }
+                         // Get current text from the object (might be partial stream or empty)
+                         const currentText = aiMessageParts.object.text || '';
+                         // Use updateAIMessage to handle Markdown and potential formula rendering for the final state
+                         // This correctly adds the error message after any partial content
+                        await updateAIMessage(aiMessageParts, currentText + `\n\n*Error: ${errorMessage}*`, true); // Add await
+                     } else {
+                         // Fallback if textContainer is somehow missing (shouldn't happen)
+                         console.error("Text container missing for error message");
                      }
                      scrollToBottom();
                  }
@@ -2251,7 +2428,7 @@
         async function streamResponse(requestBody, aiMessageParts, logId) { // Receive aiMessageParts
             let responseText = '';
             let allRawChunks = ''; // Collect all raw data chunks for logging
-            let thinkingProcess = '';
+            let thinkingProcess = ''; // Accumulate thinking process chunks
             let errorOccurred = false; // Flag for non-abort errors
             let wasAborted = false;    // Flag for user abort
 
@@ -2284,8 +2461,16 @@
 
                 if (!response.ok) {
                     errorOccurred = true;
-                     const errorData = await response.json().catch(() => ({})); // Attempt to parse JSON, okay if it fails
-                    throw new Error(errorData.error?.message || `Request failed: ${response.status} ${response.statusText}`);
+                     // Read the full response body to get error details
+                    const errorBody = await response.text();
+                    let errorData = {};
+                    try {
+                        errorData = JSON.parse(errorBody);
+                    } catch (e) {
+                        console.warn("Failed to parse error body as JSON:", e, "Body:", errorBody);
+                    }
+
+                    throw new Error(errorData.error?.message || errorData.message || `Request failed: ${response.status} ${response.statusText}` + (errorBody ? ` - ${errorBody.substring(0, 100)}...` : ''));
                 }
 
                 const reader = response.body.getReader();
@@ -2308,10 +2493,9 @@
 
                     // Process SSE format (data: ...)
                     // Split by potential newlines within the chunk
-                    const lines = (allRawChunks).split('\n');
+                    // Use a regex to handle various newline characters and potentially multiple data lines in one chunk
+                    const lines = chunk.split(/[\r\n]+/);
 
-                    // Keep the last line if it doesn't end with '\n' (might be an incomplete line)
-                    allRawChunks = lines.pop();
 
                     for (const line of lines) {
                         const trimmedLine = line.trim();
@@ -2324,27 +2508,39 @@
                             try {
                                 const json = JSON.parse(data);
 
-                                // Extract thinking process (if available)
-                                // This assumes thinking process comes in separate chunks or a specific field
-                                if (elements.thinkingToggle.checked && json.thinking) { // Example: API sends { "thinking": "..." }
-                                     thinkingProcess = json.thinking; // Assuming thinking is cumulative or the latest is best
-                                     addThinkingProcess(aiMessageParts, thinkingProcess);
-                                }
                                 // Handle OpenAI-style chunk structure
-                                if (json.choices && json.choices[0] && json.choices[0].delta) {
+                                if (json.choices && json.choices[0]) {
                                      // Check for content delta
-                                     if (json.choices[0].delta.content) {
+                                     if (json.choices[0].delta && json.choices[0].delta.content) {
                                          const content = json.choices[0].delta.content;
                                          responseText += content;
                                          // Update message in real-time. Do NOT render MathJax yet for performance during streaming.
+                                         // MathJax rendering is costly and should only be done on the final content.
+                                         // updateAIMessage will update the object.text and call renderMarkdownAndAttachCopyButtons
+                                         // The render function will only do MathJax if renderMathNow is true.
                                          await updateAIMessage(aiMessageParts, responseText, false); // Add await, set renderMathNow to false
                                      }
-                                      // Check for tool_calls delta (relevant if thinking is tied to tools)
-                                     if (json.choices[0].delta.tool_calls) {
-                                         // This part is complex and depends heavily on how the API signals thinking via tools.
-                                         // For many APIs, thinking might just be a dedicated field like 'thinking' or 'debug_info'.
-                                         // If thinking is actually tool output, you'd need logic here to process tool_calls delta.
-                                         // Assuming thinking is a separate field for simplicity as implemented above.
+                                     // Check for tool_calls delta (relevant if thinking is tied to tools)
+                                     // Handling tool_calls delta for thinking process display might be complex
+                                     // depending on the API's exact format. It might involve accumulating function calls.
+                                     // A simpler approach if the API provides a dedicated 'thinking' field is below.
+                                     // if (json.choices[0].delta && json.choices[0].delta.tool_calls) { ... }
+
+                                }
+
+                                // Extract thinking process (if available) from top-level or choices[0]
+                                // This assumes thinking process comes in separate chunks or a specific field
+                                if (elements.thinkingToggle.checked) {
+                                     let currentThinkingChunk = null;
+                                     if (json.thinking && typeof json.thinking === 'string') {
+                                         currentThinkingChunk = json.thinking;
+                                     } else if (json.choices && json.choices[0] && json.choices[0].thinking && typeof json.choices[0].thinking === 'string') {
+                                         currentThinkingChunk = json.choices[0].thinking;
+                                     }
+                                     // If thinking is sent in chunks, append them
+                                     if (currentThinkingChunk) {
+                                         thinkingProcess += currentThinkingChunk;
+                                         addThinkingProcess(aiMessageParts, thinkingProcess); // Update thinking display in real-time
                                      }
                                 }
 
@@ -2358,44 +2554,50 @@
                              // Handle non-SSE format error messages or other non-data lines
                              console.log('Received non-SSE data line:', trimmedLine);
                              // You might inspect 'trimmedLine' for specific error patterns if your API sends them this way
+                             // If it's a critical error sent without SSE format, the response.ok check above might catch it,
+                             // or the final read() call might throw.
                         }
                     }
                 }
 
-                // Append any remaining raw chunk data (should be empty if stream was proper SSE)
+                // Append any remaining raw chunk data (should be empty if stream was proper SSE ending with \n)
                 if (allRawChunks.trim() !== '') {
                     console.warn("Remaining raw stream data after loop:", allRawChunks);
-                    // You might decide to append this as a warning or error message
+                    // Decide whether to append this as an error or warning message to the chat
+                    // Example: append to responseText before final updateAIMessage
+                    // responseText += `\n\n*[警告: 流末尾有未解析数据]*\n\`\`\`\n${allRawChunks.trim()}\n\`\`\``;
                 }
 
 
                 // After stream is complete, if successful and there was content, do final Markdown parsing, copy button handling, and MathJax rendering
-                if (!errorOccurred && !wasAborted && responseText.trim()) {
-                    // Call updateAIMessage, and tell it to render MathJax this time
+                // This also handles the case where responseText is empty but thinkingProcess is not.
+                if (!errorOccurred && !wasAborted) {
+                    // Call updateAIMessage with the final accumulated text.
+                    // This call will trigger final Markdown parsing, copy buttons, and MathJax rendering.
+                    // If responseText is empty but thinkingProcess exists, updateAIMessage still needs to be called
+                    // to ensure the loading state is removed and potential thinking process element is finalized.
                     await updateAIMessage(aiMessageParts, responseText, true); // Add await, set renderMathNow to true
-                } else if (!errorOccurred && !wasAborted && !responseText.trim()) {
-                     // If stream finished successfully but yielded no visible text (e.g., just thinking process)
-                     // Ensure loading state is removed and potentially add a message indicating no response.
-                     if (aiMessageParts && aiMessageParts.contentContainer && aiMessageParts.contentContainer.classList.contains('loading')) {
-                          aiMessageParts.contentContainer.classList.remove('loading');
-                          if (aiMessageParts.textContainer && aiMessageParts.textContainer.innerHTML.trim() === '') {
-                                // If the text area is still empty (no content or thinking rendered), add a placeholder
-                                if (!aiMessageParts.textContainer.querySelector('.thinking-process')) { // Don't add placeholder if thinking was shown
-                                    aiMessageParts.textContainer.innerHTML = `<span style="color: var(--text-secondary); font-style: italic;">没有生成文本回复。</span>`;
-                                }
-                          }
-                     }
-                }
 
-                // Ensure the last thinking process is displayed (might be redundant if updated real-time, but safer)
-                if (elements.thinkingToggle.checked && thinkingProcess) {
-                     addThinkingProcess(aiMessageParts, thinkingProcess);
-                }
+                    // Ensure the last thinking process is displayed (might be redundant if updated real-time, but safer)
+                    // This also re-adds it if the main text update caused it to be overwritten (which renderMarkdownAndAttachCopyButtons tries to avoid)
+                    if (elements.thinkingToggle.checked && thinkingProcess) {
+                         addThinkingProcess(aiMessageParts, thinkingProcess);
+                    } else if (elements.thinkingToggle.checked && !thinkingProcess && aiMessageParts.element.querySelector('.thinking-process')) {
+                        // If thinking toggle is ON but no thinking text was received in this stream,
+                        // and a thinking element somehow exists, you might want to remove it or clear it.
+                        // Or if the API sends thinking in a non-streaming part after stream ends, handle that here.
+                        // For now, we assume thinking is streamed or in the initial non-streaming response.
+                    }
 
-                // If completed normally and no error occurred, update the log response
-                 if (!errorOccurred && !wasAborted) {
+
+                    // If completed normally and no error occurred, update the log response
                     updateLogStreamEnd(logId, allRawChunks); // Log the collected raw chunks
-                 }
+
+
+                } else if (wasAborted) {
+                     // Log the raw chunks collected up to the point of abort
+                     updateLogStreamEnd(logId, allRawChunks + '\n\n[Stream Aborted]');
+                }
 
 
             } catch (error) {
@@ -2408,19 +2610,10 @@
                     if (aiMessageParts && aiMessageParts.contentContainer) {
                         aiMessageParts.contentContainer.classList.remove('loading');
                     }
-                    if (responseText && responseText.trim() !== '') { // If some content was already output
-                        await updateAIMessage(aiMessageParts, responseText + `\n\n*${abortMessage}*`, true); // Add await, render final state including MathJax
-                    } else { // If no content was output yet, or content is empty
-                        if (aiMessageParts && aiMessageParts.textContainer) {
-                             // Only set innerHTML if it's still the loading state or completely empty
-                             if (aiMessageParts.textContainer.querySelector('.typing-dot') || aiMessageParts.textContainer.innerHTML.trim() === '') {
-                                 aiMessageParts.textContainer.innerHTML = `<span style="color: var(--text-secondary); font-style: italic;">${abortMessage}</span>`;
-                             } else {
-                                 // Append if there's already something else in the text area
-                                 aiMessageParts.textContainer.innerHTML += `<p style="color: var(--text-secondary); font-style: italic;">${abortMessage}</p>`;
-                             }
-                        }
-                    }
+                    // Use updateAIMessage to handle Markdown and potential formula rendering for the final state
+                    // This correctly adds the abort message after any partial content
+                     await updateAIMessage(aiMessageParts, responseText + `\n\n*${abortMessage}*`, true); // Add await
+
                     updateLogError(logId, '用户手动停止');
                 } else {
                     errorOccurred = true; // Mark as other error
@@ -2430,19 +2623,10 @@
                     if (aiMessageParts && aiMessageParts.contentContainer) {
                         aiMessageParts.contentContainer.classList.remove('loading');
                     }
-                    if (responseText) { // If some content was output before the error
-                        await updateAIMessage(aiMessageParts, responseText + `\n\n*Error: ${errorMessage}*`, true); // Add await, render final state
-                    } else { // If no content received before error
-                         // Only set innerHTML if it's still the loading state or completely empty
-                         if (aiMessageParts && aiMessageParts.textContainer) {
-                             if (aiMessageParts.textContainer.querySelector('.typing-dot') || aiMessageParts.textContainer.innerHTML.trim() === '') {
-                                aiMessageParts.textContainer.innerHTML = `<span style="color: red;">Error: ${errorMessage}</span>`;
-                             } else {
-                                 // Append if there's already something else
-                                 aiMessageParts.textContainer.innerHTML += `<p style="color: red;">Error: ${errorMessage}</p>`;
-                             }
-                         }
-                    }
+                    // Use updateAIMessage to handle Markdown and potential formula rendering for the final state
+                    // This correctly adds the error message after any partial content
+                    await updateAIMessage(aiMessageParts, responseText + `\n\n*Error: ${errorMessage}*`, true); // Add await
+
                     updateLogError(logId, errorMessage);
                 }
             } finally {
@@ -2467,11 +2651,18 @@
                 body: JSON.stringify(requestBody)
             });
 
+            // Read the full response body first
+             const responseBody = await response.text();
+
             // Always attempt to parse JSON response, even on non-OK status
-            const data = await response.json().catch(() => {
-                // If JSON parsing fails, throw an error based on status
-                 throw new Error(`Request failed: ${response.status} ${response.statusText || 'Unknown Error'}`);
-            });
+            let data = {};
+            try {
+                 data = JSON.parse(responseBody);
+            } catch (e) {
+                 // If JSON parsing fails, throw an error based on status and raw body
+                 throw new Error(`Request failed: ${response.status} ${response.statusText || 'Unknown Error'}` + (responseBody ? ` - ${responseBody.substring(0, 100)}...` : ''));
+            }
+
 
             if (!response.ok) {
                  // If response is not OK and we got JSON, use the API's error message if available
@@ -2488,32 +2679,27 @@
 
             // Filter out system messages and empty AI messages
             const relevantMessages = state.messages.filter(msg =>
-                 msg.type !== 'system' && (msg.type === 'user' || (msg.type === 'ai' && msg.text && msg.text.trim() !== ''))
+                 // Only include user and AI messages in history
+                 msg.type === 'user' || (msg.type === 'ai' && msg.text && msg.text.trim() !== '')
             );
 
             // Only keep the most recent messages as context
-            // Keep up to maxContext pairs (user+AI), so take the last 2 * maxContext relevant messages
-            // Or simply the last maxContext messages regardless of pair, depending on API context window size.
-            // Let's stick to the last `maxContext` RELEVANT messages as per original logic intent.
+            // Keep up to maxContext messages regardless of pair, depending on API context window size.
              const recentMessages = relevantMessages.slice(-maxContext);
 
 
             for (const msg of recentMessages) {
-
-                // If it's an empty user message without images, skip it (already handled by filter, double check)
-                if (msg.type === 'user' && (!msg.text || msg.text.trim() === '') && (!msg.images || msg.images.length === 0)) {
-                    continue;
-                }
-
-                 // If it's an empty AI message, skip it (already handled by filter, double check)
-                 if (msg.type === 'ai' && (!msg.text || msg.text.trim() === '')) {
-                     continue;
-                 }
+                 // Re-check filters just in case (should be redundant after Array.filter)
+                 if (msg.type !== 'user' && msg.type !== 'ai') continue;
+                 if (msg.type === 'ai' && (!msg.text || msg.text.trim() === '')) continue;
+                 // Skip user messages that were text-only empty string before adding images (if any were added)
+                 if (msg.type === 'user' && (!msg.text || msg.text.trim() === '') && (!msg.images || msg.images.length === 0)) continue;
 
 
                 const historyItem = {
                     role: msg.type === 'user' ? 'user' : 'assistant',
-                    content: msg.text || '' // Ensure content is at least an empty string
+                    // Content needs special handling for vision models
+                    content: msg.text || '' // Default to string content (can be empty string)
                 };
 
                 // If it's a user message with images and vision is enabled, format content as an array
@@ -2532,7 +2718,7 @@
                         contentArray.push({
                             type: 'image_url',
                             image_url: {
-                                url: image.data // Base64 URL (now WebP)
+                                url: image.data // Base64 URL (now WebP or original)
                             }
                         });
                     });
@@ -2544,13 +2730,10 @@
                         // This case should ideally not happen for messages that passed the initial filter
                         // It would mean a user message had images but no text, and vision was enabled,
                         // but the image processing failed or resulted in no valid image data.
-                        console.warn("User message filtered for history had images, but contentArray was empty:", msg);
-                        // Decide how to handle this: either send an empty message, or skip the message.
-                        // Skipping might break turns, sending empty might cause API errors.
-                        // Based on current logic, if contentArray is empty, historyItem.content remains ''. API might handle { content: '' } or { content: [] } differently.
-                        // Let's ensure content is at least null or [] if no valid parts could be added.
-                        // If text was empty and images failed, contentArray would be [], so historyItem.content should become []
-                        historyItem.content = []; // Send empty array if no text and no valid images
+                        console.warn("User message included in history had images and vision enabled, but produced no valid content parts:", msg);
+                        // Decide how to handle this: send an empty array, or skip the message.
+                        // Sending an empty array [] for content might be the safest approach based on API specs.
+                         historyItem.content = []; // Send empty array if no text and no valid images were added to contentArray
                     }
                 }
                  // If it's a user message with text but no images, or vision disabled, historyItem.content remains msg.text (string)
@@ -2570,11 +2753,10 @@
                 type: 'system',
                 text: text, // Store raw text
                 time: new Date().toLocaleTimeString(),
-                // No 'isUploadNotice' here, it will be added if needed by updateUploadNotice
+                isUploadNotice: false, // Default
             };
 
             // System messages are generally not included in context, so don't push to state.messages
-            // unless they represent state relevant to the conversation (like image uploads, though those are also cleared)
             // We will add a minimal messageObj to the element for easy lookup in updateUploadNotice
             const messageElement = document.createElement('div');
             messageElement.className = 'message system-message';
@@ -2661,6 +2843,7 @@
             };
 
             state.messages.push(messageObj);
+            // saveChatHistory(); // AI message is saved when streaming is complete or non-streaming response is received
 
             const messageElement = document.createElement('div');
             messageElement.className = 'message ai-message';
@@ -2686,15 +2869,11 @@
                     <span class="typing-dot"></span>
                 `;
             } else {
-                // If there's initial text (e.g., system messages added with this function), render directly
-                // Note: Directly setting innerHTML here might not include MathJax rendering. If needed, use updateAIMessage.
-                // For AI messages, we should always use updateAIMessage to handle potential markdown/MathJax
-                 updateAIMessage({ // Pass a dummy aiMessageParts object if needed, or adjust updateAIMessage
-                     element: messageElement,
-                     object: messageObj,
-                     textContainer: messageTextContainer,
-                     contentContainer: messageContentContainer
-                 }, text, true); // Set renderMathNow to true for initial text
+                // If there's initial text (e.g., system messages added with this function, though not the primary use)
+                // Note: This path might not fully handle Markdown/MathJax. Prefer updateAIMessage for AI content.
+                 // For AI messages, we should always use updateAIMessage to handle potential markdown/MathJax
+                 // This initial text path is more for placeholder or specific non-markdown cases.
+                 messageTextContainer.textContent = text; // Simple text content
             }
 
 
@@ -2721,7 +2900,7 @@
             // Remove loading state (if it was there)
             aiMessageParts.contentContainer.classList.remove('loading');
 
-            // Use the render function which handles Markdown, Copy Buttons, and MathJax
+            // Use the render function which handles Markdown, Copy Buttons, and MathJax conditionally
             await renderMarkdownAndAttachCopyButtons(newText, aiMessageParts.textContainer, aiMessageParts.contentContainer);
 
             if (renderMathNow) { // <--- When this is the final update (or initial load)
@@ -2759,10 +2938,12 @@
              let sanitizedThinking = thinkingText;
              if (typeof DOMPurify !== 'undefined') {
                  // Allow basic formatting within thinking process if needed, or keep it plain
-                 sanitizedThinking = DOMPurify.sanitize(thinkingText, { ALLOWED_TAGS: ['br', 'b', 'i', 'em', 'strong'] });
+                 // Note: Thinking process is usually plain text, so allowing markup might render it incorrectly.
+                 // Using textContent might be safer. If markup is expected, adjust allowed tags.
+                 sanitizedThinking = DOMPurify.sanitize(thinkingText, { ALLOWED_TAGS: ['br'] }); // Allow line breaks
              }
 
-            thinkingElement.textContent = sanitizedThinking; // Thinking process is usually plain text, use textContent
+            thinkingElement.textContent = sanitizedThinking; // Thinking process is usually plain text, use textContent for safety/simplicity
             scrollToBottom();
         }
 
@@ -2770,9 +2951,12 @@
         // Scroll to bottom
         function scrollToBottom() {
              // Use a slight delay to allow DOM rendering/MathJax typesetting before scrolling
-             setTimeout(() => {
-                 elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
-             }, 50); // Adjust delay if needed
+             // Check if the chat container is actually visible before trying to scroll
+             if (elements.chatMessages.offsetParent !== null) { // offsetParent is null when display is none
+                 setTimeout(() => {
+                     elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+                 }, 50); // Adjust delay if needed
+             }
         }
 
         // Update send button state
@@ -2801,7 +2985,8 @@
                 sendButton.innerHTML = `<span>发送</span>${sendSvg}`;
                 // Enable send button only if there's a valid model AND (text input OR (images AND vision enabled))
                 const canSend = hasValidModel && (hasInput || (hasImages && visionEnabled));
-                sendButton.disabled = !canSend || isRequestPending; // Also disable if non-streaming request is pending
+                // Also disable if a non-streaming request is pending (state.pendingMessages > 0 implies this if not streaming)
+                 sendButton.disabled = !canSend || isRequestPending; // Check isRequestPending again for non-streaming case
 
                  // Restore default button style
                  sendButton.style.backgroundColor = ''; // Reset to CSS variable
@@ -2818,32 +3003,42 @@
                      sendButton.title = "发送消息";
                  }
             }
+             // Ensure the upload button is disabled while a request is pending
+             elements.uploadButton.disabled = isRequestPending;
+             if (isRequestPending) {
+                 elements.uploadButton.title = "等待当前回复完成，无法上传图片";
+             } else {
+                 elements.uploadButton.title = "上传图片";
+             }
         }
 
         // Add log
         function addLog(title, requestData) {
             const timestamp = new Date();
-            const logId = `log-${Date.now()}`;
+            const logId = `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`; // Add random string for uniqueness
 
             const logObj = {
                 id: logId,
                 title,
                 timestamp,
                 request: requestData,
-                response: null,
+                response: null, // Will store final response data or stream raw data
                 error: null
             };
 
             state.logs.unshift(logObj); // Add new log at the beginning
 
             // Keep log history limited (e.g., last 50 logs)
-            if (state.logs.length > 50) {
-                 state.logs = state.logs.slice(0, 50);
-                 // Remove corresponding DOM elements
-                 const logsToRemoveCount = elements.logsContainer.children.length - 50;
-                 for(let i = 0; i < logsToRemoveCount; i++) {
+            const maxLogs = 50;
+            if (state.logs.length > maxLogs) {
+                 state.logs = state.logs.slice(0, maxLogs);
+                 // Remove corresponding DOM elements that are now outside the limit
+                 // Iterate from the end of the container and remove excess elements
+                 while (elements.logsContainer.children.length > maxLogs) {
                      if(elements.logsContainer.lastChild) {
                           elements.logsContainer.removeChild(elements.logsContainer.lastChild);
+                     } else {
+                         break; // Should not happen if lengths mismatch
                      }
                  }
             }
@@ -2852,7 +3047,7 @@
             // Create log element
             const logElement = document.createElement('div');
             logElement.className = 'log-item';
-            logElement.id = logId;
+            logElement.id = logId; // Set the unique ID on the DOM element
 
             let requestDataDisplay = 'Error serializing request data';
             try {
@@ -2943,7 +3138,10 @@
             const logObj = state.logs.find(log => log.id === logId);
             if (logObj) {
                 // Save raw data or mark as stream complete
-                logObj.response = streamData || "流式响应 (已完成)";
+                // Trim streamData to avoid logging massive amounts of data if needed
+                const maxStreamLogLength = 5000; // Example limit
+                 logObj.response = (streamData && streamData.length > maxStreamLogLength) ? streamData.substring(0, maxStreamLogLength) + '...' : streamData;
+                 logObj.response = logObj.response || "流式响应 (已完成)"; // Fallback
             }
 
             const responseSection = document.getElementById(`${logId}-response-section`);
@@ -2951,7 +3149,7 @@
 
             if (responseSection && responseElement) {
                 responseSection.style.display = 'block';
-                 // Display saved response data (it's the raw stream text)
+                 // Display saved response data (it's the raw stream text or marked as complete)
                 responseElement.textContent = typeof logObj.response === 'string' ? logObj.response : JSON.stringify(logObj.response, null, 2);
             }
         }
@@ -2984,7 +3182,27 @@
                 logBody.classList.toggle('open');
                  // Scroll log panel to make the opened log visible if needed
                  if (logBody.classList.contains('open')) {
-                    logBody.parentElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    // Find the parent panel and scroll it
+                    const panel = logBody.closest('.panel');
+                    if (panel) {
+                        // Calculate the position of the log item relative to the panel
+                        const logItem = logBody.parentElement; // The .log-item div
+                        const itemTopRelativeToPanel = logItem.offsetTop - panel.scrollTop;
+
+                         // Only scroll if the item header is not fully visible
+                         // Check if the header is above the panel's top edge or below the panel's bottom edge minus some padding
+                         const logHeaderHeight = logItem.querySelector('.log-header')?.offsetHeight || 40; // Estimate header height
+                         const panelVisibleHeight = panel.offsetHeight - panel.paddingTop - panel.paddingBottom; // Approximate
+                         const isHeaderVisible = itemTopRelativeToPanel >= 0 && (itemTopRelativeToPanel + logHeaderHeight) <= panelVisibleHeight;
+
+
+                         if (!isHeaderVisible) {
+                             // Scroll the panel so the log item header is visible
+                             panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); // Scroll the panel itself into view
+                             // Or scroll the panel's internal scrollbar to bring the log item into view
+                             // panel.scrollTop = logItem.offsetTop - 20; // Scroll to item top with padding
+                         }
+                    }
                  }
             }
         };
