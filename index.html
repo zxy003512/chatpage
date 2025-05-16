@@ -1385,12 +1385,12 @@
                 const size = elements.fontSize.value;
                 elements.fontSizeValue.textContent = `${size}px`;
                 document.documentElement.style.setProperty('--font-size', `${size}px`);
-                // 注意：改变字体大小可能需要重新渲染Markdown内容以适应新的字体
-                // 简单的做法是刷新页面或重新渲染所有消息，但这可能开销较大
-                // 一个更复杂的方法是遍历所有消息并重新渲染其内容
+                // Note: Changing font size might require re-rendering Markdown content to fit the new font.
+                // A simpler approach is to refresh the page or re-render all messages, but this can be costly.
+                // A more complex approach is to iterate through all messages and re-render their content.
                 // For now, we'll just update the CSS variable.
             });
-             elements.fontSize.addEventListener('change', saveSettings); // 滑块释放时保存
+             elements.fontSize.addEventListener('change', saveSettings); // Save on slider release
 
              elements.fontFamily.addEventListener('change', () => {
                 const font = elements.fontFamily.value;
@@ -1401,7 +1401,7 @@
              elements.apiKey.addEventListener('change', saveSettings);
 
 
-            // 图片预览
+            // Image preview
             elements.closePreview.addEventListener('click', closeImagePreview);
             document.addEventListener('click', e => {
                 if (e.target.classList.contains('image-attachment')) {
@@ -1410,25 +1410,25 @@
             });
         }
 
-        // 加载设置
+        // Load settings
         function loadSettings() {
             try {
                 const savedSettings = localStorage.getItem('ai-chat-settings');
                 if (savedSettings) {
                     const settings = JSON.parse(savedSettings);
 
-                    // 应用设置
+                    // Apply settings
                     elements.apiEndpoint.value = settings.apiEndpoint || '';
                     elements.apiKey.value = settings.apiKey || '';
                     elements.temperature.value = settings.temperature || 0.7;
                     elements.temperatureValue.textContent = settings.temperature || 0.7;
                     elements.maxTokens.value = settings.maxTokens || 2048;
                     elements.maxContext.value = settings.maxContext || 10;
-                    elements.streamToggle.checked = settings.streamEnabled !== false; // 默认开启流式
+                    elements.streamToggle.checked = settings.streamEnabled !== false; // Default to streaming
                     elements.visionToggle.checked = settings.visionEnabled || false;
                     elements.thinkingToggle.checked = settings.thinkingEnabled || false;
 
-                    // 字体设置
+                    // Font settings
                     if (settings.fontFamily) {
                         elements.fontFamily.value = settings.fontFamily;
                         document.documentElement.style.setProperty('--font-main', settings.fontFamily);
@@ -1440,62 +1440,62 @@
                         document.documentElement.style.setProperty('--font-size', `${settings.fontSize}px`);
                     }
 
-                    // 主题
+                    // Theme
                     if (settings.darkTheme) {
                         document.body.classList.add('dark-theme');
                     }
 
-                    // 加载模型配置
+                    // Load model configs
                     if (settings.models && settings.models.length > 0) {
-                        elements.modelConfigs.innerHTML = ''; // 清空默认模型配置
+                        elements.modelConfigs.innerHTML = ''; // Clear default model configs
                         settings.models.forEach(model => {
                             addModelConfig(model.id, model.name);
                         });
 
-                        // 更新模型选择器
+                        // Update model selector
                         updateModelSelector();
 
-                        // 设置选中的模型
+                        // Set selected model
                         if (settings.selectedModel) {
                             elements.modelSelect.value = settings.selectedModel;
                         }
                     } else {
-                        // 如果没有保存的模型配置，使用默认的，并在更新选择器后保存
+                        // If no saved model configs, use defaults and save after updating selector
                          addModelConfig('gpt-4-turbo', 'GPT-4 Turbo');
-                         addModelConfig('gpt-3.5-turbo', 'GPT-3.5 Turbo');
+                         addModelConfig('gpt-3.5-turbo', 'gpt-3.5 Turbo'); // Correct name
                          updateModelSelector();
-                         saveSettings(); // 保存默认配置
+                         saveSettings(); // Save default config
                     }
 
-                    // 加载自定义参数
+                    // Load custom params
                     if (settings.customParams && settings.customParams.length > 0) {
-                        elements.customParams.innerHTML = ''; // 清空默认参数配置
+                        elements.customParams.innerHTML = ''; // Clear default param configs
                         settings.customParams.forEach(param => {
                             addCustomParam(param.key, param.value);
                         });
                     }
 
                 } else {
-                    // 如果没有保存的设置，加载默认值并保存
+                    // If no saved settings, load defaults and save
                      addModelConfig('gpt-4-turbo', 'GPT-4 Turbo');
-                     addModelConfig('gpt-3.5-turbo', 'gpt-3.5 Turbo'); // 修正名称
+                     addModelConfig('gpt-3.5-turbo', 'gpt-3.5 Turbo'); // Correct name
                      updateModelSelector();
-                     saveSettings(); // 保存初始默认设置
+                     saveSettings(); // Save initial default settings
                 }
             } catch (error) {
-                console.error('加载设置失败:', error);
-                // 即使加载失败，也尝试加载默认模型并保存
+                console.error('Failed to load settings:', error);
+                // Even if loading fails, try to load default models and save
                 addModelConfig('gpt-4-turbo', 'GPT-4 Turbo');
-                addModelConfig('gpt-3.5-turbo', 'gpt-3.5 Turbo'); // 修正名称
+                addModelConfig('gpt-3.5-turbo', 'gpt-3.5 Turbo'); // Correct name
                 updateModelSelector();
                 saveSettings();
             }
         }
 
-        // 保存设置
+        // Save settings
         function saveSettings() {
             try {
-                // 获取模型配置
+                // Get model configs
                 const modelItems = document.querySelectorAll('.model-config-item');
                 const models = Array.from(modelItems).map(item => {
                     const idInput = item.querySelector('[data-type="model-id"]');
@@ -1504,9 +1504,9 @@
                         id: idInput ? idInput.value : '',
                         name: nameInput ? nameInput.value : ''
                     };
-                }).filter(model => model.id && model.name); // 过滤掉空的模型项
+                }).filter(model => model.id && model.name); // Filter out empty model entries
 
-                // 获取自定义参数
+                // Get custom params
                 const paramItems = document.querySelectorAll('.param-item');
                 const customParams = Array.from(paramItems).map(item => {
                     const keyInput = item.querySelector('[data-type="param-key"]');
@@ -1515,10 +1515,10 @@
                          key: keyInput ? keyInput.value : '',
                          value: valueInput ? valueInput.value : ''
                      };
-                }).filter(param => param.key); // 过滤掉空的参数名项
+                }).filter(param => param.key); // Filter out empty param name entries
 
 
-                // 创建设置对象
+                // Create settings object
                 const settings = {
                     apiEndpoint: elements.apiEndpoint.value,
                     apiKey: elements.apiKey.value,
@@ -1536,22 +1536,22 @@
                     selectedModel: elements.modelSelect.value
                 };
 
-                // 保存到本地存储
+                // Save to local storage
                 localStorage.setItem('ai-chat-settings', JSON.stringify(settings));
-                console.log('设置已保存', settings);
+                console.log('Settings saved', settings);
 
             } catch (error) {
-                console.error('保存设置失败:', error);
+                console.error('Failed to save settings:', error);
             }
         }
 
-        // 切换主题
+        // Toggle theme
         function toggleTheme() {
             document.body.classList.toggle('dark-theme');
             saveSettings();
         }
 
-        // 切换面板
+        // Toggle panel
         function togglePanel(panel) {
             const isOpen = panel.classList.contains('open');
 
@@ -1563,14 +1563,14 @@
             }
         }
 
-        // 关闭所有面板
+        // Close all panels
         function closeAllPanels() {
             elements.settingsPanel.classList.remove('open');
             elements.logsPanel.classList.remove('open');
             elements.overlay.classList.remove('active');
         }
 
-        // 添加模型配置
+        // Add model config
         function addModelConfig(id = '', name = '') {
             const modelItem = document.createElement('div');
             modelItem.className = 'model-config-item';
@@ -1600,27 +1600,27 @@
             inputs.forEach(input => {
                 input.addEventListener('change', () => {
                     saveSettings();
-                    updateModelSelector(); // 改变模型ID或名称时需要更新选择器
+                    updateModelSelector(); // Update selector when model ID or name changes
                 });
             });
 
             elements.modelConfigs.appendChild(modelItem);
-            saveSettings(); // 添加新模型时保存设置
+            saveSettings(); // Save settings when a new model is added
         }
 
-        // 更新模型选择器
+        // Update model selector
         function updateModelSelector() {
             const modelSelect = elements.modelSelect;
             const modelItems = document.querySelectorAll('.model-config-item');
 
-            // 保存当前选中的值
+            // Save current selected value
             const currentSelectedValue = modelSelect.value;
 
-            // 清空选择器
+            // Clear selector
             modelSelect.innerHTML = '';
 
             let hasValidModel = false;
-            // 添加所有模型选项
+            // Add all model options
             Array.from(modelItems).forEach(item => {
                 const idInput = item.querySelector('[data-type="model-id"]');
                 const nameInput = item.querySelector('[data-type="model-name"]');
@@ -1634,33 +1634,33 @@
                 }
             });
 
-            // 如果没有模型选项，添加一个提示
+            // If no model options, add a placeholder
             if (!hasValidModel) {
                 const option = document.createElement('option');
                 option.value = '';
                 option.textContent = '-- 请添加模型 --';
                 modelSelect.appendChild(option);
-                elements.sendButton.disabled = true; // 没有模型不能发送
+                //elements.sendButton.disabled = true; // Disable send if no models
             } else {
-                //elements.sendButton.disabled = state.pendingMessages > 0; // 有模型，根据pending状态决定发送按钮
-                 // 按钮状态更新交给 updateSendButtonState
+                //elements.sendButton.disabled = state.pendingMessages > 0; // If models exist, disable based on pending status
+                 // Button state is handled by updateSendButtonState
             }
 
-            // 尝试恢复之前选中的模型，如果没有则选中第一个
+            // Try to restore previously selected model, otherwise select the first one
             if (currentSelectedValue && modelSelect.querySelector(`option[value="${currentSelectedValue}"]`)) {
                  modelSelect.value = currentSelectedValue;
             } else if (hasValidModel) {
-                 modelSelect.selectedIndex = 0; // 选中第一个有效模型
+                 modelSelect.selectedIndex = 0; // Select the first valid model
             }
 
 
-            // 监听模型选择变化
-             modelSelect.removeEventListener('change', saveSettings); // 移除旧的，避免重复添加
+            // Listen for model selection change
+             modelSelect.removeEventListener('change', saveSettings); // Remove old listener to avoid duplicates
              modelSelect.addEventListener('change', saveSettings);
-             updateSendButtonState(); // 模型更改后也更新按钮状态
+             updateSendButtonState(); // Update button state after model change
         }
 
-        // 添加自定义参数
+        // Add custom parameter
         function addCustomParam(key = '', value = '') {
             const paramItem = document.createElement('div');
             paramItem.className = 'param-item';
@@ -1687,42 +1687,42 @@
             });
 
             elements.customParams.appendChild(paramItem);
-            saveSettings(); // 添加新参数时保存
+            saveSettings(); // Save when a new parameter is added
         }
 
 
-        // ===== JavaScript 新增函数 =====
+        // ===== JavaScript New Functions =====
 
         /**
-         * 创建一个复制按钮元素
-         * @param {string} textToCopy - 点击按钮时要复制的文本
-         * @param {string} buttonText - 按钮上初始显示的文字 (图标后的文字)
-         * @returns {HTMLButtonElement} - 创建好的按钮元素
+         * Create a copy button element
+         * @param {string} textToCopy - Text to copy on button click
+         * @param {string} buttonText - Initial text displayed on the button (after the icon)
+         * @returns {HTMLButtonElement} - The created button element
          */
         function createCopyButton(textToCopy, buttonText = '复制') {
             const btn = document.createElement('button');
             btn.className = 'copy-btn';
-            // 使用更简洁的SVG图标
+            // Use a more concise SVG icon
             btn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path></svg><span>${buttonText}</span>`;
 
-            let originalButtonHTML = btn.innerHTML; // 保存原始按钮内容 (图标 + 文字)
+            let originalButtonHTML = btn.innerHTML; // Save original button content (icon + text)
 
             btn.onclick = (e) => {
-                e.stopPropagation(); // 防止事件冒泡，特别是对于代码块
+                e.stopPropagation(); // Prevent event bubbling, especially for code blocks
                 navigator.clipboard.writeText(textToCopy).then(() => {
                     const originalSpan = btn.querySelector('span');
                      if (originalSpan) originalSpan.textContent = '已复制!'; else btn.innerHTML = '已复制!';
 
                     setTimeout(() => {
-                        btn.innerHTML = originalButtonHTML; // 恢复原始内容
+                        btn.innerHTML = originalButtonHTML; // Restore original content
                     }, 1500);
                 }).catch(err => {
-                    console.error('复制失败:', err);
+                    console.error('Copy failed:', err);
                     const originalSpan = btn.querySelector('span');
                     if (originalSpan) originalSpan.textContent = '失败'; else btn.innerHTML = '失败';
 
                     setTimeout(() => {
-                       btn.innerHTML = originalButtonHTML; // 恢复原始内容
+                       btn.innerHTML = originalButtonHTML; // Restore original content
                     }, 1500);
                 });
             };
@@ -1730,22 +1730,22 @@
         }
 
         /**
-         * 渲染Markdown文本并在消息和代码块上附加复制按钮，然后渲染数学公式
-         * @param {string} rawText - 未经处理的原始文本 (包含Markdown和TeX公式)
-         * @param {HTMLElement} textContainer - 用于显示渲染后HTML的容器 (例如 .message-text-area)
-         * @param {HTMLElement} contentContainer - 整个消息内容的容器 (例如 .message-content)，用于附加全局复制按钮
+         * Render Markdown text, attach copy buttons to messages and code blocks, and then render MathJax formulas.
+         * @param {string} rawText - The raw text (including Markdown and TeX formulas)
+         * @param {HTMLElement} textContainer - The container for the rendered HTML (e.g., .message-text-area)
+         * @param {HTMLElement} contentContainer - The main message content container (e.g., .message-content) for attaching the global copy button
          */
         async function renderMarkdownAndAttachCopyButtons(rawText, textContainer, contentContainer) {
             if (typeof marked === 'undefined') {
-                console.warn('marked.js 库未加载。Markdown 将作为纯文本显示。');
-                textContainer.innerHTML = rawText.replace(/\n/g, '<br>'); // 简单处理换行
+                console.warn('marked.js library not loaded. Markdown will be displayed as plain text.');
+                textContainer.innerHTML = rawText.replace(/\n/g, '<br>'); // Simple line break handling
                 if (rawText && rawText.trim()) {
-                    // 确保消息内容容器的复制按钮只添加一次或被正确替换
+                    // Ensure the copy button for message content is added only once or replaced correctly
                     const existingFullCopyBtn = contentContainer.querySelector(':scope > .copy-btn:not(pre .copy-btn)');
                     if (existingFullCopyBtn) existingFullCopyBtn.remove();
                     contentContainer.appendChild(createCopyButton(rawText, ''));
                 }
-                // 对于纯文本，MathJax 也会尝试处理，如果包含 $...$ 等
+                // For plain text, MathJax might still attempt to process it if it contains $...$ etc.
             } else {
                 let html = marked.parse(rawText || '');
 
@@ -1760,7 +1760,7 @@
                 }
                 textContainer.innerHTML = html;
 
-                // --- 添加复制按钮 ---
+                // --- Add Copy Buttons ---
                 const existingFullCopyBtn = contentContainer.querySelector(':scope > .copy-btn:not(pre .copy-btn)');
                 if (existingFullCopyBtn) existingFullCopyBtn.remove();
                 if (rawText && rawText.trim()) {
@@ -1779,10 +1779,10 @@
                 });
             }
 
-            // --- 使用 MathJax 渲染数学公式 ---
+            // --- Render MathJax formulas ---
             if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
                 try {
-                    // 让 MathJax 处理这个容器内的公式
+                    // Let MathJax process formulas within this container
                     await MathJax.typesetPromise([textContainer]);
                     // console.log('MathJax typesetting complete for a message.');
                 } catch (err) {
@@ -1793,85 +1793,110 @@
             }
         }
 
-        // ===== JavaScript 新增函数结束 =====
+        // ===== JavaScript New Functions End =====
 
 
-        // 处理图片上传
+        // Handle image upload
         function handleImageUpload(e) {
             const files = e.target.files;
-            if (!files || files.length === 0) return;
+            if (!files || files.length === 0) {
+                // Clear pending attachments if user cancels file selection
+                state.imageAttachments = [];
+                updateUploadNotice(); // Update or clear the upload notice
+                updateSendButtonState(); // Update send button state
+                e.target.value = ''; // Reset input even on cancel
+                return;
+            }
 
-            state.imageAttachments = []; // 清空之前的附件
+            state.imageAttachments = []; // Clear previous attachments
+            let processedCount = 0; // Track processed files
+
             Array.from(files).forEach(file => {
-                if (!file.type.startsWith('image/')) return;
+                if (!file.type.startsWith('image/')) {
+                    processedCount++; // Count non-image files as processed (but ignored)
+                    if (processedCount === files.length) {
+                         updateUploadNotice(); // Update notice after all files processed
+                         updateSendButtonState();
+                    }
+                    return;
+                }
 
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    const base64Data = e.target.result;
-                    state.imageAttachments.push({
-                        data: base64Data,
-                        filename: file.name // 保存文件名
-                    });
+                reader.onload = function(evt) {
+                    const dataUrl = evt.target.result; // Original data URL (PNG, JPEG, WebP, etc.)
+                    const img = new Image();
 
-                    // 显示上传提示 (只显示总数)
-                    const uploadCount = state.imageAttachments.length;
-                     // 查找并更新现有的提示消息
-                     let systemMessageElement = elements.chatMessages.querySelector('.message.system-message:last-child');
-                     let isNewMessage = false;
-                     // 判断最后一个系统消息是否是图片上传提示
-                     if (!systemMessageElement || !systemMessageElement.messageObj || systemMessageElement.messageObj.type !== 'system' || !systemMessageElement.messageObj.text.includes('已上传') || !systemMessageElement.messageObj.text.includes('图片')) {
-                         systemMessageElement = addSystemMessage(''); // 添加新的系统消息元素
-                         isNewMessage = true;
-                     }
+                    img.onload = function() {
+                        // Create a canvas and draw the image onto it
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
 
-                     const messageText = `已上传 ${uploadCount} 张图片，将随下一条消息一起发送。`;
-                     const messageTime = new Date().toLocaleTimeString();
+                        // Export as WebP data URL (quality 0-1)
+                        const webpDataUrl = canvas.toDataURL('image/webp', 0.8); // You can adjust the quality (e.g., 0.7, 0.9)
 
-                     // 更新消息对象 (如果它是一个系统消息)
-                     if (systemMessageElement.messageObj && systemMessageElement.messageObj.type === 'system') {
-                         systemMessageElement.messageObj.text = messageText;
-                         systemMessageElement.messageObj.time = messageTime;
-                     } else {
-                         // 如果是新创建的消息，或者找不到对应的 messageObj，创建一个新的 messageObj
-                         const newMessageObj = {
-                              type: 'system',
-                              text: messageText,
-                              time: messageTime
-                         };
-                         state.messages.push(newMessageObj); // 系统消息理论上不计入 context，但这里为了追踪状态可以先放着
-                          // 关联 messageElement 和 messageObj (方便后续查找)
-                          systemMessageElement.messageObj = newMessageObj;
-                     }
+                        // Push the WebP data URL to attachments state
+                        state.imageAttachments.push({
+                            data: webpDataUrl,
+                            filename: file.name.replace(/\.\w+$/, '.webp') // Optional: change filename suffix for clarity
+                        });
 
-                     // 更新DOM内容
-                     // 移除旧内容和时间，重新生成
-                     const messageContentDiv = systemMessageElement.querySelector('.message-content');
-                     if(messageContentDiv) {
-                        messageContentDiv.innerHTML = `
-                            ${messageText}
-                            <div class="message-time">${messageTime}</div>
-                        `;
-                     }
+                        processedCount++; // Increment processed count
 
+                        // Update the upload notice only after processing this file
+                        updateUploadNotice();
 
-                    elements.visionToggle.checked = true; // 上传图片自动开启图像理解
-                    saveSettings();
+                        // Check if all files are processed
+                        if (processedCount === files.length) {
+                            elements.visionToggle.checked = true; // Automatically enable vision if images are attached
+                            saveSettings();
+                            updateSendButtonState(); // Update send button state after processing all images
+                        }
+                    };
 
-                    // 如果是新消息，滚动到底部
-                    if (isNewMessage) {
-                         scrollToBottom();
-                    }
+                    img.onerror = function() {
+                        console.error(`Failed to load image: ${file.name}`);
+                        processedCount++; // Count failed image as processed
+                         if (processedCount === files.length) {
+                            updateUploadNotice();
+                            updateSendButtonState();
+                        }
+                    };
+
+                    img.src = dataUrl; // Set the image source to the data URL
                 };
                 reader.readAsDataURL(file);
             });
 
-            // 重置文件输入，以便可以选择相同的文件
+            // The file input value is reset at the end of the function, AFTER the loop
+            // This ensures that if the user selects the same files again, the 'change' event still fires.
             e.target.value = '';
         }
 
-        // 发送消息
+        // Function to update the image upload system notice
+        function updateUploadNotice() {
+            // Clear any existing image upload system messages first
+            elements.chatMessages.querySelectorAll('.message.system-message').forEach(msgElement => {
+                if (msgElement.messageObj && msgElement.messageObj.type === 'system' && msgElement.messageObj.text.includes('已上传') && msgElement.messageObj.text.includes('图片')) {
+                    msgElement.remove();
+                }
+            });
+
+            const uploadCount = state.imageAttachments.length;
+
+            if (uploadCount > 0) {
+                const messageText = `已上传 ${uploadCount} 张图片，将随下一条消息一起发送。`;
+                 addSystemMessage(messageText); // This will create and add the new message element
+            }
+             // If uploadCount is 0, no notice is added (or existing ones were removed)
+        }
+
+
+        // Send message
         async function sendMessage() {
-            // 如果按钮当前是“停止”状态，则执行停止逻辑
+            // If the button is currently in "Stop" state, execute stop logic
             const sendButtonSpan = elements.sendButton.querySelector('span');
             if (sendButtonSpan && sendButtonSpan.textContent === '停止') {
                 stopStreamingRequest();
@@ -1881,16 +1906,20 @@
             const message = elements.chatInput.value.trim();
             const hasImages = state.imageAttachments.length > 0 && elements.visionToggle.checked;
 
-            if (message === '' && !hasImages) return;
+            if (message === '' && !hasImages) {
+                 // If no message and no images (or vision disabled), just update the button state
+                 updateSendButtonState();
+                 return;
+            }
 
-            // 检查设置
+            // Check settings
             if (!elements.apiEndpoint.value || !elements.apiKey.value) {
                 addSystemMessage('请先在设置中配置 API 地址和 API Key');
                 togglePanel(elements.settingsPanel);
                 return;
             }
 
-            // 获取选择的模型
+            // Get selected model
             const selectedModelId = elements.modelSelect.value;
             if (!selectedModelId) {
                 addSystemMessage('请至少添加一个模型配置并选择模型');
@@ -1898,29 +1927,27 @@
                 return;
             }
 
-            // 添加用户消息到聊天
-            await addUserMessage(message, state.imageAttachments); // 确保用户消息渲染（包括公式）后再继续
-            elements.chatInput.value = ''; // 清空输入框
+            // Add user message to chat
+            // We clone state.imageAttachments here because handleImageUpload clears it *after* enqueueing processing.
+            // But sendMessage needs the list of images *at the time of sending*.
+            // A better approach would be to manage the list of pending images separately from state.imageAttachments.
+            // For now, let's clone the current imageAttachments right before clearing.
+             const currentImageAttachments = [...state.imageAttachments]; // Clone the array
+            await addUserMessage(message, currentImageAttachments); // Ensure user message is rendered (including formulas) before proceeding
 
-            // 清除已上传图片的系统提示消息
-            const uploadSystemMessages = elements.chatMessages.querySelectorAll('.system-message');
-             uploadSystemMessages.forEach(msgElement => {
-                 if (msgElement.messageObj && msgElement.messageObj.type === 'system' && msgElement.messageObj.text.includes('已上传') && msgElement.messageObj.text.includes('图片')) {
-                     msgElement.remove(); // 移除提示消息元素
-                     // 不需要从 state.messages 移除，因为这个类型的系统消息本来就不计入上下文
-                 }
-             });
-
-             // 清空图片附件状态 (用户消息已包含，请求发送后清空)
+            // Clear the image attachments state AFTER adding to user message
             state.imageAttachments = [];
+            updateUploadNotice(); // Clear the upload notice as images are now sent
+
+            elements.chatInput.value = ''; // Clear input box
 
             state.pendingMessages++;
             updateSendButtonState();
 
-            // 构建请求数据
+            // Build request data
             let content = [];
 
-            // 添加文本内容
+            // Add text content
             if (message) {
                 content.push({
                     type: "text",
@@ -1928,28 +1955,23 @@
                 });
             }
 
-            // 添加图像内容（如果开启图像理解能力）
-            if (hasImages) {
-                // 注意：state.imageAttachments 此时应该已经被清空，但 addUserMessage 中复制了一份
-                // 这里应该从 addUserMessage 添加到 state.messages 的那个消息对象中获取图片
-                 const userMessageObj = state.messages.find(msg => msg.type === 'user' && msg.text === message && msg.images?.length > 0); // 获取刚刚添加的带有图片的用户消息
-                 if (userMessageObj && userMessageObj.images && userMessageObj.images.length > 0) {
-                     userMessageObj.images.forEach(image => {
-                         content.push({
-                             type: "image_url",
-                             image_url: {
-                                 url: image.data // Base64 URL
-                             }
-                         });
-                     });
-                 }
+            // Add image content (if vision enabled and images were attached)
+            if (hasImages && currentImageAttachments.length > 0) {
+                 currentImageAttachments.forEach(image => {
+                    content.push({
+                        type: "image_url",
+                        image_url: {
+                            url: image.data // Base64 URL (should now be WebP)
+                        }
+                    });
+                 });
             }
 
 
-            // 构建消息历史
+            // Build message history
             const messageHistory = getMessageHistory();
 
-            // 构建请求主体
+            // Build request body
             let requestBody = {
                 model: selectedModelId,
                 messages: messageHistory.concat([
@@ -1963,7 +1985,7 @@
                 stream: elements.streamToggle.checked
             };
 
-            // 添加自定义参数
+            // Add custom parameters
             const customParams = document.querySelectorAll('.param-item');
             if (customParams.length > 0) {
                 Array.from(customParams).forEach(param => {
@@ -1975,10 +1997,10 @@
                     if (key) {
                          let value;
                          try {
-                             // 尝试将值解析为 JSON (例如布尔值, 数字, 对象, 数组)
+                             // Try to parse the value as JSON (e.g., boolean, number, object, array)
                              value = JSON.parse(valueString);
                          } catch (e) {
-                             // 如果解析失败，就作为原始字符串值
+                             // If parsing fails, treat it as a raw string value
                              value = valueString;
                          }
                         requestBody[key] = value;
@@ -1986,83 +2008,83 @@
                 });
             }
 
-            // 日志记录请求
-            const logId = addLog('发送请求', requestBody);
+            // Log the request
+            const logId = addLog('Sending Request', requestBody);
 
-            // 添加AI消息占位符
+            // Add AI message placeholder
             const aiMessageParts = addAIMessage('');
 
             try {
                 if (elements.streamToggle.checked) {
-                    await streamResponse(requestBody, aiMessageParts, logId); // 添加 await
+                    await streamResponse(requestBody, aiMessageParts, logId); // Add await
                 } else {
                     const response = await sendRequest(requestBody);
                     updateLogResponse(logId, response);
 
                     if (response.error) {
-                        throw new Error(response.error.message || '请求失败');
+                        throw new Error(response.error.message || 'Request failed');
                     }
 
-                    const aiResponseText = response.choices[0]?.message?.content || ''; // 安全访问内容
-                    await updateAIMessage(aiMessageParts, aiResponseText, true); // 添加 await，并将 renderMathNow 设为 true
+                    const aiResponseText = response.choices[0]?.message?.content || ''; // Safely access content
+                    await updateAIMessage(aiMessageParts, aiResponseText, true); // Add await, set renderMathNow to true
 
-                    // 注意：addThinkingProcess 也需要 aiMessageParts.element 或其子元素
+                    // Note: addThinkingProcess also needs aiMessageParts.element or its child elements
                     if (elements.thinkingToggle.checked && response.choices[0]?.thinking) {
-                        addThinkingProcess(aiMessageParts, response.choices[0].thinking); // 调整 addThinkingProcess
+                        addThinkingProcess(aiMessageParts, response.choices[0].thinking); // Adjust addThinkingProcess
                     }
                 }
             } catch (error) {
-                console.error('API 请求失败:', error);
-                 const errorMessage = error.message || 'API 请求失败';
-                addSystemMessage(`API 请求失败: ${errorMessage}`);
+                console.error('API Request failed:', error);
+                 const errorMessage = error.message || 'API Request failed';
+                addSystemMessage(`API Request failed: ${errorMessage}`);
                 updateLogError(logId, errorMessage);
 
-                 // 如果是流式请求失败，需要移除加载动画并显示错误 (非流式错误也会走这里)
-                 //aiMessageParts 对象包含了所有需要的元素引用
+                 // If streaming request failed, remove loading animation and display error (non-streaming errors will also come here)
+                 // aiMessageParts object contains all necessary element references
                  if (aiMessageParts && aiMessageParts.contentContainer) {
                      aiMessageParts.contentContainer.classList.remove('loading');
                      const textContainer = aiMessageParts.textContainer;
                      if (textContainer) {
-                         // 如果已经有部分回复，在后面追加错误信息
+                         // If there's already partial reply, append error message
                          if (aiMessageParts.object.text && aiMessageParts.object.text.trim() !== '') {
-                            // 使用 updateAIMessage 来处理 Markdown 和可能的公式渲染
-                            await updateAIMessage(aiMessageParts, aiMessageParts.object.text + `\n\n*错误: ${errorMessage}*`, true); // 添加 await
+                            // Use updateAIMessage to handle Markdown and potential formula rendering
+                            await updateAIMessage(aiMessageParts, aiMessageParts.object.text + `\n\n*Error: ${errorMessage}*`, true); // Add await
                          } else {
-                            // 如果没有收到任何回复，直接显示错误
-                            textContainer.innerHTML = `<span style="color: red;">错误: ${errorMessage}</span>`;
+                            // If no reply received, display error directly
+                            textContainer.innerHTML = `<span style="color: red;">Error: ${errorMessage}</span>`;
                          }
                      }
                      scrollToBottom();
                  }
 
             } finally {
-                // 清除图片附件（已在顶部清除）
+                // Clear image attachments (already cleared at the top)
                 state.pendingMessages--;
-                // state.streamController = null; // 此清理已移至 streamResponse 的 finally
+                // state.streamController = null; // This cleanup is moved to streamResponse's finally
                 updateSendButtonState();
             }
         }
 
-        // 流式响应处理
-        async function streamResponse(requestBody, aiMessageParts, logId) { // 接收 aiMessageParts
+        // Stream response handling
+        async function streamResponse(requestBody, aiMessageParts, logId) { // Receive aiMessageParts
             let responseText = '';
             let allChunks = '';
             let thinkingProcess = '';
-            let errorOccurred = false; // 用于标记是否发生了非中止错误
-            let wasAborted = false;    // 用于标记是否是用户中止
+            let errorOccurred = false; // Flag for non-abort errors
+            let wasAborted = false;    // Flag for user abort
 
 
             try {
-                // 创建控制器
+                // Create controller
                 if (state.streamController) {
-                    state.streamController.abort(); // 中止上一个未完成的流
+                    state.streamController.abort(); // Abort previous unfinished stream
                     // Note: This abort might trigger the catch block of a *previous* call to streamResponse
                     // We need to handle the state correctly across multiple calls/aborts
                 }
                 state.streamController = new AbortController();
                 const signal = state.streamController.signal;
 
-                // 创建请求
+                // Create request
                 const response = await fetch(elements.apiEndpoint.value, {
                     method: 'POST',
                     headers: {
@@ -2075,8 +2097,8 @@
 
                 if (!response.ok) {
                     errorOccurred = true;
-                     const errorData = await response.json().catch(() => ({})); // 尝试解析JSON，失败也无妨
-                    throw new Error(errorData.error?.message || `请求失败: ${response.status} ${response.statusText}`);
+                     const errorData = await response.json().catch(() => ({})); // Attempt to parse JSON, okay if it fails
+                    throw new Error(errorData.error?.message || `Request failed: ${response.status} ${response.statusText}`);
                 }
 
                 const reader = response.body.getReader();
@@ -2096,49 +2118,49 @@
 
 
                     const chunk = decoder.decode(value, { stream: true });
-                    allChunks += chunk; // 收集所有原始块用于日志
+                    allChunks += chunk; // Collect all raw chunks for logging
 
-                    // 处理SSE格式
+                    // Process SSE format
                     const lines = chunk.split('\n');
                     for (const line of lines) {
                         if (line.startsWith('data: ')) {
                             const data = line.substring(6);
 
-                            // 检查是否结束信号
+                            // Check for end signal
                             if (data === '[DONE]') continue;
 
                             try {
                                 const json = JSON.parse(data);
 
-                                // 提取思考过程（如果有）
+                                // Extract thinking process (if available)
                                 if (elements.thinkingToggle.checked &&
                                     json.choices &&
                                     json.choices[0] &&
                                     json.choices[0].thinking) {
                                     thinkingProcess = json.choices[0].thinking;
-                                     // 实时更新思考过程 (如果需要的话)
+                                     // Update thinking process in real-time (if needed)
                                      addThinkingProcess(aiMessageParts, thinkingProcess);
                                 }
 
-                                // 提取内容
+                                // Extract content
                                 if (json.choices &&
                                     json.choices[0] &&
                                     json.choices[0].delta &&
                                     json.choices[0].delta.content) {
                                     const content = json.choices[0].delta.content;
                                     responseText += content;
-                                    // 实时更新消息，但不渲染数学公式
-                                    await updateAIMessage(aiMessageParts, responseText, false); // 添加 await，renderMathNow 设为 false
+                                    // Update message in real-time, but DO NOT render MathJax formulas yet
+                                    await updateAIMessage(aiMessageParts, responseText, false); // Add await, set renderMathNow to false
                                 }
                             } catch (e) {
-                                console.error('解析流式数据失败:', e, '原始数据:', data);
-                                // 可以在这里添加一个简单的错误提示到消息中，避免中断流
-                                // updateAIMessage(aiMessageParts, responseText + `\n[解析数据失败: ${e.message}]`);
+                                console.error('Failed to parse stream data:', e, 'Raw data:', data);
+                                // Can add a simple error message to the message here, without interrupting the stream
+                                // updateAIMessage(aiMessageParts, responseText + `\n[Failed to parse data: ${e.message}]`);
                             }
                         } else if (line.trim() !== '') {
-                             // 处理非SSE格式的错误信息 (某些API可能返回非200状态码的JSON错误)
-                             console.error('收到非SSE格式的行:', line);
-                             if (line.includes('"error"')) { // 尝试解析潜在的错误JSON
+                             // Handle non-SSE format error messages (some APIs might return non-200 status JSON errors)
+                             console.error('Received non-SSE line:', line);
+                             if (line.includes('"error"')) { // Try to parse potential error JSON
                                  try {
                                       const errorJson = JSON.parse(line);
                                       if(errorJson.error?.message) {
@@ -2147,29 +2169,29 @@
                                           state.logs.find(log => log.id === logId).error = errorJson.error.message;
                                           console.error("Received error from API during stream:", errorJson.error.message);
                                           // Optionally update the message with error state indicator
-                                          // updateAIMessage(aiMessageParts, responseText + `\n\n*API 错误: ${errorJson.error.message}*`);
+                                          // updateAIMessage(aiMessageParts, responseText + `\n\n*API Error: ${errorJson.error.message}*`);
                                       }
                                  } catch (e) {
                                      // ignore parse error, treat as plain text line or continue
                                  }
                              }
-                             // 如果不是错误且不是SSE，可能只是空行或其他信息，可以忽略或记录
+                             // If not an error and not SSE, could be empty lines or other info, can ignore or log
                         }
                     }
                 }
 
-                // 流接收完毕后，如果成功且有内容，进行最终的 Markdown 解析、复制按钮处理和数学公式渲染
+                // After stream is complete, if successful and there was content, do final Markdown parsing, copy button handling, and MathJax rendering
                 if (!errorOccurred && !wasAborted && responseText) {
-                    // 调用 updateAIMessage，并让它这次渲染数学公式
-                    await updateAIMessage(aiMessageParts, responseText, true); // 添加 await，renderMathNow 设为 true
+                    // Call updateAIMessage, and tell it to render MathJax this time
+                    await updateAIMessage(aiMessageParts, responseText, true); // Add await, set renderMathNow to true
                 }
 
-                // 确保最后一个思考过程显示 (如果实时更新，这一步可能冗余，但保险)
+                // Ensure the last thinking process is displayed (might be redundant if updated real-time, but safer)
                 if (elements.thinkingToggle.checked && thinkingProcess) {
                      addThinkingProcess(aiMessageParts, thinkingProcess);
                 }
 
-                // 如果是正常完成且没有发生错误，才更新日志响应
+                // If completed normally and no error occurred, update the log response
                  if (!errorOccurred && !wasAborted) {
                     updateLogStreamEnd(logId, allChunks);
                  }
@@ -2177,15 +2199,15 @@
 
             } catch (error) {
                 if (error.name === 'AbortError') {
-                    wasAborted = true; // 标记为已中止
-                    console.log('流式请求已中止');
+                    wasAborted = true; // Mark as aborted
+                    console.log('Streaming request aborted');
                     const abortMessage = "AI 回复已由用户停止。";
-                    // 更新AI消息框内容
-                    if (responseText && responseText.trim() !== '') { // 如果已经输出了一部分内容
-                        await updateAIMessage(aiMessageParts, responseText + `\n\n*${abortMessage}*`, true); // 添加 await
-                    } else { // 如果还没输出内容，或者内容为空
+                    // Update AI message content
+                    if (responseText && responseText.trim() !== '') { // If some content was already output
+                        await updateAIMessage(aiMessageParts, responseText + `\n\n*${abortMessage}*`, true); // Add await
+                    } else { // If no content was output yet, or content is empty
                         if (aiMessageParts && aiMessageParts.contentContainer) {
-                            aiMessageParts.contentContainer.classList.remove('loading'); // 移除加载动画
+                            aiMessageParts.contentContainer.classList.remove('loading'); // Remove loading animation
                             if (aiMessageParts.textContainer) {
                                 aiMessageParts.textContainer.innerHTML = `<span style="color: var(--text-secondary); font-style: italic;">${abortMessage}</span>`;
                             }
@@ -2193,47 +2215,47 @@
                     }
                     updateLogError(logId, '用户手动停止');
                 } else {
-                    errorOccurred = true; // 标记为其他错误
-                    console.error('流式API请求失败:', error);
-                    const errorMessage = error.message || '流式API请求失败';
+                    errorOccurred = true; // Mark as other error
+                    console.error('Streaming API request failed:', error);
+                    const errorMessage = error.message || 'Streaming API request failed';
                     if (responseText) {
-                        await updateAIMessage(aiMessageParts, responseText + `\n\n*错误: ${errorMessage}*`, true); // 添加 await
+                        await updateAIMessage(aiMessageParts, responseText + `\n\n*Error: ${errorMessage}*`, true); // Add await
                     } else {
-                         // 如果没有收到任何回复，直接显示错误
+                         // If no reply received, display error directly
                          if (aiMessageParts && aiMessageParts.contentContainer) {
                              aiMessageParts.contentContainer.classList.remove('loading');
                              if (aiMessageParts.textContainer) {
-                                 aiMessageParts.textContainer.innerHTML = `<span style="color: red;">错误: ${errorMessage}</span>`;
+                                 aiMessageParts.textContainer.innerHTML = `<span style="color: red;">Error: ${errorMessage}</span>`;
                              }
                          }
                     }
                     updateLogError(logId, errorMessage);
                 }
             } finally {
-                state.streamController = null; // 清理当前流的控制器
-                // 移除加载动画 (如果之前有且没有被正常移除)
+                state.streamController = null; // Clean up controller for the current stream
+                // Remove loading animation (if it was there and not removed normally)
                 if (aiMessageParts && aiMessageParts.contentContainer && aiMessageParts.contentContainer.classList.contains('loading')) {
                     aiMessageParts.contentContainer.classList.remove('loading');
-                    // 如果是因为中止且没有内容，确保打字点消失并显示提示
+                    // If aborted and no content, ensure typing dots are gone and show message
                     if (wasAborted && (!responseText || responseText.trim() === '')) {
                        if (aiMessageParts.textContainer) {
                            aiMessageParts.textContainer.innerHTML = `<span style="color: var(--text-secondary); font-style: italic;">AI 回复已由用户停止。</span>`;
                        }
                     } else if (errorOccurred && (!responseText || responseText.trim() === '')) {
-                        // 如果是其他错误且没有内容
+                        // If other error and no content
                         const logEntry = state.logs.find(log => log.id === logId);
-                        const errText = logEntry?.error || '加载失败';
+                        const errText = logEntry?.error || 'Loading failed';
                         if (aiMessageParts.textContainer) {
                             aiMessageParts.textContainer.innerHTML = `<span style="color: red;">${errText}</span>`;
                         }
                     }
                 }
-                // sendMessage的finally会处理pendingMessages和按钮状态更新
+                // sendMessage's finally will handle pendingMessages and button state update
             }
         }
 
 
-        // 发送API请求 (非流式)
+        // Send API request (non-streaming)
         async function sendRequest(requestBody) {
             const response = await fetch(elements.apiEndpoint.value, {
                 method: 'POST',
@@ -2247,75 +2269,83 @@
             const data = await response.json();
 
             if (!response.ok) {
-                 // 即使响应不是OK,如果API返回了错误详情，也包含在抛出的错误中
-                throw new Error(data.error?.message || `请求失败: ${response.status} ${response.statusText}`);
+                 // Even if response is not OK, if API returns error details, include them in the thrown error
+                throw new Error(data.error?.message || `Request failed: ${response.status} ${response.statusText}`);
             }
 
             return data;
         }
 
-        // 获取消息历史
+        // Get message history
         function getMessageHistory() {
             const maxContext = parseInt(elements.maxContext.value) || 10;
             const history = [];
 
-            // 过滤掉系统消息和空的AI消息
+            // Filter out system messages and empty AI messages
             const relevantMessages = state.messages.filter(msg =>
-                 msg.type !== 'system' && (msg.type === 'user' || msg.text.trim() !== '')
+                 msg.type !== 'system' && (msg.type === 'user' || (msg.type === 'ai' && msg.text.trim() !== ''))
             );
 
-            // 只保留最近的消息作为上下文
-            // 保留 maxContext 对 (用户+AI) 消息，所以取最后 2 * maxContext 条相关消息
+
+            // Only keep the most recent messages as context
+            // Keep up to maxContext pairs (user+AI), so take the last 2 * maxContext relevant messages
             const recentMessages = relevantMessages.slice(-maxContext * 2);
 
             for (const msg of recentMessages) {
 
+                // If it's an empty user message without images, skip it
+                if (msg.type === 'user' && msg.text.trim() === '' && (!msg.images || msg.images.length === 0)) {
+                    continue;
+                }
+
+                 // If it's an empty AI message, skip it (already handled by filter, but double check)
+                 if (msg.type === 'ai' && msg.text.trim() === '') {
+                     continue;
+                 }
+
+
                 const historyItem = {
                     role: msg.type === 'user' ? 'user' : 'assistant',
-                    content: msg.text // 初始使用文本内容
+                    content: msg.text // Initial text content
                 };
 
-                // 如果是用户消息且有图片，并且开启了视觉能力，将内容格式化为数组
+                // If it's a user message with images and vision is enabled, format content as an array
                 if (msg.type === 'user' && msg.images && msg.images.length > 0 && elements.visionToggle.checked) {
                     let contentArray = [];
-                     // 添加文本部分
-                    if (msg.text.trim()) { // 只有当有文本时才添加文本content
+                     // Add text part if present
+                    if (msg.text.trim()) {
                         contentArray.push({
                             type: 'text',
                             text: msg.text.trim()
                         });
                     }
 
-                     // 添加图片部分
+                     // Add image parts
                     msg.images.forEach(image => {
                         contentArray.push({
                             type: 'image_url',
                             image_url: {
-                                url: image.data
+                                url: image.data // Base64 URL (now WebP)
                             }
                         });
                     });
 
-                    // 如果只有图片没有文本，contentArray 将只有图片对象
-                    // 如果有文本和图片，contentArray 将包含文本和图片对象
-                    // 如果只有文本没有图片，contentArray 将只有文本对象 (通过上面的 if(msg.text.trim()) 逻辑处理)
-
-                    // 如果 contentArray 非空，替换 historyItem 的 content
+                    // If contentArray is not empty, replace historyItem's content
                     if (contentArray.length > 0) {
                         historyItem.content = contentArray;
-                    } else if (msg.text.trim() === '') {
-                         // 如果既没有文本也没有图片，这条用户消息应该被过滤掉 (相关消息过滤器已处理)
-                         // 如果过滤失效，这里避免添加空content的用户消息
-                         continue;
+                    } else {
+                        // This case should ideally not happen after the initial filter/check
+                        // It means a user message had images but no text and vision is enabled.
+                        // If it only had images, contentArray would have image objects.
+                        // If it had text and images, contentArray would have both.
+                        // The only way contentArray is empty here is if msg.text was empty and msg.images was empty (already filtered)
+                        // or if msg.images was not an array or empty array (less likely based on handleImageUpload)
+                         console.warn("User message had images but contentArray was empty:", msg);
+                         continue; // Skip this message to avoid empty content
                     }
-                    // 否则 (只有文本没有图片)，historyItem.content 仍然是 msg.text
-                } else if (msg.type === 'user' && msg.text.trim() === '') {
-                     // 只有图片没有文本的用户消息，但视觉能力未开启，也应该被过滤掉
-                     continue;
-                } else if (msg.type === 'ai' && msg.text.trim() === '') {
-                     // 空的AI消息也应该被过滤掉 (相关消息过滤器已处理)
-                     continue;
                 }
+                 // If it's a user message with text but no images, or vision disabled, historyItem.content remains msg.text
+
 
                 history.push(historyItem);
             }
@@ -2323,7 +2353,7 @@
             return history;
         }
 
-        // 添加系统消息
+        // Add system message
         function addSystemMessage(text) {
             const messageObj = {
                 type: 'system',
@@ -2331,11 +2361,12 @@
                 time: new Date().toLocaleTimeString()
             };
 
-            // 系统消息不计入上下文，所以不推入 state.messages (除非是图片上传提示，但也不影响上下文)
-
+            // System messages are generally not included in context, so don't push to state.messages
+            // unless they represent state relevant to the conversation (like image uploads, though those are also cleared)
+            // We will add a minimal messageObj to the element for easy lookup in updateUploadNotice
             const messageElement = document.createElement('div');
             messageElement.className = 'message system-message';
-             // 关联 messageElement 和 messageObj (方便在 handleImageUpload 中查找和更新)
+             // Link messageElement to messageObj for easy lookup (useful for updates like upload notice)
             messageElement.messageObj = messageObj;
 
             messageElement.innerHTML = `
@@ -2348,15 +2379,15 @@
             elements.chatMessages.appendChild(messageElement);
             scrollToBottom();
 
-             return messageElement; // 返回元素以便后续更新 (如图片上传提示)
+             return messageElement; // Return element for possible future updates (like upload notice)
         }
 
-        // 添加用户消息
-        async function addUserMessage(text, images = []) { // 在函数声明前添加 async
+        // Add user message
+        async function addUserMessage(text, images = []) { // Add async keyword
             const messageObj = {
                 type: 'user',
                 text,
-                images: images ? [...images] : [],
+                images: images ? [...images] : [], // Store a copy of images at the time of sending
                 time: new Date().toLocaleTimeString()
             };
 
@@ -2369,16 +2400,16 @@
             if (images && images.length > 0) {
                 imageHtml = '<div class="image-attachments">';
                 images.forEach(image => {
-                    // 使用原始文件名作为 alt 文本，如果可用
-                    imageHtml += `<img src="${image.data}" alt="${image.filename || '用户上传图片'}" class="image-attachment">`;
+                    // Use original filename as alt text if available
+                    imageHtml += `<img src="${image.data}" alt="${image.filename || 'User uploaded image'}" class="image-attachment">`;
                 });
                 imageHtml += '</div>';
             }
 
-            // 修改HTML结构，为Markdown渲染的文本创建一个专用容器 .message-text-area
+            // Modify HTML structure to create a dedicated container for Markdown-rendered text .message-text-area
             messageElement.innerHTML = `
                 <div class="message-content">
-                    <div class="message-text-area"></div> <!-- Markdown渲染区域 -->
+                    <div class="message-text-area"></div> <!-- Markdown rendering area -->
                     ${imageHtml}
                     <div class="message-time">${messageObj.time}</div>
                 </div>
@@ -2388,13 +2419,13 @@
             const messageTextContainer = messageElement.querySelector('.message-text-area');
             const messageContentContainer = messageElement.querySelector('.message-content');
 
-            // 使用新的渲染函数处理文本
-            await renderMarkdownAndAttachCopyButtons(text, messageTextContainer, messageContentContainer); // 添加 await
+            // Use the new render function to process text
+            await renderMarkdownAndAttachCopyButtons(text, messageTextContainer, messageContentContainer); // Add await
 
             elements.chatMessages.appendChild(messageElement);
             scrollToBottom();
 
-            // 返回包含元素引用的对象,方便后续操作（如果需要）
+            // Return an object with element references for later use (if needed)
             return {
                 element: messageElement,
                 object: messageObj,
@@ -2403,11 +2434,11 @@
             };
         }
 
-        // 添加AI消息
-        function addAIMessage(text = '') { // text 参数通常在初始调用时为空
+        // Add AI message
+        function addAIMessage(text = '') { // text parameter is usually empty on initial call
             const messageObj = {
                 type: 'ai',
-                text: text, // 初始文本，通常在流式传输时会更新
+                text: text, // Initial text, will be updated during streaming
                 time: new Date().toLocaleTimeString()
             };
 
@@ -2416,12 +2447,12 @@
             const messageElement = document.createElement('div');
             messageElement.className = 'message ai-message';
 
-            // 修改HTML结构，为Markdown渲染的文本创建一个专用容器 .message-text-area
-            // 并为打字点动画准备好 .message-text-area
+            // Modify HTML structure to create a dedicated container for Markdown-rendered text .message-text-area
+            // And prepare .message-text-area for the typing dots animation
             messageElement.innerHTML = `
                 <div class="message-avatar">AI</div>
                 <div class="message-content">
-                    <div class="message-text-area"></div> <!-- Markdown渲染/打字点区域 -->
+                    <div class="message-text-area"></div> <!-- Markdown rendering/typing dots area -->
                     <div class="message-time">${messageObj.time}</div>
                 </div>
             `;
@@ -2429,7 +2460,7 @@
             const messageTextContainer = messageElement.querySelector('.message-text-area');
             const messageContentContainer = messageElement.querySelector('.message-content');
 
-            if (!text) { // 如果初始文本为空, 则显示加载动画
+            if (!text) { // If initial text is empty, show loading animation
                 messageContentContainer.classList.add('loading');
                 messageTextContainer.innerHTML = `
                     <span class="typing-dot"></span>
@@ -2437,16 +2468,16 @@
                     <span class="typing-dot"></span>
                 `;
             } else {
-                // 如果初始就有文本 (例如系统消息用此函数添加),则直接渲染
-                // 注意：这里直接渲染可能不包含MathJax渲染，如果需要，应该调用 updateAIMessage
-                messageTextContainer.innerHTML = text; // 简单添加文本
+                // If there's initial text (e.g., system messages added with this function), render directly
+                // Note: Directly setting innerHTML here might not include MathJax rendering. If needed, use updateAIMessage.
+                messageTextContainer.innerHTML = text; // Simple text addition
             }
 
 
             elements.chatMessages.appendChild(messageElement);
             scrollToBottom();
 
-            // 返回包含元素引用的对象，方便 updateAIMessage 更新
+            // Return an object with element references for updateAIMessage
             return {
                 element: messageElement,
                 object: messageObj,
@@ -2455,18 +2486,18 @@
             };
         }
 
-        // 更新AI消息
-        async function updateAIMessage(aiMessageParts, newText, renderMathNow = true) { // 添加 async 和 renderMathNow 参数
+        // Update AI message
+        async function updateAIMessage(aiMessageParts, newText, renderMathNow = true) { // Add async and renderMathNow parameters
             if (!aiMessageParts || !aiMessageParts.object) {
-                console.error("无效的 aiMessageParts 对象", aiMessageParts);
+                console.error("Invalid aiMessageParts object", aiMessageParts);
                 return;
             }
-            aiMessageParts.object.text = newText; // 更新存储的原始文本
+            aiMessageParts.object.text = newText; // Update stored raw text
 
-            // 移除加载状态 (如果之前有)
+            // Remove loading state (if it was there)
             aiMessageParts.contentContainer.classList.remove('loading');
 
-            // Markdown 解析和复制按钮逻辑
+            // Markdown parsing and copy button logic
             let html = '';
             if (typeof marked === 'undefined') {
                 html = (newText || '').replace(/\n/g, '<br>'); // Fallback to simple line breaks
@@ -2475,7 +2506,7 @@
                 html = marked.parse(newText || '');
             }
 
-            // DOMPurify 清理 (强烈推荐)
+            // DOMPurify sanitize (highly recommended)
             if (typeof DOMPurify !== 'undefined') {
                 const allowedTags = ['p', 'br', 'strong', 'em', 'del', 'a', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
                 const allowedAttrs = ['href', 'title', 'alt', 'src', 'class']; // Include class for MathJax elements
@@ -2485,33 +2516,33 @@
                     USE_PROFILES: { html: true }
                 });
             } else {
-                 console.warn('DOMPurify 库未加载。来自 marked.js 的输出将直接使用，请注意潜在的XSS风险。');
+                 console.warn('DOMPurify library not loaded. Output from marked.js will be used directly. Be aware of potential XSS risks.');
             }
 
-            // 更新DOM文本内容
+            // Update DOM text content
             aiMessageParts.textContainer.innerHTML = html;
 
-            // --- 添加复制按钮 ---
-            // 移除旧的全文复制按钮 (如果存在)
+            // --- Add Copy Buttons ---
+            // Remove old full message copy button (if it exists)
             const existingFullCopyBtn = aiMessageParts.contentContainer.querySelector(':scope > .copy-btn:not(pre .copy-btn)');
             if (existingFullCopyBtn) {
                  existingFullCopyBtn.remove();
             }
-            // 添加新的全文复制按钮
+            // Add new full message copy button
              if (newText && newText.trim()) {
-                 // 附加到 message-content, 但不是 pre 的子级
-                 const fullCopyBtn = createCopyButton(newText, ''); // 全文复制按钮可以只有图标
+                 // Append to message-content, but not a child of pre
+                 const fullCopyBtn = createCopyButton(newText, ''); // Full message copy button can be icon-only
                  aiMessageParts.contentContainer.appendChild(fullCopyBtn);
             }
 
-            // 为代码块添加复制按钮
+            // Add copy buttons to code blocks
             const codeBlocks = aiMessageParts.textContainer.querySelectorAll('pre');
             codeBlocks.forEach(preElement => {
                 const codeElement = preElement.querySelector('code');
                 const codeText = codeElement ? (codeElement.textContent || '') : (preElement.textContent || '');
 
                 if (codeText.trim()) {
-                    // 移除可能已存在的旧的代码块复制按钮
+                    // Remove potentially existing old code block copy button
                     const existingCodeCopyBtn = preElement.querySelector('.copy-btn');
                     if (existingCodeCopyBtn) {
                         existingCodeCopyBtn.remove();
@@ -2522,10 +2553,10 @@
             // --- End of Markdown and copy button logic ---
 
 
-            // --- 使用 MathJax 渲染数学公式 ---
+            // --- Render MathJax formulas ---
             if (renderMathNow && typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
                 try {
-                     // 确保 MathJax 只处理当前消息的容器
+                     // Ensure MathJax only processes the container of the current message
                     await MathJax.typesetPromise([aiMessageParts.textContainer]);
                     // console.log('MathJax typesetting complete for updated AI message.');
                 } catch (err) {
@@ -2535,66 +2566,75 @@
                  // console.warn('MathJax not available or typesetPromise not found, or rendering deferred.');
             }
 
-            // 滚动到底部
+            // Scroll to bottom
             scrollToBottom();
         }
 
-        // 添加思考过程
+        // Add thinking process
         function addThinkingProcess(aiMessageParts, thinkingText) {
             if (!thinkingText || !elements.thinkingToggle.checked || !aiMessageParts || !aiMessageParts.element) return;
 
             const messageContent = aiMessageParts.element.querySelector('.message-content');
              if (!messageContent) return;
 
-            // 检查是否已存在思考过程元素
+            // Check if thinking process element already exists
             let thinkingElement = messageContent.querySelector('.thinking-process');
 
             if (!thinkingElement) {
                 thinkingElement = document.createElement('div');
                 thinkingElement.className = 'thinking-process';
-                // 思考过程元素应该添加到消息内容（message-content）的末尾，但在时间戳之前
+                // The thinking process element should be added at the end of the message content (message-content), but before the timestamp
                 const timeElement = messageContent.querySelector('.message-time');
                 if (timeElement) {
                     messageContent.insertBefore(thinkingElement, timeElement);
                 } else {
-                    // 如果没有时间戳（不应该发生），就直接append
+                    // If there's no timestamp (shouldn't happen), just append
                     messageContent.appendChild(thinkingElement);
                 }
             }
 
-            thinkingElement.textContent = thinkingText; // 思考过程通常是纯文本
+            thinkingElement.textContent = thinkingText; // Thinking process is usually plain text
             scrollToBottom();
         }
 
 
-        // 滚动到底部
+        // Scroll to bottom
         function scrollToBottom() {
             elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
         }
 
-        // 更新发送按钮状态
+        // Update send button state
         function updateSendButtonState() {
             const sendButton = elements.sendButton;
             const hasValidModel = elements.modelSelect.value !== '';
+            const hasInput = elements.chatInput.value.trim() !== '';
+            const hasImages = state.imageAttachments.length > 0;
+            const visionEnabled = elements.visionToggle.checked;
 
-            // 定义SVG图标字符串
+            // Define SVG icon strings
             const sendSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
             const stopSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>`;
 
-            if (state.streamController && state.pendingMessages > 0) { // 正在流式输出
+            if (state.streamController && state.pendingMessages > 0) { // Streaming in progress
                 sendButton.innerHTML = `<span>停止</span>${stopSvg}`;
-                sendButton.disabled = false; // "停止"按钮应该总是可用的
+                sendButton.disabled = false; // "Stop" button should always be enabled
                 sendButton.title = "停止AI回复";
-            } else { // 非流式输出, 或没有 pending message
+            } else { // Not streaming, or no pending messages
                 sendButton.innerHTML = `<span>发送</span>${sendSvg}`;
-                // sendButton.disabled = state.pendingMessages > 0 || !hasValidModel;
-                // 只有在没有pending message且有模型可选时才启用发送
-                 sendButton.disabled = state.pendingMessages > 0 || !hasValidModel || elements.chatInput.value.trim() === '' && state.imageAttachments.length === 0;
-                 sendButton.title = sendButton.disabled && !hasValidModel ? "请在设置中配置模型" : "发送消息";
+                // Enable send button only if there's a valid model AND either text input or images (with vision enabled)
+                sendButton.disabled = !hasValidModel || (!hasInput && !(hasImages && visionEnabled));
+
+                 if (!hasValidModel) {
+                     sendButton.title = "请在设置中配置模型";
+                 } else if (!hasInput && !(hasImages && visionEnabled)) {
+                     sendButton.title = "请输入文本或上传图片";
+                 } else {
+                     sendButton.title = "发送消息";
+                 }
             }
         }
 
-        // 添加日志
+        // Add log
         function addLog(title, requestData) {
             const timestamp = new Date();
             const logId = `log-${Date.now()}`;
@@ -2608,9 +2648,9 @@
                 error: null
             };
 
-            state.logs.unshift(logObj); // 新日志放在前面
+            state.logs.unshift(logObj); // Add new log at the beginning
 
-            // 创建日志元素
+            // Create log element
             const logElement = document.createElement('div');
             logElement.className = 'log-item';
             logElement.id = logId;
@@ -2666,7 +2706,7 @@
             return logId;
         }
 
-        // 更新日志响应
+        // Update log response
         function updateLogResponse(logId, responseData) {
             const logObj = state.logs.find(log => log.id === logId);
             if (logObj) {
@@ -2682,11 +2722,11 @@
             }
         }
 
-        // 更新日志流式结束
+        // Update log stream end
         function updateLogStreamEnd(logId, streamData) {
             const logObj = state.logs.find(log => log.id === logId);
             if (logObj) {
-                // 保存原始数据或标记为流式完成
+                // Save raw data or mark as stream complete
                 logObj.response = streamData || "流式响应 (已完成)";
             }
 
@@ -2695,12 +2735,12 @@
 
             if (responseSection && responseElement) {
                 responseSection.style.display = 'block';
-                 // 显示保存的响应数据
+                 // Display saved response data
                 responseElement.textContent = typeof logObj.response === 'string' ? logObj.response : JSON.stringify(logObj.response, null, 2);
             }
         }
 
-        // 更新日志错误
+        // Update log error
         function updateLogError(logId, errorMessage) {
             const logObj = state.logs.find(log => log.id === logId);
             if (logObj) {
@@ -2713,7 +2753,7 @@
             if (errorSection && errorElement) {
                 errorSection.style.display = 'block';
                 errorElement.textContent = errorMessage;
-                 // 更新日志标题颜色
+                 // Update log title color
                  const logTitleElement = document.getElementById(logId)?.querySelector('.log-title');
                  if (logTitleElement) {
                      logTitleElement.style.color = '#e74c3c';
@@ -2721,7 +2761,7 @@
             }
         }
 
-        // 切换日志主体显示/隐藏
+        // Toggle log body display/hide
         window.toggleLogBody = function(logId) {
             const logBody = document.getElementById(`${logId}-body`);
             if (logBody) {
@@ -2729,26 +2769,26 @@
             }
         };
 
-        // 图片预览
+        // Image preview
         function showImagePreview(src) {
             elements.previewImage.src = src;
             elements.imagePreview.classList.add('active');
             elements.overlay.classList.add('active');
         }
 
-        // 关闭图片预览
+        // Close image preview
         function closeImagePreview() {
             elements.imagePreview.classList.remove('active');
             elements.overlay.classList.remove('active');
         }
 
 
-        // 初始化应用
+        // Initialize application
         document.addEventListener('DOMContentLoaded', init);
 
-        // 监听输入框内容和图片附件变化，更新发送按钮状态
+        // Listen for input box content and image attachment changes, update send button state
         elements.chatInput.addEventListener('input', updateSendButtonState);
-        elements.imageInput.addEventListener('change', updateSendButtonState); // handleImageUpload 内部会调用 change
+        elements.imageInput.addEventListener('change', updateSendButtonState); // updateSendButtonState is called inside handleImageUpload now
     </script>
 </body>
 </html>
