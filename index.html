@@ -1545,9 +1545,10 @@
                 }
             });
         }
-
         // Load settings
         function loadSettings() {
+            const DEFAULT_API_KEY = 'sk-XSMK3ZAduTLUnIyoTYNIU5vtWRSWHBPmiw4fKxUetKMxSQSD'; // 定义默认API Key
+
             try {
                 const savedSettings = localStorage.getItem('ai-chat-settings');
                 let settings = {}; // Start with an empty object
@@ -1557,7 +1558,7 @@
                 }
 
                 // Get previously selected model ID before clearing model configs
-                // 我们将在更新选择器后使用这个值
+                // We will use this value after updating the selector
                 let previouslySelectedModelId = settings.selectedModel || null;
 
 
@@ -1606,23 +1607,25 @@
                 } else {
                     // If no saved model configs, add defaults using the helper function
                     // Now safe to use helper function as temp functions are restored later
-                    tempSaveSettings = saveSettings; // Store original
-                    tempUpdateModelSelector = updateModelSelector; // Store original
-                    saveSettings = () => {}; // Disable again for default additions
-                    updateModelSelector = () => {}; // Disable again
+                    // Store the no-op versions before restoring originals for addModelConfig
+                    const originalSave = saveSettings;
+                    const originalUpdate = updateModelSelector;
+
+                    saveSettings = tempSaveSettings; // Restore original for addModelConfig calls
+                    updateModelSelector = tempUpdateModelSelector; // Restore original for addModelConfig calls
 
                     addModelConfig('gpt-4-turbo', 'GPT-4 Turbo');
                     addModelConfig('gpt-3.5-turbo', 'GPT-3.5 Turbo');
 
-                    saveSettings = tempSaveSettings; // Restore original
-                    updateModelSelector = tempUpdateModelSelector; // Restore original
+                    saveSettings = originalSave; // Re-disable for the rest of this block if needed, or keep restored
+                    updateModelSelector = originalUpdate; // Re-disable for the rest of this block if needed, or keep restored
                 }
 
                  // Restore original functions before calling updateModelSelector
                 saveSettings = tempSaveSettings;
                 updateModelSelector = tempUpdateModelSelector;
 
-                updateModelSelector(); // Ensure in-memory state matches DOM and selector is populated <--- Important
+                updateModelSelector(); // Ensure in-memory state matches DOM and selector is populated
 
 
                 // Restore previously selected model after the selector is populated
@@ -1632,18 +1635,20 @@
                      // If previous model ID is invalid or not found, select the first valid model
                     elements.modelSelect.value = elements.modelSelect.options[0].value;
                 }
-                // state.selectedModel = elements.modelSelect.value; // Update global state
+                // state.selectedModel = elements.modelSelect.value; // Update global state (saveSettings will handle this)
 
 
                 // Apply other settings
                 elements.apiEndpoint.value = settings.apiEndpoint || '';
-                elements.apiKey.value = settings.apiKey || '';
+                // 修改点 1: 如果 settings.apiKey 存在 (即使是空字符串 ""，也用它)，否则用默认值
+                elements.apiKey.value = settings.apiKey !== undefined ? settings.apiKey : DEFAULT_API_KEY;
+
                 elements.temperature.value = settings.temperature !== undefined ? settings.temperature : 0.7;
                 elements.temperatureValue.textContent = elements.temperature.value; // Ensure display matches value
-                elements.maxTokens.value = settings.maxTokens !== undefined ? settings.maxTokens : 2048;
-                elements.maxContext.value = settings.maxContext !== undefined ? settings.maxContext : 10;
+                elements.maxTokens.value = settings.maxTokens !== undefined ? settings.maxTokens : 60000; // Match HTML default
+                elements.maxContext.value = settings.maxContext !== undefined ? settings.maxContext : 50; // Match HTML default
                 elements.streamToggle.checked = settings.streamEnabled !== undefined ? settings.streamEnabled : true; // Default to streaming
-                elements.visionToggle.checked = settings.visionEnabled !== undefined ? settings.visionEnabled : false;
+                elements.visionToggle.checked = settings.visionEnabled !== undefined ? settings.visionEnabled : true; // Match HTML default
                 elements.thinkingToggle.checked = settings.thinkingEnabled !== undefined ? settings.thinkingEnabled : false;
 
                 // Font settings
@@ -1661,7 +1666,7 @@
                     document.documentElement.style.setProperty('--font-size', `${settings.fontSize}px`);
                 } else {
                     // If no saved font size, apply the default value from the slider
-                    elements.fontSize.value = 16; // Ensure slider value is default
+                    elements.fontSize.value = 13; // Match HTML default
                     elements.fontSizeValue.textContent = `${elements.fontSize.value}px`;
                     document.documentElement.style.setProperty('--font-size', `${elements.fontSize.value}px`);
                 }
@@ -1729,24 +1734,29 @@
                 // No default custom params are added by addCustomParam, so nothing more to do here
 
                 // 应用一些基本默认值到UI
+                elements.apiEndpoint.value = ''; // 您可以为 API 地址也设置一个默认值
+                // 修改点 2: 在 catch 块中设置 API Key 的默认值
+                elements.apiKey.value = DEFAULT_API_KEY;
+
                 elements.temperature.value = 0.7;
                 elements.temperatureValue.textContent = '0.7';
-                elements.maxTokens.value = 2048;
-                elements.maxContext.value = 10;
+                elements.maxTokens.value = 60000; // Match HTML default
+                elements.maxContext.value = 50;   // Match HTML default
                 elements.streamToggle.checked = true;
-                elements.visionToggle.checked = false;
+                elements.visionToggle.checked = true; // Match HTML default
                 elements.thinkingToggle.checked = false;
                 document.body.classList.remove('dark-theme');
                 elements.fontFamily.value = elements.fontFamily.options[0].value;
                 document.documentElement.style.setProperty('--font-main', elements.fontFamily.value);
-                elements.fontSize.value = 16;
-                elements.fontSizeValue.textContent = '16px';
-                document.documentElement.style.setProperty('--font-size', '16px');
+                elements.fontSize.value = 13; // Match HTML default
+                elements.fontSizeValue.textContent = '13px';
+                document.documentElement.style.setProperty('--font-size', '13px');
 
 
                 saveSettings(); // 加载失败后，保存当前的（可能是默认的）设置状态
             }
         }
+
 
         // Save settings
         function saveSettings() {
