@@ -1166,8 +1166,20 @@
                     <span id="font-size-value">16px</span>
                 </div>
             </div>
-        </div>
-    </div>
+
+            <div class="panel-section"> <!-- 把按钮放在一个新的 section 里，或者直接放在 panel-body 的底部 -->
+                <button id="save-settings-btn" class="btn" style="width: 100%; margin-top: 20px; background-color: var(--secondary-color);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                    <span>保存所有设置</span>
+                </button>
+            </div>
+
+        </div> <!-- 这是 panel-body 的结束标签 -->
+    </div> <!-- 这是 settings-panel 的结束标签 -->
 
     <!-- 日志面板 -->
     <div class="panel" id="logs-panel">
@@ -1238,7 +1250,8 @@
             previewImage: document.getElementById('preview-image'),
             closePreview: document.getElementById('close-preview'),
             modelSelect: document.getElementById('model-select'),
-            clearChatButton: document.getElementById('clear-chat')
+            clearChatButton: document.getElementById('clear-chat'),
+            saveSettingsBtn: document.getElementById('save-settings-btn'), // <--- 添加这行
         };
 
 
@@ -1454,6 +1467,22 @@
             // }
         }
 
+        // 处理保存设置按钮点击
+        function handleSaveSettingsClick() {
+            saveSettings(); // 调用现有的保存函数
+
+            // 给用户一个保存成功的反馈
+            const saveButtonSpan = elements.saveSettingsBtn.querySelector('span');
+            const originalButtonText = saveButtonSpan.textContent;
+            elements.saveSettingsBtn.disabled = true;
+            saveButtonSpan.textContent = '设置已保存!';
+
+            setTimeout(() => {
+                saveButtonSpan.textContent = originalButtonText;
+                elements.saveSettingsBtn.disabled = false;
+            }, 2000); // 2秒后恢复按钮文字和状态
+        }
+
         // 设置事件监听器
         function setupEventListeners() {
             // 发送消息
@@ -1488,6 +1517,8 @@
             // 清空对话
              elements.clearChatButton.addEventListener('click', clearConversation);
 
+            // 保存设置按钮
+            elements.saveSettingsBtn.addEventListener('click', handleSaveSettingsClick); // <--- 添加这行
 
             // 添加模型
             elements.addModel.addEventListener('click', () => {
@@ -1502,16 +1533,16 @@
                 elements.temperatureValue.textContent = elements.temperature.value;
                 // saveSettings is called on 'change' which is typically on mouseup for range inputs
             });
-             elements.temperature.addEventListener('change', saveSettings); // Save on release
+             // elements.temperature.addEventListener('change', saveSettings); // Save on release // <--- 移除或注释掉这行
 
-             elements.maxTokens.addEventListener('change', saveSettings);
-             elements.maxContext.addEventListener('change', saveSettings);
-             elements.streamToggle.addEventListener('change', saveSettings);
+             // elements.maxTokens.addEventListener('change', saveSettings);    // <--- 移除或注释掉这行
+             // elements.maxContext.addEventListener('change', saveSettings);   // <--- 移除或注释掉这行
+             // elements.streamToggle.addEventListener('change', saveSettings); // <--- 移除或注释掉这行
              elements.visionToggle.addEventListener('change', () => {
-                 saveSettings(); // Save the state
+                 // saveSettings(); // <--- 移除或注释掉这行
                  updateSendButtonState(); // Update button based on vision state
              });
-             elements.thinkingToggle.addEventListener('change', saveSettings);
+             // elements.thinkingToggle.addEventListener('change', saveSettings); // <--- 移除或注释掉这行
 
 
             elements.fontSize.addEventListener('input', () => {
@@ -1523,18 +1554,20 @@
                 // A more complex approach is to iterate through all messages and re-render their content.
                 // For now, we'll just update the CSS variable.
             });
-             elements.fontSize.addEventListener('change', saveSettings); // Save on slider release
+             // elements.fontSize.addEventListener('change', saveSettings); // Save on slider release // <--- 移除或注释掉这行
 
              elements.fontFamily.addEventListener('change', () => {
                 const font = elements.fontFamily.value;
                 document.documentElement.style.setProperty('--font-main', font);
-                saveSettings();
+                // saveSettings(); // <--- 移除或注释掉这行
              });
-             elements.apiEndpoint.addEventListener('change', saveSettings);
-             elements.apiKey.addEventListener('change', saveSettings);
+             // elements.apiEndpoint.addEventListener('change', saveSettings); // <--- 移除或注释掉这行
+             // elements.apiKey.addEventListener('change', saveSettings);       // <--- 移除或注释掉这行
 
             // Model select change listener - crucial for saving the selected model
-             elements.modelSelect.addEventListener('change', saveSettings);
+             elements.modelSelect.addEventListener('change', () => { // <--- 移除或注释掉这行
+                updateSendButtonState(); // 当模型改变时，发送按钮的状态可能需要更新
+             });
 
 
             // Image preview
@@ -1596,12 +1629,15 @@
                          const removeButton = modelItem.querySelector('.remove-model');
                          removeButton.addEventListener('click', () => {
                              modelItem.remove();
-                             tempSaveSettings(); // Use the original saveSettings
+                             // tempSaveSettings(); // Use the original saveSettings // <--- 移除或注释掉这行
                              tempUpdateModelSelector(); // Use the original updateModelSelector
                          });
                          const inputs = modelItem.querySelectorAll('input');
                          inputs.forEach(input => {
-                             input.addEventListener('change', tempSaveSettings);
+                             input.addEventListener('change', () => {
+                                 // tempSaveSettings(); // Use the original saveSettings // <--- 移除或注释掉这行
+                                 tempUpdateModelSelector();
+                             });
                          });
                     });
                 } else {
@@ -1705,11 +1741,11 @@
                          const removeButton = paramItem.querySelector('.remove-param');
                          removeButton.addEventListener('click', () => {
                              paramItem.remove();
-                             tempSaveSettingsParams(); // Use the original saveSettings
+                             // tempSaveSettingsParams(); // Use the original saveSettings // <--- 移除或注释掉这行
                          });
                          const inputs = paramItem.querySelectorAll('input');
                          inputs.forEach(input => {
-                             input.addEventListener('change', tempSaveSettingsParams);
+                             // input.addEventListener('change', tempSaveSettingsParams); // <--- 移除或注释掉这行
                          });
                     });
                 }
@@ -1813,7 +1849,7 @@
         // Toggle theme
         function toggleTheme() {
             document.body.classList.toggle('dark-theme');
-            saveSettings();
+            // saveSettings(); // <--- 移除或注释掉这行
         }
 
         // Toggle panel
@@ -1857,20 +1893,20 @@
             const removeButton = modelItem.querySelector('.remove-model');
             removeButton.addEventListener('click', () => {
                 modelItem.remove();
-                saveSettings(); // Save settings after removing
+                // saveSettings(); // <--- 移除或注释掉这行
                 updateModelSelector(); // Update selector after removing
             });
 
             const inputs = modelItem.querySelectorAll('input');
             inputs.forEach(input => {
                 input.addEventListener('change', () => {
-                    saveSettings(); // Save settings on input change
+                    // saveSettings(); // <--- 移除或注释掉这行
                     updateModelSelector(); // Update selector when model ID or name changes
                 });
             });
 
             elements.modelConfigs.appendChild(modelItem);
-            saveSettings(); // Save settings when a new model is added initially
+            // saveSettings(); // <--- 移除或注释掉这行 (添加新模型时不立即保存)
             updateModelSelector(); // Update selector when a new model is added initially
         }
 
@@ -1923,7 +1959,7 @@
              // Removing the duplicate listener part if it was added elsewhere.
 
              updateSendButtonState(); // Update button state after model change
-             saveSettings(); // Save the newly selected model or lack thereof
+             // saveSettings(); // <--- 移除或注释掉这行
         }
 
         // Add custom parameter
@@ -1944,16 +1980,16 @@
             const removeButton = paramItem.querySelector('.remove-param');
             removeButton.addEventListener('click', () => {
                 paramItem.remove();
-                saveSettings(); // Save after removing
+                // saveSettings(); // <--- 移除或注释掉这行
             });
 
             const inputs = paramItem.querySelectorAll('input');
             inputs.forEach(input => {
-                input.addEventListener('change', saveSettings); // Save on input change
+                // input.addEventListener('change', saveSettings); // <--- 移除或注释掉这行
             });
 
             elements.customParams.appendChild(paramItem);
-            saveSettings(); // Save when a new parameter is added initially
+            // saveSettings(); // <--- 移除或注释掉这行 (添加新参数时不立即保存)
         }
 
 
@@ -2167,7 +2203,7 @@
                             // This prevents disabling vision if user uploads images again while it was on
                             if (!elements.visionToggle.checked) {
                                 elements.visionToggle.checked = true;
-                                saveSettings(); // Save the setting change
+                                // saveSettings(); // Save the setting change // <--- 移除或注释掉这行
                             }
                             updateSendButtonState(); // Update send button state after processing all images
                         }
