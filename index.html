@@ -12,7 +12,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/contrib/auto-render.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap');
-        
+      
         * {
             margin: 0;
             padding: 0;
@@ -442,20 +442,17 @@
             padding: 1rem;
             margin-bottom: 1rem;
         }
-
         .api-config-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1rem;
         }
-
         .slider-container {
             display: flex;
             align-items: center;
             gap: 1rem;
         }
-
         .slider {
             flex: 1;
             -webkit-appearance: none;
@@ -465,7 +462,6 @@
             border-radius: 3px;
             outline: none;
         }
-
         .slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
@@ -475,26 +471,22 @@
             border-radius: 50%;
             cursor: pointer;
         }
-
         .slider-value {
             min-width: 60px;
             text-align: center;
             font-weight: 500;
         }
-
         .switch {
             position: relative;
             display: inline-block;
             width: 48px;
             height: 24px;
         }
-
         .switch input {
             opacity: 0;
             width: 0;
             height: 0;
         }
-
         .switch-slider {
             position: absolute;
             cursor: pointer;
@@ -506,7 +498,6 @@
             transition: var(--transition);
             border-radius: 24px;
         }
-
         .switch-slider:before {
             position: absolute;
             content: "";
@@ -518,11 +509,9 @@
             transition: var(--transition);
             border-radius: 50%;
         }
-
         input:checked + .switch-slider {
             background-color: var(--primary-color);
         }
-
         input:checked + .switch-slider:before {
             transform: translateX(24px);
         }
@@ -534,7 +523,6 @@
             border-radius: var(--border-radius-sm);
             margin-bottom: 1rem;
         }
-
         .log-header {
             padding: 1rem;
             cursor: pointer;
@@ -543,34 +531,28 @@
             align-items: center;
             background: rgba(255, 255, 255, 0.02);
         }
-
         .log-timestamp {
             font-size: 0.875rem;
             color: var(--text-muted);
         }
-
         .log-content {
             padding: 1rem;
             background: var(--background-dark);
             border-top: 1px solid var(--border-color);
             display: none;
         }
-
         .log-content.expanded {
             display: block;
         }
-
         .log-section {
             margin-bottom: 1rem;
         }
-
         .log-section h4 {
             font-size: 0.875rem;
             font-weight: 600;
             margin-bottom: 0.5rem;
             color: var(--primary-color);
         }
-
         .log-data {
             background: var(--surface);
             border: 1px solid var(--border-color);
@@ -592,24 +574,20 @@
             position: relative;
             margin: 0.75rem 0;
         }
-
         .message-content code {
             font-family: var(--font-mono);
             font-size: 0.875rem;
         }
-
         .message-content pre code {
             display: block;
             padding: 1rem;
             background: none;
         }
-
         .message-content p code {
             background: rgba(255, 255, 255, 0.1);
             padding: 0.2rem 0.4rem;
             border-radius: 4px;
         }
-
         .code-header {
             display: flex;
             justify-content: space-between;
@@ -620,7 +598,6 @@
             font-size: 0.75rem;
             color: var(--text-secondary);
         }
-
         .copy-code-btn {
             background: none;
             border: none;
@@ -631,7 +608,6 @@
             font-size: 0.75rem;
             transition: var(--transition);
         }
-
         .copy-code-btn:hover {
             background: rgba(255, 255, 255, 0.1);
             color: var(--text-primary);
@@ -642,7 +618,6 @@
             from { opacity: 0; }
             to { opacity: 1; }
         }
-
         @keyframes fadeInUp {
             from {
                 opacity: 0;
@@ -653,7 +628,6 @@
                 transform: translateY(0);
             }
         }
-
         @keyframes slideInUp {
             from {
                 opacity: 0;
@@ -664,12 +638,10 @@
                 transform: translateY(0);
             }
         }
-
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
-
         .loading {
             animation: pulse 1.5s infinite;
         }
@@ -679,37 +651,29 @@
             .container {
                 height: 100vh;
             }
-
             .header {
                 padding: 1rem;
             }
-
             .header h1 {
                 font-size: 1.25rem;
             }
-
             .chat-container {
                 padding: 0.5rem 1rem;
             }
-
             .message-content {
                 max-width: 85%;
             }
-
             .modal-content {
                 max-width: 95vw;
                 margin: 1rem;
             }
-
             .modal-body {
                 padding: 1rem;
             }
-
             .input-controls {
                 flex-direction: column;
                 gap: 0.75rem;
             }
-
             .input-actions {
                 align-self: stretch;
                 justify-content: space-between;
@@ -720,16 +684,13 @@
         ::-webkit-scrollbar {
             width: 6px;
         }
-
         ::-webkit-scrollbar-track {
             background: var(--background-light);
         }
-
         ::-webkit-scrollbar-thumb {
             background: var(--border-color);
             border-radius: 3px;
         }
-
         ::-webkit-scrollbar-thumb:hover {
             background: var(--text-muted);
         }
@@ -747,15 +708,12 @@
             z-index: 2000;
             animation: slideInRight 0.3s ease;
         }
-
         .toast.error {
             background: var(--error-color);
         }
-
         .toast.warning {
             background: var(--warning-color);
         }
-
         @keyframes slideInRight {
             from {
                 transform: translateX(100%);
@@ -783,8 +741,16 @@
         <!-- Chat Container -->
         <main class="chat-container">
             <div class="messages" id="messages"></div>
-            
+          
             <div class="input-area">
+                <!-- 新增：模型切换选择框 -->
+                <div class="model-select-container" style="padding: 0.75rem 1rem; border-top: 1px solid var(--border-color); background: var(--surface); display: flex; align-items: center; gap: 0.5rem;">
+                    <label for="modelSelect" style="color: var(--text-secondary); font-weight: 500; margin-right: 0.5rem;">模型：</label>
+                    <select id="modelSelect" style="flex:1; background: var(--background-light); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); padding: 0.5rem; color: var(--text-primary);">
+                        <!-- 由 JS 填充 -->
+                    </select>
+                </div>
+
                 <div class="image-preview" id="imagePreview" style="display: none;"></div>
                 <div class="input-controls">
                     <div class="input-wrapper">
@@ -935,6 +901,7 @@
         let logs = [];
         let isStreaming = false;
         let uploadedImages = [];
+        let selectedModelIndex = 0; // 当前选中模型索引
 
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
@@ -942,8 +909,9 @@
             initializeEventListeners();
             renderApiConfigs();
             renderCustomParams();
-            
-            // 初始化marked和highlight.js
+            renderModelSelector(); // 渲染模型选择框
+
+            // 初始化 marked & highlight.js
             marked.setOptions({
                 highlight: function(code, lang) {
                     if (lang && hljs.getLanguage(lang)) {
@@ -960,6 +928,7 @@
         function initializeEventListeners() {
             const chatInput = document.getElementById('chatInput');
             const imageUpload = document.getElementById('imageUpload');
+            const modelSelect = document.getElementById('modelSelect');
 
             // 自适应高度
             chatInput.addEventListener('input', function() {
@@ -980,43 +949,59 @@
                 handleImageUpload(e.target.files);
             });
 
-            // 滑块事件
+            // 滑块
             document.getElementById('temperature').addEventListener('input', function() {
                 document.getElementById('temperatureValue').textContent = this.value;
             });
-
             document.getElementById('maxTokens').addEventListener('input', function() {
                 document.getElementById('maxTokensValue').textContent = this.value;
             });
-
             document.getElementById('contextLength').addEventListener('input', function() {
                 document.getElementById('contextLengthValue').textContent = this.value;
             });
-
             document.getElementById('fontSize').addEventListener('input', function() {
                 document.getElementById('fontSizeValue').textContent = this.value + 'px';
                 document.documentElement.style.setProperty('--font-size-base', this.value + 'px');
             });
-
             document.getElementById('fontFamily').addEventListener('change', function() {
                 document.documentElement.style.setProperty('--font-primary', this.value);
             });
+
+            // 模型切换
+            modelSelect.addEventListener('change', function() {
+                selectedModelIndex = parseInt(this.value);
+                (currentConfig.apiConfigs || []).forEach((cfg, i) => cfg.isActive = (i === selectedModelIndex));
+            });
+        }
+
+        // 渲染模型选择框
+        function renderModelSelector() {
+            const select = document.getElementById('modelSelect');
+            if (!select) return;
+            select.innerHTML = '';
+            const configs = currentConfig.apiConfigs || [];
+            configs.forEach((cfg, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx;
+                opt.textContent = cfg.name || cfg.model || `API ${idx+1}`;
+                select.appendChild(opt);
+            });
+            const active = configs.findIndex(c => c.isActive);
+            selectedModelIndex = active >= 0 ? active : 0;
+            select.value = selectedModelIndex;
         }
 
         // 图片上传处理
         function handleImageUpload(files) {
-            const preview = document.getElementById('imagePreview');
-            
             Array.from(files).forEach(file => {
                 if (file.type.startsWith('image/')) {
                     const reader = new FileReader();
                     reader.onload = function(e) {
-                        const imageData = {
+                        uploadedImages.push({
                             data: e.target.result,
                             name: file.name,
                             type: file.type
-                        };
-                        uploadedImages.push(imageData);
+                        });
                         renderImagePreview();
                     };
                     reader.readAsDataURL(file);
@@ -1027,17 +1012,15 @@
         // 渲染图片预览
         function renderImagePreview() {
             const preview = document.getElementById('imagePreview');
-            
             if (uploadedImages.length === 0) {
                 preview.style.display = 'none';
                 return;
             }
-
             preview.style.display = 'flex';
-            preview.innerHTML = uploadedImages.map((img, index) => `
+            preview.innerHTML = uploadedImages.map((img, i) => `
                 <div class="image-item">
                     <img src="${img.data}" alt="${img.name}">
-                    <button class="image-remove" onclick="removeImage(${index})">×</button>
+                    <button class="image-remove" onclick="removeImage(${i})">×</button>
                 </div>
             `).join('');
         }
@@ -1051,652 +1034,492 @@
         // 发送消息
         async function sendMessage() {
             const input = document.getElementById('chatInput');
-            const message = input.value.trim();
-            
-            if (!message && uploadedImages.length === 0) return;
+            const text = input.value.trim();
+            if (!text && uploadedImages.length === 0) return;
             if (isStreaming) return;
 
-            const sendBtn = document.getElementById('sendBtn');
-            sendBtn.disabled = true;
-            sendBtn.innerHTML = '发送中...';
+            const btn = document.getElementById('sendBtn');
+            btn.disabled = true;
+            btn.innerHTML = '发送中...';
             isStreaming = true;
 
-            // 添加用户消息
-            const userMessage = {
+            const userMsg = {
                 role: 'user',
-                content: message,
+                content: text,
                 images: [...uploadedImages],
                 timestamp: new Date().toISOString()
             };
+            addMessageToUI(userMsg);
+            conversationHistory.push(userMsg);
 
-            addMessageToUI(userMessage);
-            conversationHistory.push(userMessage);
-
-            // 清空输入
             input.value = '';
             input.style.height = 'auto';
             uploadedImages = [];
             renderImagePreview();
 
             try {
-                // 获取当前API配置
-                const apiConfig = getCurrentApiConfig();
-                if (!apiConfig) {
-                    throw new Error('请先配置API');
-                }
+                const apiCfg = getCurrentApiConfig();
+                if (!apiCfg) throw new Error('请先配置API');
+                const msgs = prepareMessages();
 
-                // 准备消息
-                const messages = prepareMessages();
-                
-                // 创建助手消息占位符
-                const assistantMessage = {
+                const assistantMsg = {
                     role: 'assistant',
                     content: '',
                     timestamp: new Date().toISOString(),
                     thinking: ''
                 };
+                const el = addMessageToUI(assistantMsg);
 
-                const messageElement = addMessageToUI(assistantMessage);
-                
-                // 发送请求
-                await sendToAPI(apiConfig, messages, messageElement, assistantMessage);
-
-            } catch (error) {
-                console.error('发送消息错误:', error);
-                showToast('发送失败: ' + error.message, 'error');
-                
-                // 添加错误消息
-                const errorMessage = {
+                await sendToAPI(apiCfg, msgs, el, assistantMsg);
+            } catch (err) {
+                console.error(err);
+                showToast('发送失败: ' + err.message, 'error');
+                addMessageToUI({
                     role: 'assistant',
-                    content: `抱歉，发生了错误：${error.message}`,
+                    content: `抱歉，发生了错误：${err.message}`,
                     timestamp: new Date().toISOString()
-                };
-                addMessageToUI(errorMessage);
+                });
             } finally {
                 isStreaming = false;
-                sendBtn.disabled = false;
-                sendBtn.innerHTML = '发送';
+                btn.disabled = false;
+                btn.innerHTML = '发送';
             }
         }
 
-        // 获取当前API配置
+        // 获取当前 API 配置
         function getCurrentApiConfig() {
-            const configs = currentConfig.apiConfigs || [];
-            return configs.find(config => config.isActive) || configs[0];
+            const cfgs = currentConfig.apiConfigs || [];
+            if (cfgs[selectedModelIndex]) return cfgs[selectedModelIndex];
+            return cfgs.find(c => c.isActive) || cfgs[0];
         }
 
         // 准备消息
         function prepareMessages() {
-            const contextLength = parseInt(currentConfig.contextLength || 10);
-            const recentHistory = conversationHistory.slice(-contextLength);
-            
-            return recentHistory.map(msg => {
-                const content = [];
-                
-                if (msg.content) {
-                    content.push({
-                        type: 'text',
-                        text: msg.content
+            const ctx = parseInt(currentConfig.contextLength || 10);
+            const recent = conversationHistory.slice(-ctx);
+            return recent.map(m => {
+                const parts = [];
+                if (m.content) parts.push({ type:'text', text:m.content });
+                if (m.images && m.images.length > 0 && currentConfig.visionMode) {
+                    m.images.forEach(img => {
+                        parts.push({ type:'image_url', image_url:{url:img.data} });
                     });
                 }
-
-                if (msg.images && msg.images.length > 0 && currentConfig.visionMode) {
-                    msg.images.forEach(img => {
-                        content.push({
-                            type: 'image_url',
-                            image_url: {
-                                url: img.data
-                            }
-                        });
-                    });
-                }
-
                 return {
-                    role: msg.role,
-                    content: content.length === 1 && content[0].type === 'text' ? content[0].text : content
+                    role: m.role,
+                    content: parts.length===1&&parts[0].type==='text'?parts[0].text:parts
                 };
             });
         }
 
-        // 发送到API
-        async function sendToAPI(apiConfig, messages, messageElement, assistantMessage) {
-            const requestBody = {
-                model: apiConfig.model,
-                messages: messages,
-                temperature: parseFloat(currentConfig.temperature || 0.7),
-                max_tokens: parseInt(currentConfig.maxTokens || 1000),
+        // 发送到 API
+        async function sendToAPI(apiCfg, messages, messageElement, assistantMessage) {
+            const body = {
+                model: apiCfg.model,
+                messages,
+                temperature: parseFloat(currentConfig.temperature||0.7),
+                max_tokens: parseInt(currentConfig.maxTokens||1000),
                 stream: currentConfig.streamMode !== false,
                 ...currentConfig.customParams
             };
-
-            const requestOptions = {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiConfig.key}`,
-                    ...apiConfig.customHeaders
+            const opts = {
+                method:'POST',
+                headers:{
+                    'Content-Type':'application/json',
+                    'Authorization':`Bearer ${apiCfg.key}`,
+                    ...apiCfg.customHeaders
                 },
-                body: JSON.stringify(requestBody)
+                body: JSON.stringify(body)
             };
-
-            // 记录请求日志
             const logEntry = {
                 timestamp: new Date().toISOString(),
-                request: {
-                    url: apiConfig.url,
-                    method: 'POST',
-                    headers: requestOptions.headers,
-                    body: requestBody
-                },
-                response: null,
-                error: null
+                request:{url:apiCfg.url,method:'POST',headers:opts.headers,body},
+                response:null,
+                error:null
             };
 
             try {
-                const response = await fetch(apiConfig.url, requestOptions);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
+                const res = await fetch(apiCfg.url, opts);
+                if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
                 if (currentConfig.streamMode !== false) {
-                    await handleStreamResponse(response, messageElement, assistantMessage, logEntry);
+                    await handleStreamResponse(res, messageElement, assistantMessage, logEntry);
                 } else {
-                    await handleNormalResponse(response, messageElement, assistantMessage, logEntry);
+                    await handleNormalResponse(res, messageElement, assistantMessage, logEntry);
                 }
-
                 conversationHistory.push(assistantMessage);
-
-            } catch (error) {
-                logEntry.error = error.message;
-                throw error;
+            } catch (err) {
+                logEntry.error = err.message;
+                throw err;
             } finally {
                 logs.unshift(logEntry);
-                if (logs.length > 100) {
-                    logs = logs.slice(0, 100);
-                }
+                if (logs.length > 100) logs = logs.slice(0,100);
             }
         }
 
-        // 处理流式响应
+        // 处理流式响应，支持 <think> 标签
         async function handleStreamResponse(response, messageElement, assistantMessage, logEntry) {
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let buffer = '';
-
-            const contentElement = messageElement.querySelector('.message-text');
-            const thinkingElement = messageElement.querySelector('.thinking-content');
-            
+            let inThinking = false;
+            const contentEl = messageElement.querySelector('.message-text');
+            const thinkingEl = messageElement.querySelector('.thinking-content');
             try {
                 while (true) {
-                    const { done, value } = await reader.read();
+                    const {done, value} = await reader.read();
                     if (done) break;
-
-                    buffer += decoder.decode(value, { stream: true });
+                    buffer += decoder.decode(value, {stream:true});
                     const lines = buffer.split('\n');
                     buffer = lines.pop();
-
                     for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            const data = line.slice(6);
-                            if (data === '[DONE]') continue;
-
-                            try {
-                                const parsed = JSON.parse(data);
-                                const delta = parsed.choices?.[0]?.delta;
-                                
-                                if (delta?.content) {
-                                    assistantMessage.content += delta.content;
-                                    renderMessageContent(contentElement, assistantMessage.content);
+                        if (!line.startsWith('data: ')) continue;
+                        const data = line.slice(6);
+                        if (data === '[DONE]') continue;
+                        try {
+                            const parsed = JSON.parse(data);
+                            const delta = parsed.choices?.[0]?.delta;
+                            if (delta?.content) {
+                                let txt = delta.content;
+                                if (txt.includes('<think>')) {
+                                    inThinking = true;
+                                    txt = txt.replace('<think>','');
                                 }
-
-                                // 处理思考过程（如果支持）
-                                if (delta?.thinking && currentConfig.showThinking) {
-                                    assistantMessage.thinking += delta.thinking;
-                                    if (thinkingElement) {
-                                        thinkingElement.textContent = assistantMessage.thinking;
-                                    }
+                                if (txt.includes('</think>')) {
+                                    inThinking = false;
+                                    txt = txt.replace('</think>','');
                                 }
-                            } catch (e) {
-                                console.warn('解析SSE数据失败:', data);
+                                if (inThinking && currentConfig.showThinking && thinkingEl) {
+                                    assistantMessage.thinking = (assistantMessage.thinking||'') + txt;
+                                    thinkingEl.textContent = assistantMessage.thinking;
+                                } else {
+                                    assistantMessage.content = (assistantMessage.content||'') + txt;
+                                    renderMessageContent(contentEl, assistantMessage.content);
+                                }
                             }
-                        }
+                        } catch {}
                     }
                 }
             } finally {
                 reader.releaseLock();
             }
-
             logEntry.response = {
                 status: response.status,
                 headers: Object.fromEntries(response.headers.entries()),
-                body: assistantMessage.content
+                body: assistantMessage.content,
+                thinking: assistantMessage.thinking
             };
         }
 
         // 处理普通响应
         async function handleNormalResponse(response, messageElement, assistantMessage, logEntry) {
-            const responseData = await response.json();
-            
-            const content = responseData.choices?.[0]?.message?.content || '';
+            const data = await response.json();
+            const content = data.choices?.[0]?.message?.content || '';
             assistantMessage.content = content;
-
-            const contentElement = messageElement.querySelector('.message-text');
-            renderMessageContent(contentElement, content);
-
+            const contentEl = messageElement.querySelector('.message-text');
+            renderMessageContent(contentEl, content);
             logEntry.response = {
                 status: response.status,
                 headers: Object.fromEntries(response.headers.entries()),
-                body: responseData
+                body: data
             };
         }
 
         // 渲染消息内容
         function renderMessageContent(element, content) {
-            // 防止HTML注入，转义HTML标签
-            const escapeHtml = (text) => {
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
+            const escapeHtml = text => {
+                const d = document.createElement('div');
+                d.textContent = text;
+                return d.innerHTML;
             };
-
             try {
-                // 处理代码块
-                const processedContent = content.replace(/```(\w+)?\n?([\s\S]*?)```/g, (match, lang, code) => {
-                    const language = lang || 'text';
-                    const escapedCode = escapeHtml(code.trim());
+                const processed = content.replace(/```(\w+)?\n?([\s\S]*?)```/g, (m, lang, code) => {
+                    const lg = lang||'text';
+                    const esc = escapeHtml(code.trim());
                     return `<pre><div class="code-header">
-                        <span>${language}</span>
+                        <span>${lg}</span>
                         <button class="copy-code-btn" onclick="copyCode(this)">复制</button>
-                    </div><code class="language-${language}">${escapedCode}</code></pre>`;
+                    </div><code class="language-${lg}">${esc}</code></pre>`;
                 });
-
-                // 渲染Markdown
-                const html = marked.parse(processedContent);
+                const html = marked.parse(processed);
                 element.innerHTML = html;
-
-                // 高亮代码
-                element.querySelectorAll('pre code').forEach(block => {
-                    hljs.highlightElement(block);
-                });
-
-                // 渲染数学公式
+                element.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
                 renderMathInElement(element, {
-                    delimiters: [
-                        {left: "$$", right: "$$", display: true},
-                        {left: "$", right: "$", display: false},
-                        {left: "\\(", right: "\\)", display: false},
-                        {left: "\\[", right: "\\]", display: true}
+                    delimiters:[
+                        {left:"$$",right:"$$",display:true},
+                        {left:"$",right:"$",display:false},
+                        {left:"\\(",right:"\\)",display:false},
+                        {left:"\\[",right:"\\]",display:true},
                     ]
                 });
-
-            } catch (error) {
-                console.error('渲染内容错误:', error);
+            } catch (err) {
+                console.error('渲染出错', err);
                 element.textContent = content;
             }
-
-            // 滚动到底部
-            const messages = document.getElementById('messages');
-            messages.scrollTop = messages.scrollHeight;
+            const msgs = document.getElementById('messages');
+            msgs.scrollTop = msgs.scrollHeight;
         }
 
-        // 添加消息到UI
-        function addMessageToUI(message) {
-            const messages = document.getElementById('messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${message.role}`;
-
-            const avatarText = message.role === 'user' ? '👤' : '🤖';
-            const time = new Date(message.timestamp).toLocaleTimeString();
-
-            let imageContent = '';
-            if (message.images && message.images.length > 0) {
-                imageContent = `
-                    <div style="margin-bottom: 0.5rem;">
-                        ${message.images.map(img => `
-                            <img src="${img.data}" alt="${img.name}" style="max-width: 200px; max-height: 200px; border-radius: 8px; margin-right: 8px;">
-                        `).join('')}
-                    </div>
-                `;
+        // 添加消息到 UI
+        function addMessageToUI(msg) {
+            const msgs = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.className = `message ${msg.role}`;
+            const avatar = msg.role==='user'?'👤':'🤖';
+            const time = new Date(msg.timestamp).toLocaleTimeString();
+            let imgHtml = '';
+            if (msg.images && msg.images.length>0) {
+                imgHtml = `<div style="margin-bottom:0.5rem;">`+
+                    msg.images.map(i=>`<img src="${i.data}" alt="${i.name}" style="max-width:200px;max-height:200px;border-radius:8px;margin-right:8px;">`).join('')+
+                    `</div>`;
             }
-
-            let thinkingContent = '';
-            if (message.role === 'assistant' && currentConfig.showThinking) {
-                thinkingContent = `
-                    <div class="thinking-process">
-                        <div class="thinking-header" onclick="toggleThinking(this)">
-                            <span>🤔 思考过程</span>
-                            <span>▼</span>
-                        </div>
-                        <div class="thinking-content">${message.thinking || ''}</div>
+            let thinkHtml = '';
+            if (msg.role==='assistant' && currentConfig.showThinking) {
+                thinkHtml = `<div class="thinking-process">
+                    <div class="thinking-header" onclick="toggleThinking(this)">
+                        <span>🤔 思考过程</span><span>▼</span>
                     </div>
-                `;
+                    <div class="thinking-content">${msg.thinking||''}</div>
+                </div>`;
             }
-
-            messageDiv.innerHTML = `
-                <div class="message-avatar">${avatarText}</div>
+            div.innerHTML = `
+                <div class="message-avatar">${avatar}</div>
                 <div class="message-content">
                     <div class="message-header">
-                        <span>${message.role === 'user' ? '用户' : 'AI助手'}</span>
+                        <span>${msg.role==='user'?'用户':'AI助手'}</span>
                         <div class="message-actions">
                             <button class="message-action" onclick="copyMessage(this)" title="复制消息">📋</button>
-                            <span style="font-size: 0.75rem; color: var(--text-muted);">${time}</span>
+                            <span style="font-size:0.75rem;color:var(--text-muted);">${time}</span>
                         </div>
                     </div>
-                    ${thinkingContent}
-                    ${imageContent}
-                    <div class="message-text">${message.content || ''}</div>
-                </div>
-            `;
-
-            messages.appendChild(messageDiv);
-
-            // 渲染内容
-            const textElement = messageDiv.querySelector('.message-text');
-            if (message.content) {
-                renderMessageContent(textElement, message.content);
-            }
-
-            return messageDiv;
+                    ${thinkHtml}
+                    ${imgHtml}
+                    <div class="message-text">${msg.content||''}</div>
+                </div>`;
+            msgs.appendChild(div);
+            const txtEl = div.querySelector('.message-text');
+            if (msg.content) renderMessageContent(txtEl, msg.content);
+            return div;
         }
 
-        // 切换思考过程显示
+        // 切换思考展开/收起
         function toggleThinking(header) {
-            const content = header.nextElementSibling;
+            const cnt = header.nextElementSibling;
             const arrow = header.querySelector('span:last-child');
-            
-            if (content.classList.contains('expanded')) {
-                content.classList.remove('expanded');
+            if (cnt.classList.contains('expanded')) {
+                cnt.classList.remove('expanded');
                 arrow.textContent = '▼';
             } else {
-                content.classList.add('expanded');
+                cnt.classList.add('expanded');
                 arrow.textContent = '▲';
             }
         }
 
-        // 复制消息
-        function copyMessage(button) {
-            const messageContent = button.closest('.message-content');
-            const textElement = messageContent.querySelector('.message-text');
-            const text = textElement.textContent || textElement.innerText;
-            
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('消息已复制', 'success');
-            }).catch(() => {
-                showToast('复制失败', 'error');
-            });
+        // 复制消息文本
+        function copyMessage(btn) {
+            const txt = btn.closest('.message-content').querySelector('.message-text').innerText;
+            navigator.clipboard.writeText(txt).then(()=>showToast('消息已复制','success'))
+                                         .catch(()=>showToast('复制失败','error'));
         }
 
         // 复制代码
-        function copyCode(button) {
-            const codeElement = button.closest('pre').querySelector('code');
-            const text = codeElement.textContent || codeElement.innerText;
-            
-            navigator.clipboard.writeText(text).then(() => {
-                button.textContent = '已复制';
-                setTimeout(() => {
-                    button.textContent = '复制';
-                }, 2000);
-            }).catch(() => {
-                showToast('复制失败', 'error');
-            });
+        function copyCode(btn) {
+            const txt = btn.closest('pre').querySelector('code').innerText;
+            navigator.clipboard.writeText(txt).then(()=>{
+                btn.textContent='已复制';
+                setTimeout(()=>btn.textContent='复制',2000);
+            }).catch(()=>showToast('复制失败','error'));
         }
 
-        // 设置相关函数
-        function openSettings() {
-            document.getElementById('settingsModal').classList.add('show');
-            renderApiConfigs();
-            renderCustomParams();
-        }
+        // 打开/关闭 设置 & 日志
+        function openSettings() { document.getElementById('settingsModal').classList.add('show'); renderApiConfigs(); renderCustomParams(); }
+        function closeSettings(){ document.getElementById('settingsModal').classList.remove('show'); }
+        function openLogs()     { document.getElementById('logsModal').classList.add('show'); renderLogs(); }
+        function closeLogs()    { document.getElementById('logsModal').classList.remove('show'); }
 
-        function closeSettings() {
-            document.getElementById('settingsModal').classList.remove('show');
-        }
-
-        function openLogs() {
-            document.getElementById('logsModal').classList.add('show');
-            renderLogs();
-        }
-
-        function closeLogs() {
-            document.getElementById('logsModal').classList.remove('show');
-        }
-
-        // 渲染API配置
+        // 渲染 API 配置
         function renderApiConfigs() {
-            const container = document.getElementById('apiConfigs');
-            const configs = currentConfig.apiConfigs || [];
-
-            container.innerHTML = configs.map((config, index) => `
+            const c = document.getElementById('apiConfigs');
+            const cfgs = currentConfig.apiConfigs || [];
+            c.innerHTML = cfgs.map((cfg,i)=>`
                 <div class="api-config">
                     <div class="api-config-header">
-                        <h4>API ${index + 1}</h4>
+                        <h4>API ${i+1}</h4>
                         <div>
                             <label class="switch">
-                                <input type="checkbox" ${config.isActive ? 'checked' : ''} onchange="toggleApiConfig(${index})">
+                                <input type="checkbox" ${cfg.isActive?'checked':''} onchange="toggleApiConfig(${i})">
                                 <span class="switch-slider"></span>
                             </label>
-                            <button class="btn btn-danger" onclick="removeApiConfig(${index})" style="margin-left: 0.5rem;">删除</button>
+                            <button class="btn btn-danger" onclick="removeApiConfig(${i})" style="margin-left:0.5rem;">删除</button>
                         </div>
                     </div>
                     <div class="form-group">
                         <label class="form-label">API地址</label>
-                        <input type="text" class="form-input" value="${config.url || ''}" onchange="updateApiConfig(${index}, 'url', this.value)">
+                        <input type="text" class="form-input" value="${cfg.url||''}" onchange="updateApiConfig(${i},'url',this.value)">
                     </div>
                     <div class="form-group">
                         <label class="form-label">API密钥</label>
-                        <input type="password" class="form-input" value="${config.key || ''}" onchange="updateApiConfig(${index}, 'key', this.value)">
+                        <input type="password" class="form-input" value="${cfg.key||''}" onchange="updateApiConfig(${i},'key',this.value)">
                     </div>
                     <div class="form-group">
                         <label class="form-label">模型ID</label>
-                        <input type="text" class="form-input" value="${config.model || ''}" onchange="updateApiConfig(${index}, 'model', this.value)">
+                        <input type="text" class="form-input" value="${cfg.model||''}" onchange="updateApiConfig(${i},'model',this.value)">
                     </div>
                     <div class="form-group">
                         <label class="form-label">备注</label>
-                        <input type="text" class="form-input" value="${config.name || ''}" onchange="updateApiConfig(${index}, 'name', this.value)">
+                        <input type="text" class="form-input" value="${cfg.name||''}" onchange="updateApiConfig(${i},'name',this.value)">
                     </div>
                 </div>
             `).join('');
         }
 
-        // 添加API配置
+        // 增删改 API
         function addApiConfig() {
-            if (!currentConfig.apiConfigs) {
-                currentConfig.apiConfigs = [];
+            if (!currentConfig.apiConfigs) currentConfig.apiConfigs = [];
+            currentConfig.apiConfigs.push({url:'',key:'',model:'',name:'',isActive:currentConfig.apiConfigs.length===0});
+            renderApiConfigs();
+            renderModelSelector();
+        }
+        function updateApiConfig(i,f,v) {
+            if (currentConfig.apiConfigs && currentConfig.apiConfigs[i]) {
+                currentConfig.apiConfigs[i][f] = v;
             }
-
-            currentConfig.apiConfigs.push({
-                url: '',
-                key: '',
-                model: '',
-                name: '',
-                isActive: currentConfig.apiConfigs.length === 0
-            });
-
+        }
+        function toggleApiConfig(i) {
+            (currentConfig.apiConfigs||[]).forEach((c,j)=>c.isActive = (j===i));
+            renderModelSelector();
             renderApiConfigs();
         }
-
-        // 更新API配置
-        function updateApiConfig(index, field, value) {
-            if (currentConfig.apiConfigs && currentConfig.apiConfigs[index]) {
-                currentConfig.apiConfigs[index][field] = value;
-            }
-        }
-
-        // 切换API配置
-        function toggleApiConfig(index) {
-            if (currentConfig.apiConfigs) {
-                currentConfig.apiConfigs.forEach((config, i) => {
-                    config.isActive = i === index;
-                });
-            }
-        }
-
-        // 移除API配置
-        function removeApiConfig(index) {
-            if (currentConfig.apiConfigs && confirm('确定删除此API配置？')) {
-                currentConfig.apiConfigs.splice(index, 1);
+        function removeApiConfig(i) {
+            if (confirm('确定删除此API配置？')) {
+                currentConfig.apiConfigs.splice(i,1);
                 renderApiConfigs();
+                renderModelSelector();
             }
         }
 
-        // 渲染自定义参数
+        // 渲染 & 更新 自定义参数
         function renderCustomParams() {
-            const container = document.getElementById('customParams');
-            const params = currentConfig.customParams || {};
-
-            const entries = Object.entries(params);
-            container.innerHTML = entries.map(([key, value], index) => `
-                <div class="form-group" style="display: flex; gap: 0.5rem; align-items: end;">
-                    <div style="flex: 1;">
+            const c = document.getElementById('customParams');
+            const p = currentConfig.customParams || {};
+            const e = Object.entries(p);
+            c.innerHTML = e.map(([k,v],i)=>`
+                <div class="form-group" style="display:flex;gap:0.5rem;align-items:end;">
+                    <div style="flex:1;">
                         <label class="form-label">参数名</label>
-                        <input type="text" class="form-input" value="${key}" onchange="updateCustomParam(${index}, 'key', this.value)">
+                        <input type="text" class="form-input" value="${k}" onchange="updateCustomParam(${i},'key',this.value)">
                     </div>
-                    <div style="flex: 1;">
+                    <div style="flex:1;">
                         <label class="form-label">参数值</label>
-                        <input type="text" class="form-input" value="${value}" onchange="updateCustomParam(${index}, 'value', this.value)">
+                        <input type="text" class="form-input" value="${v}" onchange="updateCustomParam(${i},'value',this.value)">
                     </div>
-                    <button class="btn btn-danger" onclick="removeCustomParam('${key}')">删除</button>
+                    <button class="btn btn-danger" onclick="removeCustomParam('${k}')">删除</button>
                 </div>
             `).join('');
         }
-
-        // 添加自定义参数
-        function addCustomParam() {
-            const key = prompt('请输入参数名:');
-            if (key && key.trim()) {
-                if (!currentConfig.customParams) {
-                    currentConfig.customParams = {};
-                }
-                currentConfig.customParams[key.trim()] = '';
+        function addCustomParam(){
+            const key=prompt('请输入参数名:');
+            if(key&&key.trim()){
+                if(!currentConfig.customParams) currentConfig.customParams={};
+                currentConfig.customParams[key.trim()]='';
                 renderCustomParams();
             }
         }
-
-        // 更新自定义参数
-        function updateCustomParam(index, type, value) {
-            const params = currentConfig.customParams || {};
-            const entries = Object.entries(params);
-            
-            if (entries[index]) {
-                const [oldKey, oldValue] = entries[index];
-                
-                if (type === 'key') {
-                    delete params[oldKey];
-                    params[value] = oldValue;
+        function updateCustomParam(i,type,val){
+            const p=currentConfig.customParams||{};
+            const e=Object.entries(p);
+            if(e[i]){
+                const [oldK,oldV]=e[i];
+                if(type==='key'){
+                    delete p[oldK];
+                    p[val]=oldV;
                 } else {
-                    params[oldKey] = value;
+                    p[oldK]=val;
                 }
             }
         }
-
-        // 移除自定义参数
-        function removeCustomParam(key) {
-            if (currentConfig.customParams && confirm('确定删除此参数？')) {
-                delete currentConfig.customParams[key];
+        function removeCustomParam(k){
+            if(confirm('确定删除此参数？')){
+                delete currentConfig.customParams[k];
                 renderCustomParams();
             }
         }
 
         // 渲染日志
-        function renderLogs() {
-            const container = document.getElementById('logEntries');
-            
-            if (logs.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: var(--text-muted);">暂无日志记录</p>';
+        function renderLogs(){
+            const c=document.getElementById('logEntries');
+            if(logs.length===0){
+                c.innerHTML='<p style="text-align:center;color:var(--text-muted);">暂无日志记录</p>';
                 return;
             }
-
-            container.innerHTML = logs.map((log, index) => `
+            c.innerHTML=logs.map((log,i)=>`
                 <div class="log-entry">
-                    <div class="log-header" onclick="toggleLog(${index})">
-                        <span>请求 #${logs.length - index}</span>
+                    <div class="log-header" onclick="toggleLog(${i})">
+                        <span>请求 #${logs.length - i}</span>
                         <span class="log-timestamp">${new Date(log.timestamp).toLocaleString()}</span>
                     </div>
-                    <div class="log-content" id="log-${index}">
+                    <div class="log-content" id="log-${i}">
                         <div class="log-section">
                             <h4>请求信息</h4>
-                            <div class="log-data">${JSON.stringify(log.request, null, 2)}</div>
+                            <div class="log-data">${JSON.stringify(log.request,null,2)}</div>
                         </div>
-                        ${log.response ? `
+                        ${log.response?`
                             <div class="log-section">
                                 <h4>响应信息</h4>
-                                <div class="log-data">${JSON.stringify(log.response, null, 2)}</div>
-                            </div>
-                        ` : ''}
-                        ${log.error ? `
+                                <div class="log-data">${JSON.stringify(log.response,null,2)}</div>
+                            </div>`:``}
+                        ${log.error?`
                             <div class="log-section">
                                 <h4>错误信息</h4>
-                                <div class="log-data" style="color: var(--error-color);">${log.error}</div>
-                            </div>
-                        ` : ''}
+                                <div class="log-data" style="color:var(--error-color);">${log.error}</div>
+                            </div>`:``}
                     </div>
                 </div>
             `).join('');
         }
-
-        // 切换日志显示
-        function toggleLog(index) {
-            const content = document.getElementById(`log-${index}`);
-            if (content.classList.contains('expanded')) {
-                content.classList.remove('expanded');
-            } else {
-                content.classList.add('expanded');
-            }
+        function toggleLog(i){
+            const el=document.getElementById(`log-${i}`);
+            el.classList.toggle('expanded');
         }
 
-        // 保存设置
-        function saveSettings() {
+        // 保存 & 加载 设置
+        function saveSettings(){
             currentConfig.temperature = document.getElementById('temperature').value;
-            currentConfig.maxTokens = document.getElementById('maxTokens').value;
-            currentConfig.contextLength = document.getElementById('contextLength').value;
-            currentConfig.streamMode = document.getElementById('streamMode').checked;
-            currentConfig.visionMode = document.getElementById('visionMode').checked;
+            currentConfig.maxTokens    = document.getElementById('maxTokens').value;
+            currentConfig.contextLength= document.getElementById('contextLength').value;
+            currentConfig.streamMode   = document.getElementById('streamMode').checked;
+            currentConfig.visionMode   = document.getElementById('visionMode').checked;
             currentConfig.showThinking = document.getElementById('showThinking').checked;
-            currentConfig.fontFamily = document.getElementById('fontFamily').value;
-            currentConfig.fontSize = document.getElementById('fontSize').value;
-
+            currentConfig.fontFamily   = document.getElementById('fontFamily').value;
+            currentConfig.fontSize     = document.getElementById('fontSize').value;
             try {
-                localStorage.setItem('aiChatConfig', JSON.stringify(currentConfig));
-                showToast('设置已保存', 'success');
+                localStorage.setItem('aiChatConfig',JSON.stringify(currentConfig));
+                showToast('设置已保存','success');
                 closeSettings();
-                
-                // 应用字体设置
-                document.documentElement.style.setProperty('--font-primary', currentConfig.fontFamily);
-                document.documentElement.style.setProperty('--font-size-base', currentConfig.fontSize + 'px');
-                
-            } catch (error) {
-                showToast('保存失败: ' + error.message, 'error');
+                document.documentElement.style.setProperty('--font-primary',currentConfig.fontFamily);
+                document.documentElement.style.setProperty('--font-size-base',currentConfig.fontSize+'px');
+                renderModelSelector();
+            } catch(e){
+                showToast('保存失败:'+e.message,'error');
             }
         }
-
-        // 加载设置
-        function loadSettings() {
+        function loadSettings(){
             try {
-                const saved = localStorage.getItem('aiChatConfig');
-                if (saved) {
-                    currentConfig = JSON.parse(saved);
-                }
-            } catch (error) {
-                console.error('加载设置失败:', error);
-            }
-
-            // 应用默认值
+                const s = localStorage.getItem('aiChatConfig');
+                if(s) currentConfig = JSON.parse(s);
+            } catch(e){ console.error('加载设置失败:',e); }
             currentConfig = {
-                temperature: 0.7,
-                maxTokens: 1000,
-                contextLength: 10,
-                streamMode: true,
-                visionMode: false,
-                showThinking: false,
-                fontFamily: "Inter, 'Noto Sans SC', sans-serif",
-                fontSize: 16,
-                apiConfigs: [],
-                customParams: {},
+                temperature:0.7,
+                maxTokens:1000,
+                contextLength:10,
+                streamMode:true,
+                visionMode:false,
+                showThinking:false,
+                fontFamily:"Inter, 'Noto Sans SC', sans-serif",
+                fontSize:16,
+                apiConfigs:[],
+                customParams:{},
                 ...currentConfig
             };
-
-            // 更新UI
             document.getElementById('temperature').value = currentConfig.temperature;
             document.getElementById('temperatureValue').textContent = currentConfig.temperature;
             document.getElementById('maxTokens').value = currentConfig.maxTokens;
@@ -1708,38 +1531,32 @@
             document.getElementById('showThinking').checked = currentConfig.showThinking;
             document.getElementById('fontFamily').value = currentConfig.fontFamily;
             document.getElementById('fontSize').value = currentConfig.fontSize;
-            document.getElementById('fontSizeValue').textContent = currentConfig.fontSize + 'px';
-
-            // 应用字体设置
+            document.getElementById('fontSizeValue').textContent = currentConfig.fontSize+'px';
             document.documentElement.style.setProperty('--font-primary', currentConfig.fontFamily);
-            document.documentElement.style.setProperty('--font-size-base', currentConfig.fontSize + 'px');
+            document.documentElement.style.setProperty('--font-size-base', currentConfig.fontSize+'px');
         }
 
         // 清空对话
-        function clearConversation() {
-            if (confirm('确定清空所有对话记录？')) {
-                conversationHistory = [];
-                document.getElementById('messages').innerHTML = '';
-                showToast('对话已清空', 'success');
+        function clearConversation(){
+            if(confirm('确定清空所有对话记录？')){
+                conversationHistory=[];
+                document.getElementById('messages').innerHTML='';
+                showToast('对话已清空','success');
             }
         }
 
-        // 显示提示消息
-        function showToast(message, type = 'success') {
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.textContent = message;
-            
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.remove();
-            }, 3000);
+        // 提示
+        function showToast(msg,type='success'){
+            const t=document.createElement('div');
+            t.className=`toast ${type}`;
+            t.textContent=msg;
+            document.body.appendChild(t);
+            setTimeout(()=>t.remove(),3000);
         }
 
-        // 点击模态框外部关闭
-        document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('modal')) {
+        // 点击遮罩关闭模态
+        document.addEventListener('click',e=>{
+            if(e.target.classList.contains('modal')){
                 e.target.classList.remove('show');
             }
         });
