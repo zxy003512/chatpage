@@ -1,78 +1,95 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>FlowChat Mobile · Poe API 轮询流式对话站</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>FlowChat · 明亮风 · Poe API 轮询/流式对话站</title>
 
-<!-- 第三方：高亮/Markdown/XSS/MathJax -->
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css">
+<!-- 第三方：Markdown / 高亮（流式）/ XSS / KaTeX / Shiki(完成后二次高亮) -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" />
 <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js"></script>
-<script>
-  window.MathJax = { tex:{inlineMath:[['$','$'],['\\(','\\)']], displayMath:[['$$','$$'],['\\[','\\]']]}, svg:{fontCache:'global'} };
+
+<!-- KaTeX（更快的数学公式渲染） -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+
+<!-- Shiki 浏览器端（完成后把代码块二次“精修”） -->
+<script type="module">
+  import { getHighlighter } from 'https://cdn.jsdelivr.net/npm/shiki@1.22.0/dist/index.browser.mjs';
+  window.__shikiReady = (async () => {
+    try {
+      const highlighter = await getHighlighter({ themes: ['github-light'], langs: ['js','ts','html','css','json','python','bash','cpp','java','go','rust','markdown','yaml','xml'] });
+      return highlighter;
+    } catch (e) { return null; }
+  })();
 </script>
-<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 
 <style>
 :root{
-  --bg:#0a0f1e; --panel:#0e152b; --card:#111a34;
-  --ink:#eef3ff; --muted:#9db0d7; --bd:rgba(255,255,255,.10); --bd2:rgba(255,255,255,.18);
-  --brand:#6aa0ff; --brand2:#9b7bff; --ok:#59d99b; --warn:#ffd166; --err:#ff6b6b;
-  --radius:16px; --fs:16px; --space:12px; --shadow:0 10px 40px rgba(0,0,0,.45);
+  /* 明亮主题 */
+  --bg:#f7f9fc; --paper:#ffffff; --muted:#6b7280; --ink:#111827; --ink2:#374151;
+  --brand:#2f6aff; --brand-weak:#e6eeff; --ok:#16a34a; --warn:#f59e0b; --err:#ef4444;
+  --stroke:#e5e7eb; --stroke-strong:#d1d5db; --shadow:0 8px 24px rgba(17,24,39,.08);
+  --radius:16px; --fs:16px; --space:12px;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  margin:0; color:var(--ink);
-  background: radial-gradient(1400px 700px at 10% -10%, rgba(120,160,255,.18), transparent 55%),
-              radial-gradient(1100px 800px at 120% 0%, rgba(155,123,255,.18), transparent 60%),
-              var(--bg);
-  font: var(--fs)/1.55 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+  margin:0; color:var(--ink); background:
+    radial-gradient(1200px 600px at -10% -20%, rgba(47,106,255,.09), transparent 55%),
+    radial-gradient(900px 700px at 120% -10%, rgba(99,102,241,.08), transparent 60%),
+    var(--bg);
+  font: var(--fs)/1.58 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
 }
-a{color:var(--brand);text-decoration:none}
+a{color:var(--brand); text-decoration:none}
 .container{display:flex;flex-direction:column;min-height:100dvh}
 
-/* 顶部栏 */
-.header{position:sticky;top:0;z-index:50;backdrop-filter:blur(8px) saturate(140%);
-  background:linear-gradient(180deg, rgba(14,21,43,.9), rgba(14,21,43,.62));
-  border-bottom:1px solid var(--bd);}
+/* 顶部栏（明亮磨砂） */
+.header{
+  position:sticky; top:0; z-index:50;
+  background:rgba(255,255,255,.75);
+  backdrop-filter: blur(10px) saturate(140%);
+  border-bottom:1px solid var(--stroke);
+}
 .wrap{max-width:1200px;margin:0 auto;padding:10px 14px;display:flex;gap:10px;align-items:center}
-.brand{display:flex;gap:10px;align-items:center;font-weight:700}
-.brand .dot{width:10px;height:10px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 7px rgba(106,160,255,.25)}
+.brand{display:flex;gap:10px;align-items:center;font-weight:800;color:#0f172a}
+.brand .dot{width:10px;height:10px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 8px rgba(47,106,255,.18)}
 .live{font-size:12px;color:var(--muted)}
 .header .right{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
 .btn{
-  appearance:none;border:1px solid var(--bd); background:linear-gradient(180deg,#17224a,#0f172e);
-  color:var(--ink); padding:9px 12px; border-radius:12px; cursor:pointer; box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+  appearance:none; border:1px solid var(--stroke); background:linear-gradient(180deg,#fff,#f7f9ff);
+  color:var(--ink2); padding:9px 12px; border-radius:12px; cursor:pointer; box-shadow:inset 0 1px 0 rgba(255,255,255,.7);
   transition:.15s; white-space:nowrap
 }
-.btn:hover{border-color:var(--bd2); transform:translateY(-1px)}
-.btn.brand{border-color:transparent;background:linear-gradient(180deg,#76a6ff,#6b9dff); color:#0a0f1e; font-weight:600}
-.btn.red{border-color:transparent;background:linear-gradient(180deg,#ff8a8a,#ff6b6b); color:#111}
-.btn.ghost{background:transparent}
-.seg{display:flex;border:1px solid var(--bd);border-radius:10px;overflow:hidden}
+.btn:hover{border-color:var(--stroke-strong); transform:translateY(-1px)}
+.btn.brand{border-color:transparent;background:linear-gradient(180deg,#2f6aff,#2a5de0); color:#fff; font-weight:700}
+.btn.red{border-color:transparent;background:linear-gradient(180deg,#ff8a8a,#ef4444); color:#fff}
+.btn.ghost{background:#fff}
+
+.seg{display:flex;border:1px solid var(--stroke);border-radius:10px;overflow:hidden;background:#fff}
 .seg button{border:0;background:transparent;padding:8px 12px;color:var(--muted)}
-.seg button.active{background:linear-gradient(180deg,#1a254f,#141c3c);color:var(--ink)}
-.pill{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--bd);
-  padding:6px 10px;border-radius:999px;background:linear-gradient(180deg,#18224a,#121a37);color:var(--muted);font-size:13px}
-.switch{position:relative;width:44px;height:24px;border-radius:999px;background:#253157;border:1px solid var(--bd);cursor:pointer}
+.seg button.active{background:var(--brand-weak);color:#1e293b;font-weight:700}
+.pill{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--stroke);
+  padding:6px 10px;border-radius:999px;background:#fff;color:var(--ink2);font-size:13px}
+.switch{position:relative;width:48px;height:26px;border-radius:999px;background:#e8eefc;border:1px solid var(--stroke);cursor:pointer}
 .switch input{display:none}
-.knob{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#a6b9ff;transition:.18s}
-.switch input:checked + .knob{left:22px;background:#cebaff}
-.range{display:flex;align-items:center;gap:8px}
-.range input{width:120px}
+.knob{position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.14); transition:.18s}
+.switch input:checked + .knob{left:24px;background:#fff}
 
-/* 主区域：桌面并排，移动端切 Tab */
-.main{max-width:1200px;margin:10px auto;display:grid;gap:12px;padding:0 12px;
-  grid-template-columns: 1.5fr .9fr;}
-@media (max-width:1100px){ .main{grid-template-columns: 1fr;} }
-.panel{background:linear-gradient(180deg,#111939,#0f172e);border:1px solid var(--bd);
-  border-radius:var(--radius);box-shadow:var(--shadow);padding:12px;min-height:0}
+/* 主区域布局 */
+.main{max-width:1200px;margin:12px auto;display:grid;gap:12px;padding:0 12px;grid-template-columns:1.6fr .9fr}
+@media (max-width:1100px){ .main{grid-template-columns:1fr} }
+.panel{
+  background:var(--paper); border:1px solid var(--stroke); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:14px; min-height:0;
+}
 
-/* 标签式显示（移动端） */
+/* 移动端 Tab 切换 */
 @media (max-width:1100px){
   body.tab-chat #logsPanel{display:none}
   body.tab-logs #chatPanel{display:none}
@@ -81,74 +98,94 @@ a{color:var(--brand);text-decoration:none}
 /* 聊天区 */
 .section-head{display:flex;flex-direction:column;gap:8px;margin-bottom:6px}
 .kv{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.input{padding:9px 12px;border:1px solid var(--bd);border-radius:10px;background:linear-gradient(180deg,#111939,#0f172e);color:var(--ink)}
+.input{
+  padding:9px 12px;border:1px solid var(--stroke);border-radius:12px;background:#fff;color:var(--ink);
+  box-shadow:inset 0 1px 0 rgba(0,0,0,.02);
+}
 .chat{
-  height:calc(100dvh - 260px);
-  min-height:46vh; overflow:auto; padding:6px; scroll-behavior:smooth;
+  height:calc(100dvh - 260px); min-height:46vh; overflow:auto; padding:6px; scroll-behavior:smooth;
+  background:linear-gradient(180deg,#fff, #fafcff 65%, #f7faff);
+  border:1px dashed var(--stroke); border-radius:12px;
 }
 @media (min-width:1101px){ .chat{height:68vh} }
-.msg{display:flex;gap:10px;margin:10px 6px}
-.avatar{flex:0 0 34px;height:34px;border-radius:12px;background:linear-gradient(180deg,#6aa0ff,#4b7ad6)}
-.msg.user .avatar{background:linear-gradient(180deg,#9b7bff,#6a51ea)}
-.bubble{flex:1;background:linear-gradient(180deg,#0e1430,#0b1228);border:1px solid var(--bd);border-radius:14px;padding:12px;position:relative}
+
+.msg{display:flex;gap:10px;margin:12px 6px}
+.avatar{flex:0 0 34px;height:34px;border-radius:12px;background:linear-gradient(180deg,#2f6aff,#1d4ed8)}
+.msg.user .avatar{background:linear-gradient(180deg,#9333ea,#6d28d9)}
+.bubble{
+  flex:1;background:#fff;border:1px solid var(--stroke);border-radius:14px;padding:12px;position:relative;
+  box-shadow:0 6px 18px rgba(15,23,42,.06);
+}
 .meta{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:12px;margin-bottom:6px;flex-wrap:wrap}
 .tdot{display:inline-flex;gap:3px;margin-left:6px}
-.tdot span{width:6px;height:6px;border-radius:50%;background:#87a5ff;opacity:.35;animation:blink 1.2s infinite}
+.tdot span{width:6px;height:6px;border-radius:50%;background:#2f6aff;opacity:.28;animation:blink 1.2s infinite}
 .tdot span:nth-child(2){animation-delay:.15s} .tdot span:nth-child(3){animation-delay:.3s}
-@keyframes blink{0%,100%{opacity:.2;transform:translateY(0)} 50%{opacity:.95;transform:translateY(-3px)}}
-.content pre{background:#0b1328 !important;border:1px solid var(--bd);border-radius:10px;padding:10px;overflow:auto;position:relative}
-.content code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-.copy-msg{position:absolute;top:8px;right:8px;font-size:12px;border:1px solid var(--bd);
-  padding:3px 8px;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer}
-.copy-msg:hover{color:var(--ink);border-color:var(--bd2)}
-.copy-code{position:absolute;top:6px;right:6px;font-size:12px;border:1px solid var(--bd);
-  padding:2px 6px;border-radius:7px;background:rgba(0,0,0,.2);color:#c9d4ff;cursor:pointer}
+@keyframes blink{0%,100%{opacity:.18;transform:translateY(0)} 50%{opacity:.95;transform:translateY(-3px)}}
 
-/* 模型预设条（可横向滚动） */
+.content pre{
+  background:#f6f8fa !important;border:1px solid var(--stroke);border-radius:10px;padding:10px;overflow:auto;position:relative
+}
+.content code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.copy-msg{
+  position:absolute;top:8px;right:8px;font-size:12px;border:1px solid var(--stroke);padding:3px 8px;border-radius:8px;
+  background:#fff;color:var(--muted);cursor:pointer
+}
+.copy-msg:hover{color:#111;border-color:var(--stroke-strong)}
+.copy-code{
+  position:absolute;top:6px;right:6px;font-size:12px;border:1px solid var(--stroke);padding:2px 6px;border-radius:7px;
+  background:#fff;color:#0f172a;cursor:pointer
+}
+
+/* 预设条 */
 .presetbar{display:flex;gap:8px;overflow:auto;padding:2px 2px 2px 0}
 .presetbar::-webkit-scrollbar{height:8px}
-.presetbar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:999px}
-.chip-btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--bd);border-radius:999px;
-  background:linear-gradient(180deg,#162150,#121a38); color:#cfe0ff; padding:6px 10px; cursor:pointer; white-space:nowrap}
-.chip-btn .x{font-weight:700;opacity:.7;cursor:pointer}
-.chip-btn.active{outline:2px solid rgba(106,160,255,.45)}
+.presetbar::-webkit-scrollbar-thumb{background:rgba(31,41,55,.2);border-radius:999px}
+.chip-btn{
+  display:inline-flex;align-items:center;gap:8px;border:1px solid var(--stroke);border-radius:999px;background:#fff;
+  color:#0f172a;padding:6px 10px;cursor:pointer;white-space:nowrap
+}
+.chip-btn .x{font-weight:800;opacity:.6;cursor:pointer}
+.chip-btn.active{outline:2px solid rgba(47,106,255,.28)}
 
 /* 选图条 */
 .imgbar{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-.imgbar img{height:44px;border-radius:10px;border:1px solid var(--bd)}
+.imgbar img{height:44px;border-radius:10px;border:1px solid var(--stroke)}
 
-/* composer：底部粘性 + 安全区 */
-.composer{position:sticky;bottom:0;left:0;right:0;border-top:1px solid var(--bd);
-  background:linear-gradient(180deg,#101838,#0e162f); border-radius:12px; padding:8px; margin-top:8px}
+/* composer */
+.composer{position:sticky;bottom:0;left:0;right:0;border-top:1px dashed var(--stroke);background:#fff;border-radius:12px;padding:8px;margin-top:8px}
 .composer .row{display:flex;gap:8px;align-items:flex-end}
-textarea{width:100%;min-height:52px;max-height:180px;resize:vertical;border-radius:12px;border:1px solid var(--bd);
-  background:linear-gradient(180deg,#111939,#0f172e);color:var(--ink);padding:10px 12px;outline:none}
-.safe-bottom{height:calc(env(safe-area-inset-bottom,0px));}
+textarea{
+  width:100%;min-height:54px;max-height:200px;resize:vertical;border-radius:12px;border:1px solid var(--stroke);
+  background:#fff;color:var(--ink);padding:10px 12px;outline:none
+}
+.safe-bottom{height:calc(env(safe-area-inset-bottom,0px))}
 
-/* 控制台 / 日志 */
+/* 日志 */
 h3{margin:6px 0 10px;font-size:14px;color:var(--muted)}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .logs{height:44vh;min-height:260px;overflow:auto}
-.log{border:1px solid var(--bd);border-radius:12px;padding:10px;margin-bottom:10px;background:linear-gradient(180deg,#0d142c,#0b1126)}
+.log{border:1px solid var(--stroke);border-radius:12px;padding:10px;margin-bottom:10px;background:#fff;box-shadow:var(--shadow)}
 .log .head{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted)}
-.badge{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--bd);background:#0e214f}
-.badge.ok{color:#86efac;border-color:rgba(134,239,172,.45)} .badge.err{color:#ff9e9e;border-color:rgba(255,158,158,.5)}
-details{border:1px solid var(--bd);border-radius:10px;margin-top:8px;overflow:hidden}
-details>summary{cursor:pointer;padding:8px 10px;background:#0b1228}
-details pre{margin:0;padding:10px;background:#081022;overflow:auto}
+.badge{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--stroke);background:#eef2ff}
+.badge.ok{color:#16a34a;border-color:rgba(22,163,74,.3);background:#ecfdf5}
+.badge.err{color:#ef4444;border-color:rgba(239,68,68,.35);background:#fef2f2}
+details{border:1px solid var(--stroke);border-radius:10px;margin-top:8px;overflow:hidden;background:#fafafa}
+details>summary{cursor:pointer;padding:8px 10px}
+details pre{margin:0;padding:10px;background:#f6f8fa;overflow:auto}
 
-/* 抽屉（手机端全屏） */
-.drawer{position:fixed;inset:auto 0 0 0; top:64px; margin:auto; max-width:520px; width:92vw;
-  background:linear-gradient(180deg,#111939,#0f172e); border:1px solid var(--bd); border-radius:16px; box-shadow:var(--shadow);
-  padding:14px; display:none; z-index:60}
+/* 抽屉 */
+.drawer{
+  position:fixed; inset:auto 0 0 0; top:64px; margin:auto; max-width:560px; width:92vw;
+  background:#fff; border:1px solid var(--stroke); border-radius:16px; box-shadow:var(--shadow); padding:14px; display:none; z-index:60
+}
 .drawer.show{display:block;animation:pop .16s ease-out}
 @media (max-width:700px){ .drawer{top:0; width:100vw; max-width:100vw; border-radius:0; } }
 @keyframes pop{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
 
-/* 浮动滚动按钮（移动端） */
+/* 浮动滚动按钮 */
 .float{position:fixed;right:10px;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px;z-index:40}
-.floating{border-radius:999px;border:1px solid var(--bd);background:#111939;color:var(--ink);padding:10px 12px;cursor:pointer;opacity:.85}
-.floating:hover{opacity:1;border-color:var(--bd2)}
+.floating{border-radius:999px;border:1px solid var(--stroke);background:#fff;color:var(--ink);padding:10px 12px;cursor:pointer;opacity:.9}
+.floating:hover{opacity:1;border-color:var(--stroke-strong)}
 </style>
 </head>
 <body class="tab-chat">
@@ -159,11 +196,11 @@ details pre{margin:0;padding:10px;background:#081022;overflow:auto}
     <div class="wrap">
       <div class="brand">
         <div class="dot" id="liveDot"></div>
-        <div>FlowChat Mobile</div>
+        <div>FlowChat · Bright</div>
         <span class="live" id="liveText">空闲</span>
       </div>
 
-      <!-- 功能键 -->
+      <!-- 功能开关 -->
       <div class="pill">Reasoning
         <label class="switch" title="推理模型：自动附加 --reasoning_effort high">
           <input id="isReasoning" type="checkbox"><span class="knob"></span>
@@ -181,10 +218,10 @@ details pre{margin:0;padding:10px;background:#081022;overflow:auto}
       </div>
 
       <!-- 字体大小 -->
-      <div class="pill range" title="字体大小">
+      <div class="pill" title="字体大小" style="gap:10px">
         <span style="opacity:.8">A</span>
         <input id="fsRange" type="range" min="14" max="20" value="16">
-        <span style="font-weight:700">A</span>
+        <span style="font-weight:800">A</span>
       </div>
 
       <!-- 视图 & 操作 -->
@@ -205,7 +242,7 @@ details pre{margin:0;padding:10px;background:#081022;overflow:auto}
     <section id="chatPanel" class="panel">
       <div class="section-head">
         <div class="kv">
-          <input id="modelId" class="input" style="min-width:230px" placeholder="模型ID：如 Claude-Sonnet-4 / Gemini-2.5-Pro / llama-3.1-405b">
+          <input id="modelId" class="input" style="min-width:260px" placeholder="模型ID：如 Claude-Sonnet-4 / Gemini-2.5-Pro / llama-3.1-405b">
           <button id="saveModelBtn" class="btn ghost" title="将当前模型ID保存到预设">⭐ 保存模型</button>
           <button id="regenerate" class="btn ghost" title="对上一条AI回复重生">↻ 重生</button>
           <button id="clearBtn" class="btn ghost">清屏</button>
@@ -256,9 +293,7 @@ details pre{margin:0;padding:10px;background:#081022;overflow:auto}
 <div class="drawer" id="drawer">
   <h3 style="margin:4px 0 10px">连接设置</h3>
   <div class="row">
-    <textarea id="apiKeys" style="flex:1;min-height:160px;border:1px solid var(--bd);border-radius:10px;
-      background:linear-gradient(180deg,#111939,#0f172e);color:var(--ink);padding:10px"
-      placeholder="API Keys（每行一个；自动轮转）"></textarea>
+    <textarea id="apiKeys" style="flex:1;min-height:160px;border:1px solid var(--stroke);border-radius:10px;background:#fff;color:var(--ink);padding:10px" placeholder="API Keys（每行一个；自动轮转）"></textarea>
   </div>
   <div class="row" style="margin-top:8px">
     <input id="baseUrl" class="input" style="flex:1" placeholder="基地址（默认 https://api.poe.com/v1；如遇 CORS 可填你的代理）">
@@ -277,7 +312,7 @@ details pre{margin:0;padding:10px;background:#081022;overflow:auto}
 </div>
 
 <script>
-/* ==== 渲染：Markdown 禁 HTML / 高亮 / 数学 ==== */
+/* ========= Markdown + 高亮（流式：hljs） + KaTeX ========== */
 const md = window.markdownit({
   html:false, linkify:true, breaks:true,
   highlight:(str,lang)=>{ try{
@@ -285,18 +320,43 @@ const md = window.markdownit({
     return hljs.highlightAuto(str).value;
   }catch(e){ return hljs.escapeHTML(str); } }
 });
-function renderMarkdownSafe(s){ return DOMPurify.sanitize(md.render(String(s??""))); }
-function typesetMath(el){ if(window.MathJax?.typesetPromise){ MathJax.typesetPromise([el]).catch(()=>{}); } }
+const safeRender = s => DOMPurify.sanitize(md.render(String(s ?? "")));
+function typesetMath(scope){
+  try{
+    renderMathInElement(scope, {
+      delimiters:[
+        {left:"$$", right:"$$", display:true},
+        {left:"\\[", right:"\\]", display:true},
+        {left:"$", right:"$", display:false},
+        {left:"\\(", right:"\\)", display:false}
+      ],
+      throwOnError:false
+    });
+  }catch{}
+}
+/* 回复完成后用 Shiki 二次精修代码块（颜色更细腻） */
+async function beautifyCodeBlocks(scope){
+  try{
+    const highlighter = await window.__shikiReady;
+    if(!highlighter) return;
+    scope.querySelectorAll("pre code").forEach(code=>{
+      const lang = code.className.replace(/^language-/, "") || "text";
+      const html = highlighter.codeToHtml(code.textContent, { lang, theme:'github-light' });
+      const pre = code.closest("pre");
+      if(pre){ pre.outerHTML = html.replace("<pre class=\"shiki","<pre class=\"shiki\" style=\"border:1px solid var(--stroke);border-radius:10px\""); }
+    });
+  }catch{}
+}
 
-/* ==== DOM / 状态 ==== */
+/* ========= DOM / 状态 ========= */
 const $ = s=>document.querySelector(s);
 const chatEl=$("#chat"), logsEl=$("#logs"), liveDot=$("#liveDot"), liveText=$("#liveText");
 const isReasoningEl=$("#isReasoning"), isVisionEl=$("#isVision"), isStreamEl=$("#isStream");
 const modelInput=$("#modelId"), presetsEl=$("#modelPresets");
 let messages=[]; let logs=[]; let controller=null; let rotatingIndex=0; let badKeySet=new Set();
-let lastAssistantIndex=-1; let streamRaf=false;
+let lastAssistantIndex=-1; let streamRaf=false; let isSending=false; let composing=false;
 
-/* ==== 恢复设置 ==== */
+/* ========= 恢复设置 ========= */
 (function restore(){
   modelInput.value = localStorage.getItem("poe:modelId") || "Claude-Sonnet-4";
   isReasoningEl.checked = localStorage.getItem("poe:isReasoning")==="1";
@@ -310,7 +370,7 @@ let lastAssistantIndex=-1; let streamRaf=false;
   renderModelPresets();
 })();
 
-/* ==== 模型ID：实时保存 + 预设管理 ==== */
+/* ========= 模型预设管理 ========= */
 modelInput.addEventListener("input", ()=> {
   localStorage.setItem("poe:modelId", modelInput.value.trim());
   highlightActivePreset();
@@ -327,11 +387,9 @@ function setModelPresets(arr){
   renderModelPresets();
 }
 function addModelPreset(){
-  const m = modelInput.value.trim();
-  if(!m) return;
-  const arr = getModelPresets();
-  if(!arr.includes(m)) arr.unshift(m);
-  setModelPresets(arr.slice(0,20)); // 最多存20个
+  const m = modelInput.value.trim(); if(!m) return;
+  const arr = getModelPresets(); if(!arr.includes(m)) arr.unshift(m);
+  setModelPresets(arr.slice(0,20));
   toast("模型已保存");
 }
 function removeModelPreset(m){
@@ -342,8 +400,7 @@ function renderModelPresets(){
   const arr = getModelPresets();
   presetsEl.innerHTML = "";
   if(!arr.length){
-    const tip=document.createElement("div");
-    tip.className="live"; tip.textContent="提示：输入模型ID后点“⭐ 保存模型”，会出现在这里。";
+    const tip=document.createElement("div"); tip.className="live"; tip.textContent="提示：输入模型ID后点“⭐ 保存模型”，会出现在这里。";
     presetsEl.appendChild(tip); return;
   }
   const current = (modelInput.value||"").trim();
@@ -369,7 +426,7 @@ function highlightActivePreset(){
   });
 }
 
-/* ==== 交互：标签页 / 抽屉 / 字号 / 滚动 ==== */
+/* ========= 交互：Tab / 抽屉 / 字号 / 滚动 ========= */
 $("#tabChat").addEventListener("click",()=>{ document.body.className="tab-chat"; $("#tabChat").classList.add("active"); $("#tabLogs").classList.remove("active"); });
 $("#tabLogs").addEventListener("click",()=>{ document.body.className="tab-logs"; $("#tabLogs").classList.add("active"); $("#tabChat").classList.remove("active"); });
 $("#openDrawer").addEventListener("click",()=> $("#drawer").classList.add("show"));
@@ -389,13 +446,13 @@ $("#fsRange").addEventListener("input",(e)=>{ const v=e.target.value; localStora
 $("#toBottom").addEventListener("click",()=> chatEl.scrollTop = chatEl.scrollHeight);
 $("#toTop").addEventListener("click",()=> chatEl.scrollTop = 0);
 
-/* 键盘弹起时收缩 chat 高度（移动端优化） */
+/* 键盘弹起高度自适应（移动端） */
 if(window.visualViewport){
   const adjust=()=>{ const vb=window.visualViewport; chatEl.style.height = `calc(100dvh - ${Math.min(260, 260 + ((window.innerHeight - vb.height) || 0))}px)`; };
   window.visualViewport.addEventListener("resize", adjust); window.visualViewport.addEventListener("scroll", adjust);
 }
 
-/* ==== 消息组件：气泡 + 复制 ==== */
+/* ========= 消息渲染 ========= */
 function addMessageBubble(role, rawContent, meta={}){
   const wrap = document.createElement("div"); wrap.className = "msg " + (role==="user"?"user":"assistant");
   const avatar = document.createElement("div"); avatar.className="avatar"; wrap.appendChild(avatar);
@@ -411,7 +468,7 @@ function addMessageBubble(role, rawContent, meta={}){
   const mdText = typeof rawContent==="string" ? rawContent :
     rawContent.map(p=> p.type==="text"?p.text : (p.type==="image_url"?`![image](${p.image_url?.url||""})`:"")).join("\n\n");
   content.dataset.raw = mdText;
-  content.innerHTML = renderMarkdownSafe(mdText);
+  content.innerHTML = safeRender(mdText);
   bubble.appendChild(content);
 
   const copyBtn = document.createElement("button"); copyBtn.className="copy-msg"; copyBtn.textContent="复制";
@@ -425,7 +482,7 @@ function addMessageBubble(role, rawContent, meta={}){
   return {wrap, content, metaEl};
 }
 
-/* 代码块复制按钮 */
+/* 代码块复制 + 基础高亮（流式） */
 function enhanceCodeBlocks(scope){
   const blocks = scope.querySelectorAll("pre");
   blocks.forEach(pre=>{
@@ -441,7 +498,7 @@ function enhanceCodeBlocks(scope){
   scope.querySelectorAll("pre code").forEach(el=>hljs.highlightElement(el));
 }
 
-/* ==== 选择图片 ==== */
+/* ========= 图片选择 ========= */
 const pickedImages=[];
 $("#imagePicker").addEventListener("change", async (e)=>{
   pickedImages.length=0; $("#imgPreview").innerHTML="";
@@ -451,9 +508,13 @@ $("#imagePicker").addEventListener("change", async (e)=>{
 });
 function fileToDataURL(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
 
-/* ==== 发送 / 流式 / 无感轮转 ==== */
+/* ========= 发送/流式/轮转 ========= */
 $("#sendBtn").addEventListener("click", send);
-$("#userInput").addEventListener("keydown",(e)=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); send(); }});
+$("#userInput").addEventListener("compositionstart", ()=> composing=true);
+$("#userInput").addEventListener("compositionend", ()=> composing=false);
+$("#userInput").addEventListener("keydown",(e)=>{
+  if(e.key==="Enter" && !e.shiftKey && !composing){ e.preventDefault(); send(); }
+});
 $("#clearBtn").addEventListener("click",()=>{ messages=[]; chatEl.innerHTML=""; toast("已清屏"); });
 $("#newChat").addEventListener("click",()=>{ messages=[]; chatEl.innerHTML=""; logs=[]; logsEl.innerHTML=""; toast("新会话已开始"); });
 $("#exportChat").addEventListener("click",()=> downloadFile("chat.json", JSON.stringify(messages,null,2)));
@@ -463,30 +524,40 @@ $("#stopBtn").addEventListener("click",()=> controller?.abort());
 $("#regenerate").addEventListener("click", regenerateLast);
 
 async function send(){
+  if(isSending) return; // 发送锁，避免重复提交
   const keys = parseKeys($("#apiKeys").value); if(!keys.length){ alert("请先在⚙️抽屉粘贴至少一个 API Key（每行一个）"); return; }
   const model = modelInput.value.trim(); if(!model){ alert("请填写模型ID"); return; }
   const isReasoning = isReasoningEl.checked, isVision = isVisionEl.checked, isStream = isStreamEl.checked;
 
-  let text = $("#userInput").value.trim();
+  let text = $("#userInput").value;
+  // —— 长文预检（避免“看起来发了但后端拒绝”）：字符上限（可按需调整）
+  const MAX_CHARS = 120000; // 约 120k 字符，超出大概率 413/超限
+  if((text?.length||0) > MAX_CHARS){ alert("输入过长（>120k 字符），请分段发送。"); return; }
+  text = (text||"").trim();
+
   if(!text && (!isVision || pickedImages.length===0)) return;
 
+  // Reasoning 参数在用户文本后自动追加（不污染 UI）
   const parts=[];
   if(text){
-    if(isReasoning && !text.endsWith("--reasoning_effort high")){
-      text += (/\s$/.test(text)?"":" ") + "--reasoning_effort high";
-    }
-    parts.push({type:"text", text});
+    const t = (isReasoning && !/--reasoning_effort\s+high\b/.test(text))
+      ? (text + (/\s$/.test(text)?"":" ") + "--reasoning_effort high")
+      : text;
+    parts.push({type:"text", text:t});
   }
   if(isVision && pickedImages.length) pickedImages.forEach(u=>parts.push({type:"image_url", image_url:{url:u}}));
+
+  // —— 先清空输入框（避免“长文还留在框里”的错觉）
+  $("#userInput").value="";
 
   const userMsg = {role:"user", content: parts.length?parts:text};
   messages.push(userMsg); addMessageBubble("user", userMsg.content, {label:"你"});
 
-  $("#userInput").value=""; $("#imgPreview").innerHTML=""; pickedImages.length=0;
+  $("#imgPreview").innerHTML=""; pickedImages.length=0;
 
   const ai = addMessageBubble("assistant", " ", {label:"AI", sub:model, thinking:true});
   lastAssistantIndex = messages.length; messages.push({role:"assistant", content:""});
-  controller = new AbortController(); setLive(true,"AI 正在思考…"); $("#sendBtn").disabled=true; $("#stopBtn").disabled=false;
+  controller = new AbortController(); setLive(true,"AI 正在思考…"); $("#sendBtn").disabled=true; $("#stopBtn").disabled=false; isSending=true;
 
   const payload = buildPayload(model);
   const baseUrl = ($("#baseUrl").value.trim() || "https://api.poe.com/v1");
@@ -504,16 +575,15 @@ async function send(){
     }
     pushLog({when:new Date(),status:200,ok:true,keyIndex:usedKeyIndex,url,request:payload,response:{note:"OK（可能为流式）"},ms:Date.now()-startedAt});
   }catch(err){
-    ai.metaEl.innerHTML = `<span>AI</span> · <span class="live">${model}</span>`;
+    ai.metaEl.innerHTML = `<span>AI</span> · <span class="live">${model}</span> · <span style="color:var(--err)">失败</span>`;
     updateAssistant(ai.content, `**请求失败**：${escapeHtml(err?.message||"未知错误")}（点“↻ 重生”可重试）`);
-    pushLog({when:new Date(),status:0,ok:false,keyIndex:usedKeyIndex,url,request:payload,error:String(err)});
-    liveDot.style.boxShadow="0 0 0 7px rgba(255,107,107,.25)"; liveText.textContent="请求失败";
+    pushLog({when:new Date(),status:err?.status||0,ok:false,keyIndex:usedKeyIndex,url,request:payload,error:String(err)});
+    liveDot.style.boxShadow="0 0 0 8px rgba(239,68,68,.22)"; liveText.textContent="请求失败";
   }finally{
-    controller=null; setLive(false); $("#sendBtn").disabled=false; $("#stopBtn").disabled=true;
+    controller=null; setLive(false); $("#sendBtn").disabled=false; $("#stopBtn").disabled=true; isSending=false;
     if(usage){ $("#usageHint").textContent = `tokens · prompt=${usage.prompt_tokens ?? "-"}, completion=${usage.completion_tokens ?? "-"}, total=${usage.total_tokens ?? "-"}`; }
   }
 }
-
 async function regenerateLast(){
   const lastUserIdx = [...messages].map((m,i)=>m.role==="user"?i:-1).filter(i=>i>=0).pop();
   if(lastUserIdx==null) return;
@@ -521,14 +591,13 @@ async function regenerateLast(){
   const nodes = chatEl.querySelectorAll(".msg.assistant"); if(nodes.length){ nodes[nodes.length-1].remove(); }
   send();
 }
-
 function buildPayload(model){
   const sys = $("#systemPrompt").value.trim();
   const msgs = sys ? [{role:"system", content:sys}, ...messages] : messages.slice();
   return { model, temperature: clamp(parseFloat($("#temp").value),0,2,1), messages: msgs, stream: isStreamEl.checked };
 }
 
-/* ==== 流式 & 非流式：后台无感轮转 ==== */
+/* ========= 流式 & 非流式：失败自动轮换 Key ========= */
 async function streamWithRotation(url, payload, keys, contentNode, setIdx){
   let attempt=0; let idx=nextGoodKeyIndex(keys.length); let acc=""; let usage=null;
   while(attempt < keys.length){
@@ -579,39 +648,52 @@ async function openStream(url, payload, key){
   });
   const reader = res.body?.getReader(); return {reader,res};
 }
+/* 稳健的 SSE 解析（兼容多行 data） */
 async function readSSE(reader, onDelta, onMeta){
   const dec=new TextDecoder(); let buf="";
   while(true){
     const {done, value} = await reader.read(); if(done) break;
     buf += dec.decode(value,{stream:true});
-    let p; while((p=buf.indexOf("\n\n"))>=0){
-      const pkt = buf.slice(0,p).trim(); buf = buf.slice(p+2);
-      pkt.split("\n").forEach(line=>{
-        const m=line.match(/^data:\s*(.*)$/); if(!m) return;
-        const d=m[1]; if(d==="[DONE]") return;
-        try{ const obj=JSON.parse(d);
+    let p;
+    while((p=buf.indexOf("\n\n"))>=0){
+      const chunk = buf.slice(0,p); buf = buf.slice(p+2);
+      const lines = chunk.split("\n").map(s=>s.trim()).filter(Boolean);
+      const datas = lines.filter(l=>l.startsWith("data:")).map(l=>l.slice(5).trim());
+      for(const d of datas){
+        if(d==="[DONE]") continue;
+        try{
+          const obj=JSON.parse(d);
           const delta = obj?.choices?.[0]?.delta?.content ?? "";
           if(delta) onDelta(delta);
           if(obj?.usage) onMeta?.(obj);
         }catch{}
-      });
+      }
     }
   }
 }
 
-/* ==== 渲染写入 ==== */
+/* ========= 渲染写入 ========= */
 function updateAssistant(node, text){
   node.dataset.raw = text;
-  node.innerHTML = renderMarkdownSafe(text);
-  if(!streamRaf){ streamRaf=true; requestAnimationFrame(()=>{ enhanceCodeBlocks(node); typesetMath(node); streamRaf=false; }); }
+  node.innerHTML = safeRender(text);
+  if(!streamRaf){
+    streamRaf=true;
+    requestAnimationFrame(()=>{
+      enhanceCodeBlocks(node);
+      typesetMath(node);
+      streamRaf=false;
+    });
+  }
 }
 function finalizeAssistant(ai, text, usedKeyIndex, model){
   ai.metaEl.innerHTML = `<span>AI</span> · <span class="live">${model}</span> · <span class="live">Key#${usedKeyIndex+1}</span>`;
   updateAssistant(ai.content, text || "_（空响应）_");
+  // 回复完成后，用 Shiki 把代码块再精修一遍（视觉更细腻）
+  beautifyCodeBlocks(ai.content);
   messages[messages.length-1] = {role:"assistant", content:text};
 }
 
-/* ==== 工具 ==== */
+/* ========= 工具函数 ========= */
 function parseKeys(t){ return (t||"").split(/\r?\n/).map(s=>s.trim()).filter(Boolean); }
 function clamp(v,min,max,def){ return Number.isFinite(v)?Math.max(min,Math.min(max,v)):def; }
 function escapeHtml(s){ return (s??"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
@@ -648,12 +730,12 @@ async function httpErr(res, data){
   const err=new Error(txt || `HTTP ${res.status}`); err.status=res.status; return err;
 }
 function setLive(on, text){
-  if(on){ liveDot.style.boxShadow="0 0 0 7px rgba(106,160,255,.25)"; liveText.textContent=text||"AI 正在思考…"; }
-  else { liveDot.style.boxShadow="0 0 0 7px rgba(106,160,255,.25)"; liveText.textContent="空闲"; }
+  if(on){ liveDot.style.boxShadow="0 0 0 8px rgba(47,106,255,.22)"; liveText.textContent=text||"AI 正在思考…"; }
+  else { liveDot.style.boxShadow="0 0 0 8px rgba(47,106,255,.22)"; liveText.textContent="空闲"; }
 }
 function toast(t){ liveText.textContent=t; setTimeout(()=> liveText.textContent="空闲", 1300); }
 
-/* ==== 小修复：移动端软键盘回到底部 ==== */
+/* 输入聚焦时滚动到底（移动端体验） */
 $("#userInput").addEventListener("focus",()=> setTimeout(()=> chatEl.scrollTop = chatEl.scrollHeight, 100));
 </script>
 
