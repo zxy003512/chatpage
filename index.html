@@ -79,11 +79,11 @@ a{color:var(--brand);text-decoration:none}
 }
 
 /* 聊天区 */
-.section-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
-.kv{display:flex;flex-wrap:wrap;gap:8px}
+.section-head{display:flex;flex-direction:column;gap:8px;margin-bottom:6px}
+.kv{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .input{padding:9px 12px;border:1px solid var(--bd);border-radius:10px;background:linear-gradient(180deg,#111939,#0f172e);color:var(--ink)}
 .chat{
-  height:calc(100dvh - 220px); /* mobile 视口高度 - 头部+工具栏+composer估算 */
+  height:calc(100dvh - 260px);
   min-height:46vh; overflow:auto; padding:6px; scroll-behavior:smooth;
 }
 @media (min-width:1101px){ .chat{height:68vh} }
@@ -103,6 +103,15 @@ a{color:var(--brand);text-decoration:none}
 .copy-msg:hover{color:var(--ink);border-color:var(--bd2)}
 .copy-code{position:absolute;top:6px;right:6px;font-size:12px;border:1px solid var(--bd);
   padding:2px 6px;border-radius:7px;background:rgba(0,0,0,.2);color:#c9d4ff;cursor:pointer}
+
+/* 模型预设条（可横向滚动） */
+.presetbar{display:flex;gap:8px;overflow:auto;padding:2px 2px 2px 0}
+.presetbar::-webkit-scrollbar{height:8px}
+.presetbar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:999px}
+.chip-btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--bd);border-radius:999px;
+  background:linear-gradient(180deg,#162150,#121a38); color:#cfe0ff; padding:6px 10px; cursor:pointer; white-space:nowrap}
+.chip-btn .x{font-weight:700;opacity:.7;cursor:pointer}
+.chip-btn.active{outline:2px solid rgba(106,160,255,.45)}
 
 /* 选图条 */
 .imgbar{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
@@ -154,7 +163,7 @@ details pre{margin:0;padding:10px;background:#081022;overflow:auto}
         <span class="live" id="liveText">空闲</span>
       </div>
 
-      <!-- 功能键：移动端紧凑 -->
+      <!-- 功能键 -->
       <div class="pill">Reasoning
         <label class="switch" title="推理模型：自动附加 --reasoning_effort high">
           <input id="isReasoning" type="checkbox"><span class="knob"></span>
@@ -196,10 +205,12 @@ details pre{margin:0;padding:10px;background:#081022;overflow:auto}
     <section id="chatPanel" class="panel">
       <div class="section-head">
         <div class="kv">
-          <input id="modelId" class="input" style="min-width:240px" placeholder="模型ID：如 Claude-Sonnet-4 / Gemini-2.5-Pro / llama-3.1-405b">
+          <input id="modelId" class="input" style="min-width:230px" placeholder="模型ID：如 Claude-Sonnet-4 / Gemini-2.5-Pro / llama-3.1-405b">
+          <button id="saveModelBtn" class="btn ghost" title="将当前模型ID保存到预设">⭐ 保存模型</button>
           <button id="regenerate" class="btn ghost" title="对上一条AI回复重生">↻ 重生</button>
           <button id="clearBtn" class="btn ghost">清屏</button>
         </div>
+        <div id="modelPresets" class="presetbar"></div>
       </div>
 
       <div id="chat" class="chat"></div>
@@ -281,12 +292,13 @@ function typesetMath(el){ if(window.MathJax?.typesetPromise){ MathJax.typesetPro
 const $ = s=>document.querySelector(s);
 const chatEl=$("#chat"), logsEl=$("#logs"), liveDot=$("#liveDot"), liveText=$("#liveText");
 const isReasoningEl=$("#isReasoning"), isVisionEl=$("#isVision"), isStreamEl=$("#isStream");
+const modelInput=$("#modelId"), presetsEl=$("#modelPresets");
 let messages=[]; let logs=[]; let controller=null; let rotatingIndex=0; let badKeySet=new Set();
 let lastAssistantIndex=-1; let streamRaf=false;
 
-/* ==== 恢复设置（移动端优先） ==== */
+/* ==== 恢复设置 ==== */
 (function restore(){
-  $("#modelId").value = localStorage.getItem("poe:modelId") || "Claude-Sonnet-4";
+  modelInput.value = localStorage.getItem("poe:modelId") || "Claude-Sonnet-4";
   isReasoningEl.checked = localStorage.getItem("poe:isReasoning")==="1";
   isVisionEl.checked    = localStorage.getItem("poe:isVision")==="1";
   $("#systemPrompt").value = localStorage.getItem("poe:sys") || "";
@@ -295,7 +307,67 @@ let lastAssistantIndex=-1; let streamRaf=false;
   $("#apiKeys").value = localStorage.getItem("poe:keys") || "";
   const fs = localStorage.getItem("poe:fs") || "16"; $("#fsRange").value = fs; document.documentElement.style.setProperty("--fs", fs+"px");
   isStreamEl.checked = (localStorage.getItem("poe:stream")!=="0");
+  renderModelPresets();
 })();
+
+/* ==== 模型ID：实时保存 + 预设管理 ==== */
+modelInput.addEventListener("input", ()=> {
+  localStorage.setItem("poe:modelId", modelInput.value.trim());
+  highlightActivePreset();
+});
+modelInput.addEventListener("change", ()=> localStorage.setItem("poe:modelId", modelInput.value.trim()));
+$("#saveModelBtn").addEventListener("click", addModelPreset);
+
+function getModelPresets(){
+  try{ return JSON.parse(localStorage.getItem("poe:modelPresets")||"[]").filter(Boolean); }catch{ return []; }
+}
+function setModelPresets(arr){
+  const uniq=[...new Set(arr.map(s=>s.trim()).filter(Boolean))];
+  localStorage.setItem("poe:modelPresets", JSON.stringify(uniq));
+  renderModelPresets();
+}
+function addModelPreset(){
+  const m = modelInput.value.trim();
+  if(!m) return;
+  const arr = getModelPresets();
+  if(!arr.includes(m)) arr.unshift(m);
+  setModelPresets(arr.slice(0,20)); // 最多存20个
+  toast("模型已保存");
+}
+function removeModelPreset(m){
+  const arr = getModelPresets().filter(x=>x!==m);
+  setModelPresets(arr);
+}
+function renderModelPresets(){
+  const arr = getModelPresets();
+  presetsEl.innerHTML = "";
+  if(!arr.length){
+    const tip=document.createElement("div");
+    tip.className="live"; tip.textContent="提示：输入模型ID后点“⭐ 保存模型”，会出现在这里。";
+    presetsEl.appendChild(tip); return;
+  }
+  const current = (modelInput.value||"").trim();
+  arr.forEach(m=>{
+    const chip=document.createElement("button"); chip.className="chip-btn"; chip.title=m;
+    if(m===current) chip.classList.add("active");
+    chip.innerHTML = `<span>${escapeHtml(m)}</span><span class="x" title="移除">×</span>`;
+    chip.addEventListener("click",(e)=>{
+      if(e.target.classList.contains("x")){ removeModelPreset(m); return; }
+      modelInput.value = m;
+      localStorage.setItem("poe:modelId", m);
+      highlightActivePreset();
+      toast("已切换模型");
+    });
+    presetsEl.appendChild(chip);
+  });
+}
+function highlightActivePreset(){
+  const current = (modelInput.value||"").trim();
+  presetsEl.querySelectorAll(".chip-btn").forEach(el=>{
+    if(el.firstChild && el.firstChild.textContent===current) el.classList.add("active");
+    else el.classList.remove("active");
+  });
+}
 
 /* ==== 交互：标签页 / 抽屉 / 字号 / 滚动 ==== */
 $("#tabChat").addEventListener("click",()=>{ document.body.className="tab-chat"; $("#tabChat").classList.add("active"); $("#tabLogs").classList.remove("active"); });
@@ -303,9 +375,8 @@ $("#tabLogs").addEventListener("click",()=>{ document.body.className="tab-logs";
 $("#openDrawer").addEventListener("click",()=> $("#drawer").classList.add("show"));
 $("#closeDrawer").addEventListener("click",()=> $("#drawer").classList.remove("show"));
 $("#saveBtn").addEventListener("click",()=>{
-  localStorage.setItem("poe:modelId", $("#modelId").value.trim());
+  localStorage.setItem("poe:modelId", modelInput.value.trim());
   localStorage.setItem("poe:isReasoning", isReasoningEl.checked?"1":"0");
-  localStorage.setItem("poe:isVision", isVisioning= isVisionEl.checked?"1":"0"); // typo guard
   localStorage.setItem("poe:isVision", isVisionEl.checked?"1":"0");
   localStorage.setItem("poe:sys", $("#systemPrompt").value);
   localStorage.setItem("poe:baseUrl", $("#baseUrl").value.trim());
@@ -318,9 +389,9 @@ $("#fsRange").addEventListener("input",(e)=>{ const v=e.target.value; localStora
 $("#toBottom").addEventListener("click",()=> chatEl.scrollTop = chatEl.scrollHeight);
 $("#toTop").addEventListener("click",()=> chatEl.scrollTop = 0);
 
-/* 键盘弹起时收缩 chat 高度（移动端） */
+/* 键盘弹起时收缩 chat 高度（移动端优化） */
 if(window.visualViewport){
-  const adjust=()=>{ const vb=window.visualViewport; chatEl.style.height = `calc(100dvh - ${Math.min(260, 260 + ( (window.innerHeight - vb.height) || 0))}px)`; };
+  const adjust=()=>{ const vb=window.visualViewport; chatEl.style.height = `calc(100dvh - ${Math.min(260, 260 + ((window.innerHeight - vb.height) || 0))}px)`; };
   window.visualViewport.addEventListener("resize", adjust); window.visualViewport.addEventListener("scroll", adjust);
 }
 
@@ -339,7 +410,7 @@ function addMessageBubble(role, rawContent, meta={}){
   const content = document.createElement("div"); content.className="content";
   const mdText = typeof rawContent==="string" ? rawContent :
     rawContent.map(p=> p.type==="text"?p.text : (p.type==="image_url"?`![image](${p.image_url?.url||""})`:"")).join("\n\n");
-  content.dataset.raw = mdText; // 用于复制原始 Markdown
+  content.dataset.raw = mdText;
   content.innerHTML = renderMarkdownSafe(mdText);
   bubble.appendChild(content);
 
@@ -354,7 +425,7 @@ function addMessageBubble(role, rawContent, meta={}){
   return {wrap, content, metaEl};
 }
 
-/* 为代码块添加独立复制按钮（含流式增量时重复调用也安全） */
+/* 代码块复制按钮 */
 function enhanceCodeBlocks(scope){
   const blocks = scope.querySelectorAll("pre");
   blocks.forEach(pre=>{
@@ -393,7 +464,7 @@ $("#regenerate").addEventListener("click", regenerateLast);
 
 async function send(){
   const keys = parseKeys($("#apiKeys").value); if(!keys.length){ alert("请先在⚙️抽屉粘贴至少一个 API Key（每行一个）"); return; }
-  const model = $("#modelId").value.trim(); if(!model){ alert("请填写模型ID"); return; }
+  const model = modelInput.value.trim(); if(!model){ alert("请填写模型ID"); return; }
   const isReasoning = isReasoningEl.checked, isVision = isVisionEl.checked, isStream = isStreamEl.checked;
 
   let text = $("#userInput").value.trim();
@@ -586,6 +657,6 @@ function toast(t){ liveText.textContent=t; setTimeout(()=> liveText.textContent=
 $("#userInput").addEventListener("focus",()=> setTimeout(()=> chatEl.scrollTop = chatEl.scrollHeight, 100));
 </script>
 
-<!-- 说明：前端不硬编码密钥；请在⚙️抽屉逐行粘贴。若遇 CORS，请在“基地址”填写你的中转服务；生产推荐服务端转发以保护密钥。 -->
+<!-- 说明：前端不硬编码密钥；在⚙️抽屉逐行粘贴。若遇 CORS，请在“基地址”填写你的中转服务；生产推荐服务端转发以保护密钥。 -->
 </body>
 </html>
